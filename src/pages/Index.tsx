@@ -1,13 +1,21 @@
 import { useState } from "react";
 import Dashboard from "@/components/Dashboard";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraduationCap, Users, BookOpen } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user, logout } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | 'admin' | null>(null);
 
-  // Role selection screen
+  // If user is authenticated, use their role, otherwise show role selection
+  if (!selectedRole && user) {
+    setSelectedRole(user.role);
+  }
+
+  // Role selection screen (for demo purposes - in production, role comes from auth)
   if (!selectedRole) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-6">
@@ -88,28 +96,39 @@ const Index = () => {
 
   // Dashboard view
   const getUserName = () => {
+    if (user) return user.name;
     if (selectedRole === 'student') return 'Sarah Johnson';
     if (selectedRole === 'teacher') return 'Mr. David Thompson';
     return 'Dr. Emily Rodriguez';
   };
 
+  const getUserAvatar = () => {
+    if (user) return user.avatar;
+    return `https://images.unsplash.com/photo-${selectedRole === 'student' ? '1494790108755-2616c4bb2108' : selectedRole === 'teacher' ? '1507003211169-0a1dd7228f2d' : '1573496359142-b8d87734a5a2'}?w=150&h=150&fit=crop&crop=face`;
+  };
+
   return (
-    <div className="relative">
-      <Dashboard 
-        userRole={selectedRole} 
-        userName={getUserName()}
-        userAvatar={`https://images.unsplash.com/photo-${selectedRole === 'student' ? '1494790108755-2616c4bb2108' : selectedRole === 'teacher' ? '1507003211169-0a1dd7228f2d' : '1573496359142-b8d87734a5a2'}?w=150&h=150&fit=crop&crop=face`}
-      />
-      
-      {/* Back button */}
-      <Button 
-        variant="ghost" 
-        className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-sm hover:bg-white"
-        onClick={() => setSelectedRole(null)}
-      >
-        ← Back to Role Selection
-      </Button>
-    </div>
+    <ProtectedRoute>
+      <div className="relative">
+        <Dashboard 
+          userRole={selectedRole} 
+          userName={getUserName()}
+          userAvatar={getUserAvatar()}
+          onLogout={logout}
+        />
+        
+        {/* Back button - only show if not authenticated (demo mode) */}
+        {!user && (
+          <Button 
+            variant="ghost" 
+            className="fixed top-4 left-4 z-50 bg-white/90 backdrop-blur-sm hover:bg-white"
+            onClick={() => setSelectedRole(null)}
+          >
+            ← Back to Role Selection
+          </Button>
+        )}
+      </div>
+    </ProtectedRoute>
   );
 };
 

@@ -22,9 +22,10 @@ interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
   userName: string;
   userAvatar?: string;
+  onLogout?: () => void;
 }
 
-const Dashboard = ({ userRole, userName, userAvatar }: DashboardProps) => {
+const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps) => {
   const getModulesForRole = () => {
     const baseModules = [
       { title: "Reports", description: "View academic reports", icon: FileText, color: "bg-gradient-primary" },
@@ -77,6 +78,16 @@ const Dashboard = ({ userRole, userName, userAvatar }: DashboardProps) => {
             <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
               <Bell className="h-5 w-5" />
             </Button>
+            {onLogout && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:bg-white/20"
+                onClick={onLogout}
+              >
+                Logout
+              </Button>
+            )}
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10 border-2 border-white/30">
                 <AvatarImage src={userAvatar} />
