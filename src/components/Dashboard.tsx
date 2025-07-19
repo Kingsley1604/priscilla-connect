@@ -2,6 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import AdminNotificationSystem from "@/components/notifications/AdminNotificationSystem";
+import MessageInput from "@/components/messaging/MessageInput";
 import { 
   BookOpen, 
   Users, 
@@ -75,9 +78,8 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
           </div>
           
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-              <Bell className="h-5 w-5" />
-            </Button>
+            <ThemeToggle />
+            <AdminNotificationSystem />
             {onLogout && (
               <Button 
                 variant="ghost" 
@@ -203,6 +205,14 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
               </Card>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Content Monitoring Demo */}
+      <section className="pb-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          <h3 className="text-xl font-semibold mb-6 text-foreground">Content Monitoring Demo</h3>
+          <MessageInput />
         </div>
       </section>
     </div>

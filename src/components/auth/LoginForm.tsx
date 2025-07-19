@@ -7,15 +7,24 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { validateInput, sanitizeInput } from '@/lib/security';
+import { useNotifications } from '@/hooks/useNotifications';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import PrivacyNotice from '@/components/privacy/PrivacyNotice';
+import SignupForm from './SignupForm';
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
   
   const { login } = useAuth();
+  const { sendAdminNotification, detectDevice, detectLocation } = useNotifications();
+
+  if (showSignup) {
+    return <SignupForm onSwitchToLogin={() => setShowSignup(false)} />;
+  }
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
@@ -53,7 +62,20 @@ const LoginForm = () => {
       
       const result = await login(sanitizedUsername, sanitizedPassword);
       
-      if (!result.success) {
+      if (result.success) {
+        // Send admin notification about login
+        const device = detectDevice();
+        const location = await detectLocation();
+        
+        sendAdminNotification({
+          type: 'login',
+          message: `User ${sanitizedUsername} logged in successfully`,
+          username: sanitizedUsername,
+          device,
+          location,
+          severity: 'low'
+        });
+      } else {
         setErrors({ general: result.error || 'Login failed' });
       }
     } catch (error) {
@@ -75,6 +97,9 @@ const LoginForm = () => {
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-6">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <PrivacyNotice />
       <div className="max-w-md w-full">
         <div className="text-center mb-8 animate-fade-in">
@@ -165,12 +190,25 @@ const LoginForm = () => {
             </form>
 
             <div className="mt-6 pt-4 border-t border-white/20">
-              <div className="text-center text-sm text-white/80">
-                <p className="mb-2">Demo Accounts:</p>
-                <div className="space-y-1 text-xs">
-                  <p><strong>Student:</strong> student1 / demo123</p>
-                  <p><strong>Teacher:</strong> teacher1 / demo123</p>
-                  <p><strong>Admin:</strong> admin1 / demo123</p>
+              <div className="text-center">
+                <p className="text-sm text-white/80 mb-4">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setShowSignup(true)}
+                    className="text-white hover:underline font-medium"
+                  >
+                    Sign up here
+                  </button>
+                </p>
+                
+                <div className="text-sm text-white/80">
+                  <p className="mb-2">Demo Accounts:</p>
+                  <div className="space-y-1 text-xs">
+                    <p><strong>Student:</strong> student1 / demo123</p>
+                    <p><strong>Teacher:</strong> teacher1 / demo123</p>
+                    <p><strong>Admin:</strong> admin1 / demo123</p>
+                  </div>
                 </div>
               </div>
             </div>
