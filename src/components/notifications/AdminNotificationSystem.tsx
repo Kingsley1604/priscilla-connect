@@ -21,13 +21,14 @@ interface Notification {
 
 const AdminNotificationSystem = () => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Check if user is admin
+  
+  // Check if user is admin - must be before any useState/useEffect hooks
   if (!user || user.role !== 'admin') {
     return null;
   }
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     // Load existing notifications from localStorage
