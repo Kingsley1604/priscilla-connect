@@ -21,12 +21,6 @@ interface Notification {
 
 const AdminNotificationSystem = () => {
   const { user } = useAuth();
-  
-  // Check if user is admin - must be before any useState/useEffect hooks
-  if (!user || user.role !== 'admin') {
-    return null;
-  }
-
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -94,6 +88,11 @@ const AdminNotificationSystem = () => {
       default: return <Bell className="h-4 w-4" />;
     }
   };
+
+  // Only render for admin users
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="relative">
