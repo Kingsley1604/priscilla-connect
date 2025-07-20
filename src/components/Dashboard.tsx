@@ -20,6 +20,7 @@ import {
   FileText,
   GamepadIcon
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
@@ -31,28 +32,28 @@ interface DashboardProps {
 const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps) => {
   const getModulesForRole = () => {
     const baseModules = [
-      { title: "Reports", description: "View academic reports", icon: FileText, color: "bg-gradient-primary" },
-      { title: "Calendar", description: "School events & schedules", icon: Calendar, color: "bg-gradient-secondary" },
-      { title: "Messages", description: "Communication hub", icon: MessageSquare, color: "bg-gradient-accent" },
+      { title: "Reports", description: "View academic reports", icon: FileText, color: "bg-gradient-primary", path: "/reports" },
+      { title: "Calendar", description: "School events & schedules", icon: Calendar, color: "bg-gradient-secondary", path: "/calendar" },
+      { title: "Messages", description: "Communication hub", icon: MessageSquare, color: "bg-gradient-accent", path: "/messages" },
     ];
 
     const studentModules = [
-      { title: "Priscilla Brain", description: "AI homework assistant", icon: Brain, color: "bg-gradient-primary" },
-      { title: "Priscilla Tube", description: "Educational videos", icon: PlayCircle, color: "bg-gradient-secondary" },
-      { title: "Games Arena", description: "Educational games", icon: GamepadIcon, color: "bg-gradient-accent" },
-      { title: "Achievements", description: "Your badges & rewards", icon: Trophy, color: "bg-gradient-primary" },
+      { title: "Priscilla Brain", description: "AI homework assistant", icon: Brain, color: "bg-gradient-primary", path: "/priscilla-brain" },
+      { title: "Priscilla Tube", description: "Educational videos", icon: PlayCircle, color: "bg-gradient-secondary", path: "/priscilla-tube" },
+      { title: "Games Arena", description: "Educational games", icon: GamepadIcon, color: "bg-gradient-accent", path: "/games-arena" },
+      { title: "Achievements", description: "Your badges & rewards", icon: Trophy, color: "bg-gradient-primary", path: "/achievements" },
     ];
 
     const teacherModules = [
-      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary" },
-      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary" },
-      { title: "Content Upload", description: "Upload educational content", icon: BookOpen, color: "bg-gradient-accent" },
+      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "#" },
+      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "#" },
+      { title: "Content Upload", description: "Upload educational content", icon: BookOpen, color: "bg-gradient-accent", path: "#" },
     ];
 
     const adminModules = [
-      { title: "School Management", description: "Overall school admin", icon: GraduationCap, color: "bg-gradient-primary" },
-      { title: "User Management", description: "Manage all users", icon: Users, color: "bg-gradient-secondary" },
-      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent" },
+      { title: "School Management", description: "Overall school admin", icon: GraduationCap, color: "bg-gradient-primary", path: "#" },
+      { title: "User Management", description: "Manage all users", icon: Users, color: "bg-gradient-secondary", path: "#" },
+      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "#" },
     ];
 
     if (userRole === 'student') return [...baseModules, ...studentModules];
@@ -182,27 +183,28 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
           <h3 className="text-xl font-semibold mb-6 text-foreground">Your Dashboard</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {modules.map((module, index) => (
-              <Card 
-                key={module.title} 
-                className="group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft"
-              >
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className={`p-3 rounded-lg ${module.color} shadow-soft`}>
-                      <module.icon className="h-6 w-6 text-white" />
+              <Link key={module.title} to={module.path || "#"}>
+                <Card 
+                  className="group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft"
+                >
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div className={`p-3 rounded-lg ${module.color} shadow-soft`}>
+                        <module.icon className="h-6 w-6 text-white" />
+                      </div>
+                      <Badge variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        Open
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      Open
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <CardTitle className="text-lg mb-2 group-hover:text-primary transition-colors">
-                    {module.title}
-                  </CardTitle>
-                  <CardDescription>{module.description}</CardDescription>
-                </CardContent>
-              </Card>
+                  </CardHeader>
+                  <CardContent>
+                    <CardTitle className="text-lg mb-2 group-hover:text-primary transition-colors">
+                      {module.title}
+                    </CardTitle>
+                    <CardDescription>{module.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
