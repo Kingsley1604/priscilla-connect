@@ -4,7 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Send, MoreVertical, CheckCheck, Check } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCheck, Check, Mic, Paperclip, Phone, Video, Play, Download, FileText, Image as ImageIcon, Music, VideoIcon } from 'lucide-react';
+import VoiceRecorder from './VoiceRecorder';
+import FileUpload from './FileUpload';
+import CallInterface from './CallInterface';
+import MessageBubble from './MessageBubble';
 
 interface Contact {
   id: string;
@@ -17,11 +21,22 @@ interface Contact {
 
 interface Message {
   id: string;
-  text: string;
+  text?: string;
   timestamp: Date;
   isSent: boolean;
   isDelivered: boolean;
   isRead: boolean;
+  type: 'text' | 'voice' | 'file' | 'image' | 'video' | 'audio';
+  voiceData?: {
+    audioBlob: Blob;
+    duration: number;
+  };
+  fileData?: {
+    file: File;
+    name: string;
+    size: string;
+    fileType: 'image' | 'video' | 'audio' | 'document' | 'other';
+  };
 }
 
 interface ChatInterfaceProps {
@@ -34,6 +49,14 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [activeCall, setActiveCall] = useState<{
+    contact: Contact;
+    type: 'audio' | 'video';
+    status: 'connecting' | 'ringing' | 'active' | 'ended';
+  } | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set(['1', '2'])); // Mock online users
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Mock messages for demo
@@ -45,7 +68,8 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
         timestamp: new Date(Date.now() - 3600000),
         isSent: false,
         isDelivered: true,
-        isRead: true
+        isRead: true,
+        type: 'text'
       },
       {
         id: '2',
@@ -53,7 +77,8 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
         timestamp: new Date(Date.now() - 3500000),
         isSent: true,
         isDelivered: true,
-        isRead: true
+        isRead: true,
+        type: 'text'
       },
       {
         id: '3',
@@ -61,7 +86,8 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
         timestamp: new Date(Date.now() - 1800000),
         isSent: false,
         isDelivered: true,
-        isRead: true
+        isRead: true,
+        type: 'text'
       }
     ],
     '2': [
@@ -71,7 +97,8 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
         timestamp: new Date(Date.now() - 7200000),
         isSent: false,
         isDelivered: true,
-        isRead: true
+        isRead: true,
+        type: 'text'
       },
       {
         id: '5',
@@ -79,7 +106,8 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
         timestamp: new Date(Date.now() - 7000000),
         isSent: true,
         isDelivered: true,
-        isRead: true
+        isRead: true,
+        type: 'text'
       }
     ]
   };
@@ -94,6 +122,19 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Simulate real-time messaging
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Simulate online status updates
+      const randomContacts = contacts.filter(() => Math.random() > 0.7);
+      const newOnlineUsers = new Set<string>();
+      randomContacts.forEach(contact => newOnlineUsers.add(contact.id));
+      setOnlineUsers(newOnlineUsers);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [contacts]);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedContact) return;
@@ -104,7 +145,8 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
       timestamp: new Date(),
       isSent: true,
       isDelivered: false,
-      isRead: false
+      isRead: false,
+      type: 'text'
     };
 
     setMessages(prev => [...prev, message]);
@@ -124,11 +166,109 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
     }, 3000);
   };
 
+  const handleSendVoiceMessage = (audioBlob: Blob, duration: number) => {
+    if (!selectedContact) return;
+
+    const message: Message = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      isSent: true,
+      isDelivered: false,
+      isRead: false,
+      type: 'voice',
+      voiceData: {
+        audioBlob,
+        duration
+      }
+    };
+
+    setMessages(prev => [...prev, message]);
+    setShowVoiceRecorder(false);
+
+    // Simulate delivery and read status
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.id ? { ...msg, isDelivered: true } : msg
+      ));
+    }, 1000);
+
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.id ? { ...msg, isRead: true } : msg
+      ));
+    }, 3000);
+  };
+
+  const handleSendFile = (file: File, fileInfo: any) => {
+    if (!selectedContact) return;
+
+    const message: Message = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      isSent: true,
+      isDelivered: false,
+      isRead: false,
+      type: 'file',
+      fileData: {
+        file,
+        name: fileInfo.name,
+        size: fileInfo.size,
+        fileType: fileInfo.type
+      }
+    };
+
+    setMessages(prev => [...prev, message]);
+    setShowFileUpload(false);
+
+    // Simulate delivery and read status
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.id ? { ...msg, isDelivered: true } : msg
+      ));
+    }, 1000);
+
+    setTimeout(() => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === message.id ? { ...msg, isRead: true } : msg
+      ));
+    }, 3000);
+  };
+
+  const startCall = (type: 'audio' | 'video') => {
+    if (!selectedContact) return;
+    
+    setActiveCall({
+      contact: selectedContact,
+      type,
+      status: 'connecting'
+    });
+
+    // Simulate call progression
+    setTimeout(() => {
+      setActiveCall(prev => prev ? { ...prev, status: 'ringing' } : null);
+    }, 1000);
+
+    setTimeout(() => {
+      setActiveCall(prev => prev ? { ...prev, status: 'active' } : null);
+    }, 3000);
+  };
+
+  const endCall = () => {
+    setActiveCall(null);
+  };
+
   const getLastMessage = (contact: Contact) => {
     const contactMessages = mockMessages[contact.id] || [];
     if (contactMessages.length === 0) return 'Start a conversation';
     const lastMsg = contactMessages[contactMessages.length - 1];
-    return lastMsg.text.length > 50 ? lastMsg.text.substring(0, 50) + '...' : lastMsg.text;
+    
+    if (lastMsg.type === 'voice') return '🎵 Voice message';
+    if (lastMsg.type === 'file') return '📎 File';
+    if (lastMsg.type === 'image') return '🖼️ Image';
+    if (lastMsg.type === 'video') return '🎥 Video';
+    if (lastMsg.type === 'audio') return '🎵 Audio';
+    
+    return lastMsg.text && lastMsg.text.length > 50 ? lastMsg.text.substring(0, 50) + '...' : lastMsg.text || '';
   };
 
   const getStatusIndicator = (message: Message) => {
@@ -194,16 +334,16 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium text-foreground">{contact.name}</p>
-                          <div className="flex items-center space-x-2">
-                            {contact.lastSeen === 'online' && (
-                              <Badge variant="secondary" className="bg-secondary/20 text-xs">
-                                Online
-                              </Badge>
-                            )}
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-foreground">{contact.name}</p>
+                            <div className="flex items-center space-x-2">
+                              {(contact.lastSeen === 'online' || onlineUsers.has(contact.id)) && (
+                                <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 text-xs">
+                                  Online
+                                </Badge>
+                              )}
+                            </div>
                           </div>
-                        </div>
                         <p className="text-sm text-muted-foreground truncate">
                           {getLastMessage(contact)}
                         </p>
@@ -244,58 +384,111 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
           <div className="flex-1">
             <h2 className="font-semibold">{selectedContact.name}</h2>
             <p className="text-sm text-white/80">
-              {selectedContact.lastSeen === 'online' ? 'Online' : `Last seen ${selectedContact.lastSeen}`}
+              {(selectedContact.lastSeen === 'online' || onlineUsers.has(selectedContact.id)) ? 'Online' : `Last seen ${selectedContact.lastSeen}`}
             </p>
           </div>
-          <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-white/20"
+              onClick={() => startCall('audio')}
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-white hover:bg-white/20"
+              onClick={() => startCall('video')}
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.isSent ? 'justify-end' : 'justify-start'}`}
-          >
-            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-              message.isSent 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-muted text-foreground'
-            }`}>
-              <p className="text-sm">{message.text}</p>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-xs opacity-70">
-                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                {getStatusIndicator(message)}
-              </div>
-            </div>
-          </div>
+          <MessageBubble 
+            key={message.id} 
+            message={message} 
+            getStatusIndicator={getStatusIndicator}
+          />
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Message Input */}
       <div className="border-t p-4">
-        <form onSubmit={handleSendMessage} className="flex space-x-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1"
-          />
-          <Button 
-            type="submit"
-            disabled={!newMessage.trim()}
-            className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+        {showVoiceRecorder && (
+          <div className="mb-3">
+            <VoiceRecorder 
+              onSendVoiceMessage={handleSendVoiceMessage}
+              onCancel={() => setShowVoiceRecorder(false)}
+            />
+          </div>
+        )}
+        
+        {showFileUpload && (
+          <div className="mb-3">
+            <FileUpload 
+              onSendFile={handleSendFile}
+              onCancel={() => setShowFileUpload(false)}
+            />
+          </div>
+        )}
+
+        {!showVoiceRecorder && !showFileUpload && (
+          <form onSubmit={handleSendMessage} className="flex space-x-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFileUpload(true)}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowVoiceRecorder(true)}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+            <Button 
+              type="submit"
+              disabled={!newMessage.trim()}
+              className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        )}
       </div>
+
+      {/* Call Interface */}
+      {activeCall && (
+        <CallInterface
+          contact={activeCall.contact}
+          callType={activeCall.type}
+          callStatus={activeCall.status}
+          onEndCall={endCall}
+        />
+      )}
     </div>
   );
 };
