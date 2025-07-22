@@ -59,6 +59,13 @@ const PhoneRegistration = ({ onRegistrationComplete }: PhoneRegistrationProps) =
 
   const formatPhoneNumber = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
+    
+    // Don't format the demo number
+    if (cleaned === '123456') {
+      return cleaned;
+    }
+    
+    // Format regular phone numbers
     const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,4})$/);
     if (match) {
       return [match[1], match[2], match[3]].filter(Boolean).join('-');
