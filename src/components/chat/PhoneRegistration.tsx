@@ -25,8 +25,10 @@ const PhoneRegistration = ({ onRegistrationComplete }: PhoneRegistrationProps) =
 
     // Simulate phone verification API call
     setTimeout(() => {
-      if (phoneNumber.length < 10) {
-        setError('Please enter a valid phone number');
+      // Allow demo number "123456" or require at least 10 digits for real numbers
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
+      if (cleanNumber !== '123456' && cleanNumber.length < 10) {
+        setError('Please enter a valid phone number or use "123456" for demo');
         setIsLoading(false);
         return;
       }
@@ -142,7 +144,7 @@ const PhoneRegistration = ({ onRegistrationComplete }: PhoneRegistrationProps) =
 
           <div className="mt-6 p-3 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground text-center">
-              <strong>Demo:</strong> Use any phone number and verification code "123456"
+              <strong>Demo:</strong> Use phone number "123456" and verification code "123456"
             </p>
           </div>
         </CardContent>
