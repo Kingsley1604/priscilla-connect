@@ -9,14 +9,14 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Pink color scheme for Priscilla Connect */
-    --background: 350 100% 98%;
-    --foreground: 340 15% 20%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 340 15% 20%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 340 15% 20%;
+    --popover-foreground: 0 0% 0%;
 
     /* Primary: Beautiful pink */
     --primary: 330 81% 60%;
@@ -74,13 +74,13 @@ All colors MUST be HSL.
 
   .dark {
     --background: 0 0% 5%;
-    --foreground: 330 20% 95%;
+    --foreground: 330 81% 70%;
 
     --card: 0 0% 8%;
-    --card-foreground: 330 20% 95%;
+    --card-foreground: 330 81% 70%;
 
     --popover: 0 0% 8%;
-    --popover-foreground: 330 20% 95%;
+    --popover-foreground: 330 81% 70%;
 
     --primary: 330 81% 60%;
     --primary-foreground: 0 0% 5%;
