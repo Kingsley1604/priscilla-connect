@@ -45,9 +45,9 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     ];
 
     const teacherModules = [
-      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "#" },
-      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "#" },
-      { title: "Content Upload", description: "Upload educational content", icon: BookOpen, color: "bg-gradient-accent", path: "#" },
+      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/class-management" },
+      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/analytics" },
+      { title: "Content Upload", description: "Upload educational content", icon: BookOpen, color: "bg-gradient-accent", path: "/content-upload" },
     ];
 
     const adminModules = [
@@ -78,34 +78,36 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <ThemeToggle />
-            <AdminNotificationSystem />
-            {onLogout && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-white hover:bg-white/20"
-                onClick={onLogout}
-              >
-                Logout
-              </Button>
-            )}
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 border-2 border-white/30">
-                <AvatarImage src={userAvatar} />
-                <AvatarFallback className="bg-white/20 text-white">
-                  {userName.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-right">
-                <p className="font-medium">{userName}</p>
-                <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                </Badge>
-              </div>
+            <div className="flex items-center space-x-4">
+              <ThemeToggle />
+              <AdminNotificationSystem />
+              {onLogout && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-white hover:bg-white/20"
+                  onClick={onLogout}
+                >
+                  Logout
+                </Button>
+              )}
+              <Link to="/profile-settings">
+                <div className="flex items-center space-x-3 cursor-pointer hover:bg-white/10 p-2 rounded-lg transition-colors">
+                  <Avatar className="h-10 w-10 border-2 border-white/30">
+                    <AvatarImage src={userAvatar} />
+                    <AvatarFallback className="bg-white/20 text-white">
+                      {userName.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="text-right">
+                    <p className="font-medium">{userName}</p>
+                    <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                      {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                    </Badge>
+                  </div>
+                </div>
+              </Link>
             </div>
-          </div>
         </div>
       </header>
 

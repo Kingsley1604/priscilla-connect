@@ -13,6 +13,13 @@ import Messages from "./pages/Messages";
 import PriscillaBrain from "./pages/PriscillaBrain";
 import PriscillaTube from "./pages/PriscillaTube";
 import GamesArena from "./pages/GamesArena";
+import Analytics from "./pages/teacher/Analytics";
+import ContentUpload from "./pages/teacher/ContentUpload";
+import ClassManagement from "./pages/teacher/ClassManagement";
+import ProfileSettings from "./pages/teacher/ProfileSettings";
+import ExamResult from "./pages/reports/ExamResult";
+import EntranceResult from "./pages/reports/EntranceResult";
+import MidtermResult from "./pages/reports/MidtermResult";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +39,13 @@ const App = () => (
             <Route path="/priscilla-brain" element={<PriscillaBrain />} />
             <Route path="/priscilla-tube" element={<PriscillaTube />} />
             <Route path="/games-arena" element={<GamesArena />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/content-upload" element={<ContentUpload />} />
+            <Route path="/class-management" element={<ClassManagement />} />
+            <Route path="/profile-settings" element={<ProfileSettings />} />
+            <Route path="/reports/exam-result" element={<ExamResult />} />
+            <Route path="/reports/entrance-result" element={<EntranceResult />} />
+            <Route path="/reports/midterm-result" element={<MidtermResult />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

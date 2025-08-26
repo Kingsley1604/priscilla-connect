@@ -11,21 +11,21 @@ const Reports = () => {
       description: "School admission test scores",
       icon: Award,
       color: "bg-gradient-primary",
-      available: false
+      available: true
     },
     {
       title: "Midterm Result", 
       description: "Mid-semester examination scores",
       icon: FileText,
       color: "bg-gradient-secondary",
-      available: false
+      available: true
     },
     {
       title: "Exam Result",
       description: "Final examination scores",
       icon: BookOpen,
       color: "bg-gradient-accent", 
-      available: false
+      available: true
     },
     {
       title: "CBT Result",
@@ -79,11 +79,16 @@ const Reports = () => {
           <h3 className="text-xl font-semibold mb-6 text-foreground">Report Categories</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {reportSections.map((section) => (
-              <Card 
+              <Link 
                 key={section.title}
-                className="shadow-soft hover:shadow-medium transition-all duration-300"
+                to={
+                  section.title === "Exam Result" ? "/reports/exam-result" :
+                  section.title === "Entrance Result" ? "/reports/entrance-result" :
+                  section.title === "Midterm Result" ? "/reports/midterm-result" : "#"
+                }
               >
-                <CardHeader>
+                <Card className="shadow-soft hover:shadow-medium transition-all duration-300 cursor-pointer">
+                  <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className={`p-3 rounded-lg ${section.color} shadow-soft`}>
                       <section.icon className="h-6 w-6 text-white" />
@@ -105,7 +110,8 @@ const Reports = () => {
                     {section.available ? "View Report" : "Not Available"}
                   </Button>
                 </CardContent>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
 
