@@ -1,0 +1,582 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+
+interface Question {
+  id?: string;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: 'a' | 'b' | 'c' | 'd';
+  question_order: number;
+}
+
+interface Exam {
+  id: string;
+  title: string;
+  exam_type: 'entrance' | 'cbt';
+  duration_minutes: number;
+  status: 'draft' | 'active' | 'completed';
+  created_at: string;
+  total_questions?: number;
+}
+
+const ExamBuilder = () => {
+  const navigate = useNavigate();
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [isCreateExamOpen, setIsCreateExamOpen] = useState(false);
+  const [isCreateQuestionOpen, setIsCreateQuestionOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+
+  // Create exam form state
+  const [newExam, setNewExam] = useState<{
+    title: string;
+    exam_type: 'entrance' | 'cbt';
+    duration_minutes: number;
+  }>({
+    title: "",
+    exam_type: "entrance",
+    duration_minutes: 60
+  });
+
+  // Create question form state
+  const [newQuestion, setNewQuestion] = useState<Question>({
+    question_text: "",
+    option_a: "",
+    option_b: "",
+    option_c: "",
+    option_d: "",
+    correct_answer: 'a' as const,
+    question_order: 1
+  });
+
+  useEffect(() => {
+    loadExams();
+  }, []);
+
+  useEffect(() => {
+    if (selectedExam) {
+      loadQuestions(selectedExam.id);
+    }
+  }, [selectedExam]);
+
+  const loadExams = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data, error } = await supabase
+        .from("exams")
+        .select(`
+          *,
+          exam_questions (count)
+        `)
+        .eq("created_by", user.user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const examsWithCounts = data.map(exam => ({
+        ...exam,
+        total_questions: exam.exam_questions?.[0]?.count || 0
+      }));
+
+      setExams(examsWithCounts);
+    } catch (error) {
+      console.error("Error loading exams:", error);
+      toast.error("Failed to load exams");
+    }
+  };
+
+  const loadQuestions = async (examId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("*")
+        .eq("exam_id", examId)
+        .order("question_order");
+
+      if (error) throw error;
+      setQuestions((data || []).map(q => ({
+        ...q,
+        correct_answer: q.correct_answer as 'a' | 'b' | 'c' | 'd'
+      })));
+    } catch (error) {
+      console.error("Error loading questions:", error);
+      toast.error("Failed to load questions");
+    }
+  };
+
+  const createExam = async () => {
+    if (!newExam.title.trim()) {
+      toast.error("Please enter exam title");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data, error } = await supabase
+        .from("exams")
+        .insert({
+          title: newExam.title,
+          exam_type: newExam.exam_type,
+          duration_minutes: newExam.duration_minutes,
+          created_by: user.user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Exam created successfully!");
+      setIsCreateExamOpen(false);
+      setNewExam({ title: "", exam_type: "entrance", duration_minutes: 60 });
+      loadExams();
+      setSelectedExam(data);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      toast.error("Failed to create exam");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createQuestion = async () => {
+    if (!selectedExam) return;
+
+    if (!newQuestion.question_text.trim() || !newQuestion.option_a.trim() || 
+        !newQuestion.option_b.trim() || !newQuestion.option_c.trim() || 
+        !newQuestion.option_d.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const questionOrder = editingQuestion?.question_order || (questions.length + 1);
+      
+      if (editingQuestion) {
+        const { error } = await supabase
+          .from("exam_questions")
+          .update({
+            question_text: newQuestion.question_text,
+            option_a: newQuestion.option_a,
+            option_b: newQuestion.option_b,
+            option_c: newQuestion.option_c,
+            option_d: newQuestion.option_d,
+            correct_answer: newQuestion.correct_answer
+          })
+          .eq("id", editingQuestion.id);
+
+        if (error) throw error;
+        toast.success("Question updated successfully!");
+      } else {
+        const { error } = await supabase
+          .from("exam_questions")
+          .insert({
+            exam_id: selectedExam.id,
+            question_text: newQuestion.question_text,
+            option_a: newQuestion.option_a,
+            option_b: newQuestion.option_b,
+            option_c: newQuestion.option_c,
+            option_d: newQuestion.option_d,
+            correct_answer: newQuestion.correct_answer,
+            question_order: questionOrder
+          });
+
+        if (error) throw error;
+        toast.success("Question added successfully!");
+      }
+
+      setIsCreateQuestionOpen(false);
+      setEditingQuestion(null);
+      resetQuestionForm();
+      loadQuestions(selectedExam.id);
+      loadExams();
+    } catch (error) {
+      console.error("Error saving question:", error);
+      toast.error("Failed to save question");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteQuestion = async (questionId: string) => {
+    if (!confirm("Are you sure you want to delete this question?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("exam_questions")
+        .delete()
+        .eq("id", questionId);
+
+      if (error) throw error;
+
+      toast.success("Question deleted successfully!");
+      if (selectedExam) {
+        loadQuestions(selectedExam.id);
+        loadExams();
+      }
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      toast.error("Failed to delete question");
+    }
+  };
+
+  const toggleExamStatus = async (examId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
+    
+    try {
+      const { error } = await supabase
+        .from("exams")
+        .update({ status: newStatus })
+        .eq("id", examId);
+
+      if (error) throw error;
+
+      toast.success(`Exam ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
+      loadExams();
+    } catch (error) {
+      console.error("Error updating exam status:", error);
+      toast.error("Failed to update exam status");
+    }
+  };
+
+  const resetQuestionForm = () => {
+    setNewQuestion({
+      question_text: "",
+      option_a: "",
+      option_b: "",
+      option_c: "",
+      option_d: "",
+      correct_answer: 'a',
+      question_order: questions.length + 1
+    });
+  };
+
+  const editQuestion = (question: Question) => {
+    setEditingQuestion(question);
+    setNewQuestion({
+      question_text: question.question_text,
+      option_a: question.option_a,
+      option_b: question.option_b,
+      option_c: question.option_c,
+      option_d: question.option_d,
+      correct_answer: question.correct_answer,
+      question_order: question.question_order
+    });
+    setIsCreateQuestionOpen(true);
+  };
+
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/dashboard")}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <h1 className="text-3xl font-bold">Exam Builder</h1>
+          </div>
+          
+          <Dialog open={isCreateExamOpen} onOpenChange={setIsCreateExamOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Exam
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Exam</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Exam Title</Label>
+                  <Input
+                    id="title"
+                    value={newExam.title}
+                    onChange={(e) => setNewExam(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter exam title"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="type">Exam Type</Label>
+                  <Select 
+                    value={newExam.exam_type} 
+                    onValueChange={(value) => setNewExam(prev => ({ ...prev, exam_type: value as 'entrance' | 'cbt' }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entrance">Entrance Exam</SelectItem>
+                      <SelectItem value="cbt">CBT Test</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="duration">Duration (minutes)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={newExam.duration_minutes}
+                    onChange={(e) => setNewExam(prev => ({ ...prev, duration_minutes: parseInt(e.target.value) || 60 }))}
+                    min="1"
+                  />
+                </div>
+
+                <Button onClick={createExam} disabled={isLoading} className="w-full">
+                  {isLoading ? "Creating..." : "Create Exam"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Exams List */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Exams</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {exams.map((exam) => (
+                    <div
+                      key={exam.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors hover:bg-accent/50 ${
+                        selectedExam?.id === exam.id ? 'border-primary bg-primary/10' : 'border-muted-foreground/20'
+                      }`}
+                      onClick={() => setSelectedExam(exam)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{exam.title}</h4>
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
+                            <Badge variant={exam.exam_type === 'entrance' ? 'default' : 'secondary'}>
+                              {exam.exam_type.toUpperCase()}
+                            </Badge>
+                            <span>•</span>
+                            <span>{formatTime(exam.duration_minutes)}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {exam.total_questions} questions
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant={exam.status === 'active' ? 'default' : 'secondary'}>
+                            {exam.status}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleExamStatus(exam.id, exam.status);
+                            }}
+                          >
+                            {exam.status === 'active' ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {exams.length === 0 && (
+                    <p className="text-muted-foreground text-center py-8">
+                      No exams created yet
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Questions Management */}
+          <div className="lg:col-span-2">
+            {selectedExam ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>{selectedExam.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {questions.length} questions • {formatTime(selectedExam.duration_minutes)}
+                      </p>
+                    </div>
+                    
+                    <Dialog 
+                      open={isCreateQuestionOpen} 
+                      onOpenChange={(open) => {
+                        setIsCreateQuestionOpen(open);
+                        if (!open) {
+                          setEditingQuestion(null);
+                          resetQuestionForm();
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Question
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>
+                            {editingQuestion ? 'Edit Question' : 'Add New Question'}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="question">Question</Label>
+                            <Textarea
+                              id="question"
+                              value={newQuestion.question_text}
+                              onChange={(e) => setNewQuestion(prev => ({ ...prev, question_text: e.target.value }))}
+                              placeholder="Enter your question"
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {['a', 'b', 'c', 'd'].map((option) => (
+                              <div key={option}>
+                                <Label htmlFor={`option_${option}`}>Option {option.toUpperCase()}</Label>
+                                <Input
+                                  id={`option_${option}`}
+                                  value={newQuestion[`option_${option}` as keyof Question] as string}
+                                  onChange={(e) => setNewQuestion(prev => ({ 
+                                    ...prev, 
+                                    [`option_${option}`]: e.target.value 
+                                  }))}
+                                  placeholder={`Option ${option.toUpperCase()}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div>
+                            <Label htmlFor="correct">Correct Answer</Label>
+                            <Select 
+                              value={newQuestion.correct_answer} 
+                              onValueChange={(value) => setNewQuestion(prev => ({ ...prev, correct_answer: value as 'a' | 'b' | 'c' | 'd' }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="a">Option A</SelectItem>
+                                <SelectItem value="b">Option B</SelectItem>
+                                <SelectItem value="c">Option C</SelectItem>
+                                <SelectItem value="d">Option D</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button onClick={createQuestion} disabled={isLoading} className="w-full">
+                            {isLoading ? "Saving..." : editingQuestion ? "Update Question" : "Add Question"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {questions.map((question, index) => (
+                      <div key={question.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium">Question {index + 1}</h4>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => editQuestion(question)}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => deleteQuestion(question.id!)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm mb-3">{question.question_text}</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                          {['a', 'b', 'c', 'd'].map((option) => (
+                            <div 
+                              key={option}
+                              className={`p-2 rounded ${question.correct_answer === option ? 'bg-primary/10 border border-primary' : 'bg-muted'}`}
+                            >
+                              <span className="font-medium">{option.toUpperCase()}.</span> {question[`option_${option}` as keyof Question]}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    {questions.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No questions added yet. Click "Add Question" to get started.
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center h-96">
+                  <div className="text-center text-muted-foreground">
+                    <h3 className="text-lg font-medium mb-2">No Exam Selected</h3>
+                    <p>Select an exam from the list to manage its questions</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ExamBuilder;

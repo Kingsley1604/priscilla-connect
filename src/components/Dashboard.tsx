@@ -20,7 +20,7 @@ import {
   FileText,
   GamepadIcon
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
@@ -30,6 +30,7 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps) => {
+  const navigate = useNavigate();
   const getModulesForRole = () => {
     const baseModules = [
       { title: "Reports", description: "View academic reports", icon: FileText, color: "bg-gradient-primary", path: "/reports" },
@@ -123,6 +124,36 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
               {userRole === 'teacher' && "Ready to inspire young minds today?"}
               {userRole === 'admin' && "Let's make education better together."}
             </p>
+          </div>
+          
+          {/* Quick Access Buttons */}
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button 
+              onClick={() => navigate("/student/exam")}
+              variant="outline"
+              className="flex items-center space-x-2"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Take Exam</span>
+            </Button>
+            
+            <Button 
+              onClick={() => navigate("/teacher/exam-builder")}
+              variant="outline"
+              className="flex items-center space-x-2"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Create Exam</span>
+            </Button>
+            
+            <Button 
+              onClick={() => navigate("/admin/exam-results")}
+              variant="outline"
+              className="flex items-center space-x-2"
+            >
+              <Trophy className="w-4 h-4" />
+              <span>Manage Results</span>
+            </Button>
           </div>
 
           {/* Quick Stats */}
