@@ -14,16 +14,239 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      exam_attempts: {
+        Row: {
+          answers: Json
+          exam_id: string
+          id: string
+          score: number | null
+          started_at: string
+          student_id: string
+          submitted_at: string | null
+          time_remaining: number | null
+          token_number: string
+          total_questions: number
+        }
+        Insert: {
+          answers?: Json
+          exam_id: string
+          id?: string
+          score?: number | null
+          started_at?: string
+          student_id: string
+          submitted_at?: string | null
+          time_remaining?: number | null
+          token_number: string
+          total_questions: number
+        }
+        Update: {
+          answers?: Json
+          exam_id?: string
+          id?: string
+          score?: number | null
+          started_at?: string
+          student_id?: string
+          submitted_at?: string | null
+          time_remaining?: number | null
+          token_number?: string
+          total_questions?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_questions: {
+        Row: {
+          correct_answer: string
+          created_at: string
+          exam_id: string
+          id: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_order: number
+          question_text: string
+        }
+        Insert: {
+          correct_answer: string
+          created_at?: string
+          exam_id: string
+          id?: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_order: number
+          question_text: string
+        }
+        Update: {
+          correct_answer?: string
+          created_at?: string
+          exam_id?: string
+          id?: string
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          question_order?: number
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_results: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          attempt_id: string
+          created_at: string
+          exam_id: string
+          id: string
+          percentage: number
+          score: number
+          status: Database["public"]["Enums"]["result_status"]
+          student_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_id: string
+          created_at?: string
+          exam_id: string
+          id?: string
+          percentage: number
+          score: number
+          status?: Database["public"]["Enums"]["result_status"]
+          student_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attempt_id?: string
+          created_at?: string
+          exam_id?: string
+          id?: string
+          percentage?: number
+          score?: number
+          status?: Database["public"]["Enums"]["result_status"]
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_results_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "exam_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exam_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          exam_id: string
+          id: string
+          student_id: string | null
+          token_number: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          exam_id: string
+          id?: string
+          student_id?: string | null
+          token_number: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          exam_id?: string
+          id?: string
+          student_id?: string | null
+          token_number?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_tokens_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exams: {
+        Row: {
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          exam_type: Database["public"]["Enums"]["exam_type"]
+          id: string
+          status: Database["public"]["Enums"]["exam_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          exam_type?: Database["public"]["Enums"]["exam_type"]
+          id?: string
+          status?: Database["public"]["Enums"]["exam_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          exam_type?: Database["public"]["Enums"]["exam_type"]
+          id?: string
+          status?: Database["public"]["Enums"]["exam_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      auto_submit_expired_attempts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
-      [_ in never]: never
+      exam_status: "draft" | "active" | "completed"
+      exam_type: "entrance" | "cbt"
+      result_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +373,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      exam_status: ["draft", "active", "completed"],
+      exam_type: ["entrance", "cbt"],
+      result_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
