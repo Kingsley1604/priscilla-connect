@@ -120,6 +120,36 @@ const ExamInterface = () => {
     };
   }, [examStarted]);
 
+  // Disable text selection and prevent common exploits
+  useEffect(() => {
+    if (!examStarted) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      .exam-interface * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+      .exam-interface input, .exam-interface textarea {
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+        user-select: text !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, [examStarted]);
+
   const enterFullscreen = async () => {
     if (examContainerRef.current) {
       try {
@@ -437,7 +467,7 @@ const ExamInterface = () => {
   return (
     <div 
       ref={examContainerRef}
-      className="min-h-screen bg-background p-4 select-none"
+      className="exam-interface min-h-screen bg-background p-4 select-none"
       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
     >
       {/* Timer and Progress Header */}

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import AdminNotificationSystem from "@/components/notifications/AdminNotificationSystem";
 import MessageInput from "@/components/messaging/MessageInput";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { 
   BookOpen, 
   Users, 
@@ -39,6 +40,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     ];
 
     const studentModules = [
+      { title: "Take Exam", description: "Take entrance or CBT exam", icon: FileText, color: "bg-gradient-primary", path: "/student/exam" },
       { title: "Priscilla Brain", description: "AI homework assistant", icon: Brain, color: "bg-gradient-primary", path: "/priscilla-brain" },
       { title: "Priscilla Tube", description: "Educational videos", icon: PlayCircle, color: "bg-gradient-secondary", path: "/priscilla-tube" },
       { title: "Games Arena", description: "Educational games", icon: GamepadIcon, color: "bg-gradient-accent", path: "/games-arena" },
@@ -46,12 +48,15 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     ];
 
     const teacherModules = [
+      { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
       { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/class-management" },
       { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/analytics" },
       { title: "Content Upload", description: "Upload educational content", icon: BookOpen, color: "bg-gradient-accent", path: "/content-upload" },
     ];
 
     const adminModules = [
+      { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
+      { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-secondary", path: "/admin/announcements" },
       { title: "School Management", description: "Overall school admin", icon: GraduationCap, color: "bg-gradient-primary", path: "#" },
       { title: "User Management", description: "Manage all users", icon: Users, color: "bg-gradient-secondary", path: "#" },
       { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "#" },
@@ -126,35 +131,11 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
             </p>
           </div>
           
-          {/* Quick Access Buttons */}
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button 
-              onClick={() => navigate("/student/exam")}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Take Exam</span>
-            </Button>
-            
-            <Button 
-              onClick={() => navigate("/teacher/exam-builder")}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <Settings className="w-4 h-4" />
-              <span>Create Exam</span>
-            </Button>
-            
-            <Button 
-              onClick={() => navigate("/admin/exam-results")}
-              variant="outline"
-              className="flex items-center space-x-2"
-            >
-              <Trophy className="w-4 h-4" />
-              <span>Manage Results</span>
-            </Button>
-          </div>
+
+          {/* Announcements */}
+          {(userRole === 'student' || userRole === 'teacher') && (
+            <AnnouncementBanner userRole={userRole} />
+          )}
 
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

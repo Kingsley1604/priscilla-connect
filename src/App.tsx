@@ -23,6 +23,7 @@ import ExamResults from "./pages/admin/ExamResults";
 import ExamResult from "./pages/reports/ExamResult";
 import EntranceResult from "./pages/reports/EntranceResult";
 import MidtermResult from "./pages/reports/MidtermResult";
+import AnnouncementManager from "./components/admin/AnnouncementManager";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
             <Route path="/student/exam" element={<ExamInterface />} />
             <Route path="/admin/exam-results" element={<ExamResults />} />
+            <Route path="/admin/announcements" element={<AnnouncementManager />} />
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />
             <Route path="/reports/midterm-result" element={<MidtermResult />} />
