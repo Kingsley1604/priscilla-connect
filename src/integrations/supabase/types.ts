@@ -275,6 +275,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_exam_question_count: {
+        Args: { exam_id: string }
+        Returns: number
+      }
       get_exam_questions_for_attempt: {
         Args: { exam_attempt_id: string }
         Returns: {

@@ -226,13 +226,13 @@ const ExamInterface = () => {
         return;
       }
 
-      // Get question count first (we need this for the attempt)
-      const { data: questionCountData, error: countError } = await supabase
-        .from("exam_questions")
-        .select("id")
-        .eq("exam_id", examData.id);
+      // Get question count securely
+      const { data: questionCount, error: countError } = await supabase
+        .rpc('get_exam_question_count', {
+          exam_id: examData.id
+        });
 
-      if (countError || !questionCountData) {
+      if (countError || questionCount === null) {
         toast.error("Failed to load exam questions");
         return;
       }
@@ -244,7 +244,7 @@ const ExamInterface = () => {
           exam_id: examData.id,
           student_id: user.user?.id,
           token_number: examToken,
-          total_questions: questionCountData.length,
+          total_questions: questionCount,
           time_remaining: examData.duration_minutes * 60
         })
         .select()
