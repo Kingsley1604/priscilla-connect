@@ -55,7 +55,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     ];
 
     const adminModules = [
-      { title: "Pass Announcement", description: "Send messages to users", icon: Bell, color: "bg-gradient-secondary", path: "/admin/pass-announcement" },
+      { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
       { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/announcements" },
       { title: "School Management", description: "Overall school admin", icon: GraduationCap, color: "bg-gradient-primary", path: "#" },
