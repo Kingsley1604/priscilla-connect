@@ -275,6 +275,35 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_exam_questions_for_attempt: {
+        Args: { exam_attempt_id: string }
+        Returns: {
+          created_at: string
+          exam_id: string
+          id: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_order: number
+          question_text: string
+        }[]
+      }
+      get_exam_questions_for_review: {
+        Args: { exam_attempt_id: string }
+        Returns: {
+          correct_answer: string
+          created_at: string
+          exam_id: string
+          id: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question_order: number
+          question_text: string
+        }[]
+      }
     }
     Enums: {
       exam_status: "draft" | "active" | "completed"
