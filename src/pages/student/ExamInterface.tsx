@@ -226,29 +226,25 @@ const ExamInterface = () => {
         return;
       }
 
-      // Get randomized questions
-      const { data: questionsData, error: questionsError } = await supabase
+      // Get question count first (we need this for the attempt)
+      const { data: questionCountData, error: countError } = await supabase
         .from("exam_questions")
-        .select("*")
-        .eq("exam_id", examData.id)
-        .order("question_order");
+        .select("id")
+        .eq("exam_id", examData.id);
 
-      if (questionsError || !questionsData) {
+      if (countError || !questionCountData) {
         toast.error("Failed to load exam questions");
         return;
       }
 
-      // Shuffle questions for this student
-      const shuffledQuestions = [...questionsData].sort(() => Math.random() - 0.5);
-
-      // Create exam attempt
+      // Create exam attempt first
       const { data: attemptData, error: attemptError } = await supabase
         .from("exam_attempts")
         .insert({
           exam_id: examData.id,
           student_id: user.user?.id,
           token_number: examToken,
-          total_questions: shuffledQuestions.length,
+          total_questions: questionCountData.length,
           time_remaining: examData.duration_minutes * 60
         })
         .select()
@@ -258,6 +254,20 @@ const ExamInterface = () => {
         toast.error("Failed to create exam attempt");
         return;
       }
+
+      // Now fetch questions securely (without correct answers)
+      const { data: questionsData, error: questionsError } = await supabase
+        .rpc('get_exam_questions_for_attempt', {
+          exam_attempt_id: attemptData.id
+        });
+
+      if (questionsError || !questionsData) {
+        toast.error("Failed to load exam questions");
+        return;
+      }
+
+      // Shuffle questions for this student
+      const shuffledQuestions = [...questionsData].sort(() => Math.random() - 0.5);
 
       setExam(examData);
       setQuestions(shuffledQuestions);
