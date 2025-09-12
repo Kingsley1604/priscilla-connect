@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import PhoneRegistration from '@/components/chat/PhoneRegistration';
 import ContactSync from '@/components/chat/ContactSync';
-import ChatInterface from '@/components/chat/ChatInterface';
+import ChatInterfaceWithHeader from '@/components/chat/ChatInterfaceWithHeader';
 
 interface Contact {
   id: string;
@@ -76,7 +76,7 @@ const Messages = () => {
 
   if (chatUser) {
     return (
-      <ChatInterface 
+      <ChatInterfaceWithHeader 
         contacts={chatUser.contacts} 
         currentUser={{ phone: chatUser.phone, name: chatUser.name }}
       />

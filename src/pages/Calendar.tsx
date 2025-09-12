@@ -1,11 +1,22 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const Calendar = () => {
-  const upcomingEvents = [
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const userRole = (user as any)?.raw_user_meta_data?.role || (user as any)?.user_metadata?.role || 'student';
+  
+  const [events, setEvents] = useState([
     {
       id: 1,
       title: "Mathematics Exam",
@@ -13,7 +24,8 @@ const Calendar = () => {
       time: "09:00 AM",
       location: "Hall A",
       type: "exam",
-      description: "Final mathematics examination for SS2 students"
+      description: "Final mathematics examination for SS2 students",
+      createdBy: "admin"
     },
     {
       id: 2,
@@ -22,7 +34,8 @@ const Calendar = () => {
       time: "10:00 AM", 
       location: "Science Lab",
       type: "event",
-      description: "Annual science project presentations"
+      description: "Annual science project presentations",
+      createdBy: "admin"
     },
     {
       id: 3,
@@ -31,9 +44,71 @@ const Calendar = () => {
       time: "02:00 PM",
       location: "Conference Room",
       type: "meeting",
-      description: "Quarterly academic progress discussion"
+      description: "Quarterly academic progress discussion",
+      createdBy: "admin"
     }
-  ];
+  ]);
+
+  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    date: "",
+    time: "",
+    location: "",
+    type: "event",
+    description: ""
+  });
+  
+  const canManageEvents = userRole === 'admin' || userRole === 'teacher';
+  
+  const handleAddEvent = () => {
+    if (!newEvent.title || !newEvent.date || !newEvent.time) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const event = {
+      id: events.length + 1,
+      ...newEvent,
+      createdBy: user?.id || "unknown"
+    };
+    
+    setEvents([...events, event]);
+    setNewEvent({
+      title: "",
+      date: "",
+      time: "",
+      location: "",
+      type: "event",
+      description: ""
+    });
+    setIsAddEventOpen(false);
+    
+    toast({
+      title: "Success",
+      description: "Event added successfully!"
+    });
+  };
+  
+  const handleDeleteEvent = (eventId: number) => {
+    if (userRole === 'admin') {
+      setEvents(events.filter(event => event.id !== eventId));
+      toast({
+        title: "Success", 
+        description: "Event deleted successfully!"
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Only admins can delete events",
+        variant: "destructive"
+      });
+    }
+  };
 
   const getEventColor = (type: string) => {
     switch (type) {
@@ -57,14 +132,115 @@ const Calendar = () => {
               </Button>
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-              <CalendarIcon className="h-8 w-8" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                <CalendarIcon className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">Calendar</h1>
+                <p className="text-white/90">School events and schedules</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Calendar</h1>
-              <p className="text-white/90">School events and schedules</p>
-            </div>
+            
+            {canManageEvents && (
+              <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Event
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>Add New Event</DialogTitle>
+                    <DialogDescription>
+                      Create a new calendar event for students and teachers.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="title" className="text-right text-sm font-medium">
+                        Title
+                      </label>
+                      <Input
+                        id="title"
+                        value={newEvent.title}
+                        onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                        className="col-span-3"
+                        placeholder="Event title"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="date" className="text-right text-sm font-medium">
+                        Date
+                      </label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={newEvent.date}
+                        onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="time" className="text-right text-sm font-medium">
+                        Time
+                      </label>
+                      <Input
+                        id="time"
+                        type="time"
+                        value={newEvent.time}
+                        onChange={(e) => setNewEvent({...newEvent, time: e.target.value})}
+                        className="col-span-3"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="location" className="text-right text-sm font-medium">
+                        Location
+                      </label>
+                      <Input
+                        id="location"
+                        value={newEvent.location}
+                        onChange={(e) => setNewEvent({...newEvent, location: e.target.value})}
+                        className="col-span-3"
+                        placeholder="Event location"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="type" className="text-right text-sm font-medium">
+                        Type
+                      </label>
+                      <Select value={newEvent.type} onValueChange={(value) => setNewEvent({...newEvent, type: value})}>
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select event type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="event">Event</SelectItem>
+                          <SelectItem value="exam">Exam</SelectItem>
+                          <SelectItem value="meeting">Meeting</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <label htmlFor="description" className="text-right text-sm font-medium">
+                        Description
+                      </label>
+                      <Textarea
+                        id="description"
+                        value={newEvent.description}
+                        onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
+                        className="col-span-3"
+                        placeholder="Event description"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={handleAddEvent}>Add Event</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
       </header>
@@ -82,7 +258,7 @@ const Calendar = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-primary mb-1">5</div>
+                <div className="text-3xl font-bold text-primary mb-1">{events.length}</div>
                 <p className="text-sm text-muted-foreground">Upcoming events</p>
               </CardContent>
             </Card>
@@ -115,9 +291,18 @@ const Calendar = () => {
           </div>
 
           {/* Upcoming Events */}
-          <h3 className="text-xl font-semibold mb-6 text-foreground">Upcoming Events</h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-foreground">Upcoming Events</h3>
+            {canManageEvents && (
+              <Button onClick={() => setIsAddEventOpen(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Event
+              </Button>
+            )}
+          </div>
+          
           <div className="space-y-4">
-            {upcomingEvents.map((event) => (
+            {events.map((event) => (
               <Card key={event.id} className="shadow-soft hover:shadow-medium transition-shadow">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
@@ -144,26 +329,50 @@ const Calendar = () => {
                         </div>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                      {userRole === 'admin' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleDeleteEvent(event.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Calendar View Placeholder */}
+          {/* Monthly View */}
           <Card className="mt-8 shadow-soft">
             <CardHeader>
               <CardTitle className="text-lg">Monthly View</CardTitle>
-              <CardDescription>Interactive calendar coming soon</CardDescription>
+              <CardDescription>
+                {canManageEvents 
+                  ? "Interactive calendar with event management" 
+                  : "Interactive calendar view"
+                }
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-64 bg-muted/30 rounded-lg flex items-center justify-center">
                 <div className="text-center">
                   <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">Calendar widget will be available soon</p>
+                  <p className="text-muted-foreground">
+                    Full calendar widget with event management will be available soon
+                  </p>
+                  {canManageEvents && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      You can add and manage events using the buttons above
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>

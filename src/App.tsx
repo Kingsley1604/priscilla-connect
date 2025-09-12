@@ -10,6 +10,7 @@ import Reports from "./pages/Reports";
 import Achievements from "./pages/Achievements";
 import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
+import ComingSoon from "./pages/ComingSoon";
 import PriscillaBrain from "./pages/PriscillaBrain";
 import PriscillaTube from "./pages/PriscillaTube";
 import GamesArena from "./pages/GamesArena";
@@ -41,12 +42,12 @@ const App = () => (
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/messages" element={<Messages />} />
-            <Route path="/priscilla-brain" element={<PriscillaBrain />} />
-            <Route path="/priscilla-tube" element={<PriscillaTube />} />
-            <Route path="/games-arena" element={<GamesArena />} />
+        <Route path="/priscilla-brain" element={<ComingSoon title="Priscilla Brain" description="AI-powered homework assistant" />} />
+        <Route path="/priscilla-tube" element={<ComingSoon title="Priscilla Tube" description="Educational video content" />} />
+        <Route path="/games-arena" element={<ComingSoon title="Games Arena" description="Educational gaming platform" />} />
             <Route path="/teacher/analytics" element={<Analytics />} />
-            <Route path="/teacher/content-upload" element={<ContentUpload />} />
-            <Route path="/teacher/class-management" element={<ClassManagement />} />
+            <Route path="/teacher/content-upload" element={<ComingSoon title="Content Upload" description="Upload and manage educational content" />} />
+            <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
             <Route path="/teacher/profile-settings" element={<ProfileSettings />} />
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
             <Route path="/student/exam" element={<ExamInterface />} />

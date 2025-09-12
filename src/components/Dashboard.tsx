@@ -33,33 +33,33 @@ interface DashboardProps {
 const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps) => {
   const navigate = useNavigate();
   const getModulesForRole = () => {
-    const baseModules = [
+    const baseModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Reports", description: "View academic reports", icon: FileText, color: "bg-gradient-primary", path: "/reports" },
       { title: "Calendar", description: "School events & schedules", icon: Calendar, color: "bg-gradient-secondary", path: "/calendar" },
       { title: "Messages", description: "Communication hub", icon: MessageSquare, color: "bg-gradient-accent", path: "/messages" },
     ];
 
-    const studentModules = [
+    const studentModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Take Exam", description: "Take entrance or CBT exam", icon: FileText, color: "bg-gradient-primary", path: "/student/exam" },
-      { title: "Priscilla Brain", description: "AI homework assistant", icon: Brain, color: "bg-gradient-primary", path: "/priscilla-brain" },
-      { title: "Priscilla Tube", description: "Educational videos", icon: PlayCircle, color: "bg-gradient-secondary", path: "/priscilla-tube" },
-      { title: "Games Arena", description: "Educational games", icon: GamepadIcon, color: "bg-gradient-accent", path: "/games-arena" },
+      { title: "Priscilla Brain", description: "Coming Soon", icon: Brain, color: "bg-gradient-primary", path: "#", disabled: true },
+      { title: "Priscilla Tube", description: "Coming Soon", icon: PlayCircle, color: "bg-gradient-secondary", path: "#", disabled: true },
+      { title: "Games Arena", description: "Coming Soon", icon: GamepadIcon, color: "bg-gradient-accent", path: "#", disabled: true },
       { title: "Achievements", description: "Your badges & rewards", icon: Trophy, color: "bg-gradient-primary", path: "/achievements" },
     ];
 
-    const teacherModules = [
+    const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
-      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/class-management" },
+      { title: "Class Management", description: "Coming Soon", icon: Users, color: "bg-gradient-primary", path: "#", disabled: true },
       { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/analytics" },
-      { title: "Content Upload", description: "Upload educational content", icon: BookOpen, color: "bg-gradient-accent", path: "/content-upload" },
+      { title: "Content Upload", description: "Coming Soon", icon: BookOpen, color: "bg-gradient-accent", path: "#", disabled: true },
     ];
 
-    const adminModules = [
+    const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
       { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/announcements" },
-      { title: "School Management", description: "Overall school admin", icon: GraduationCap, color: "bg-gradient-primary", path: "#" },
-      { title: "User Management", description: "Manage all users", icon: Users, color: "bg-gradient-secondary", path: "#" },
+      { title: "School Management", description: "Coming Soon", icon: GraduationCap, color: "bg-gradient-primary", path: "#", disabled: true },
+      { title: "User Management", description: "Coming Soon", icon: Users, color: "bg-gradient-secondary", path: "#", disabled: true },
       { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "#" },
     ];
 
@@ -77,7 +77,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-              <GraduationCap className="h-8 w-8" />
+              <img src="/lovable-uploads/8531ab46-9eb8-4245-bea2-d0619fec2567.png" alt="Priscilla Connect Logo" className="h-8 w-8 rounded" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Priscilla Connect</h1>
@@ -198,22 +198,22 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
           <h3 className="text-xl font-semibold mb-6 text-foreground">Your Dashboard</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {modules.map((module, index) => (
-              <Link key={module.title} to={module.path || "#"}>
+              <Link key={module.title} to={module.disabled ? "#" : (module.path || "#")} className={module.disabled ? "pointer-events-none" : ""}>
                 <Card 
-                  className="group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft"
+                  className={`group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft ${module.disabled ? 'opacity-60' : ''}`}
                 >
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
-                      <div className={`p-3 rounded-lg ${module.color} shadow-soft`}>
+                      <div className={`p-3 rounded-lg ${module.color} shadow-soft ${module.disabled ? 'opacity-70' : ''}`}>
                         <module.icon className="h-6 w-6 text-white" />
                       </div>
-                      <Badge variant="outline" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        Open
+                      <Badge variant="outline" className={`${module.disabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                        {module.disabled ? "Soon" : "Open"}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <CardTitle className="text-lg mb-2 group-hover:text-primary transition-colors">
+                    <CardTitle className={`text-lg mb-2 transition-colors ${module.disabled ? 'text-muted-foreground' : 'group-hover:text-primary'}`}>
                       {module.title}
                     </CardTitle>
                     <CardDescription>{module.description}</CardDescription>
