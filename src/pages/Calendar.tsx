@@ -87,6 +87,11 @@ const CalendarPage = () => {
         date: format(date, 'yyyy-MM-dd')
       });
       setIsAddEventOpen(true);
+      
+      // Show immediate feedback
+      toast.success(`Creating event for ${format(date, 'MMMM d, yyyy')}`);
+    } else {
+      toast.info("Only teachers and admins can create events");
     }
   };
 
@@ -117,7 +122,7 @@ const CalendarPage = () => {
         .from('events')
         .insert([eventData])
         .select()
-        .single();
+        .maybeSingle();
         
       if (error) {
         console.error('Error creating event:', error);
@@ -425,11 +430,19 @@ const CalendarPage = () => {
                 }
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex justify-center">
+          <CardContent>
+            <div className="flex justify-center">
+              <div className="calendar-container w-full max-w-2xl">
                 <Calendar
                   onClickDay={handleDateClick}
-                  className="react-calendar"
+                  className="react-calendar w-full border rounded-lg shadow-sm"
+                  tileClassName={({ date, view }) => {
+                    const baseClasses = "relative min-h-[60px] p-2 text-center transition-all duration-200";
+                    if (view === 'month' && canManageEvents) {
+                      return `${baseClasses} hover:bg-primary/10 cursor-pointer hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 border border-transparent`;
+                    }
+                    return `${baseClasses} border border-transparent`;
+                  }}
                   tileContent={({ date, view }) => {
                     if (view === 'month') {
                       const dayEvents = visibleEvents.filter(event => 
@@ -437,8 +450,8 @@ const CalendarPage = () => {
                       );
                       if (dayEvents.length > 0) {
                         return (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {dayEvents.slice(0, 2).map((event, index) => (
+                          <div className="flex flex-wrap gap-1 mt-1 pointer-events-none absolute bottom-1 left-1 right-1">
+                            {dayEvents.slice(0, 3).map((event, index) => (
                               <div
                                 key={event.id}
                                 className={`w-2 h-2 rounded-full ${
@@ -448,8 +461,8 @@ const CalendarPage = () => {
                                 title={event.title}
                               />
                             ))}
-                            {dayEvents.length > 2 && (
-                              <div className="w-2 h-2 rounded-full bg-gray-400" title={`+${dayEvents.length - 2} more`} />
+                            {dayEvents.length > 3 && (
+                              <div className="w-2 h-2 rounded-full bg-gray-400" title={`+${dayEvents.length - 3} more`} />
                             )}
                           </div>
                         );
@@ -459,7 +472,18 @@ const CalendarPage = () => {
                   }}
                 />
               </div>
-            </CardContent>
+            </div>
+            {canManageEvents && (
+              <div className="text-center mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                  💡 Click on any date above to create an event for that day
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Events created by teachers need admin approval to be visible to students
+                </p>
+              </div>
+            )}
+          </CardContent>
           </Card>
 
           {/* Pending Approvals (Admin only) */}
