@@ -47,6 +47,54 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          date: string
+          description: string | null
+          id: string
+          location: string | null
+          status: string
+          time: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          date: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          status?: string
+          time?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          date?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          status?: string
+          time?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exam_attempts: {
         Row: {
           answers: Json

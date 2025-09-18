@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,51 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import Calendar from 'react-calendar';
+import { supabase } from "@/integrations/supabase/client";
+import { format } from 'date-fns';
+import 'react-calendar/dist/Calendar.css';
 
-const Calendar = () => {
-  const { toast } = useToast();
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  date: string;
+  time: string | null;
+  location: string | null;
+  type: string;
+  created_by: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+}
+
+const CalendarPage = () => {
   const { user } = useAuth();
   const userRole = (user as any)?.raw_user_meta_data?.role || (user as any)?.user_metadata?.role || 'student';
   
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      title: "Mathematics Exam",
-      date: "2024-01-15",
-      time: "09:00 AM",
-      location: "Hall A",
-      type: "exam",
-      description: "Final mathematics examination for SS2 students",
-      createdBy: "admin"
-    },
-    {
-      id: 2,
-      title: "Science Fair",
-      date: "2024-01-18",
-      time: "10:00 AM", 
-      location: "Science Lab",
-      type: "event",
-      description: "Annual science project presentations",
-      createdBy: "admin"
-    },
-    {
-      id: 3,
-      title: "Parent-Teacher Meeting",
-      date: "2024-01-20",
-      time: "02:00 PM",
-      location: "Conference Room",
-      type: "meeting",
-      description: "Quarterly academic progress discussion",
-      createdBy: "admin"
-    }
-  ]);
-
+  const [events, setEvents] = useState<Event[]>([]);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [newEvent, setNewEvent] = useState({
     title: "",
     date: "",
@@ -60,53 +47,158 @@ const Calendar = () => {
   });
   
   const canManageEvents = userRole === 'admin' || userRole === 'teacher';
-  
-  const handleAddEvent = () => {
-    if (!newEvent.title || !newEvent.date || !newEvent.time) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
+
+  // Load events from database
+  useEffect(() => {
+    loadEvents();
+  }, [user]);
+
+  const loadEvents = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('date', { ascending: true });
+        
+      if (error) {
+        console.error('Error loading events:', error);
+        return;
+      }
+      
+      // Type cast the status field to match our interface
+      const typedEvents = (data || []).map(event => ({
+        ...event,
+        status: event.status as 'pending' | 'approved' | 'rejected'
+      }));
+      
+      setEvents(typedEvents);
+    } catch (error) {
+      console.error('Error loading events:', error);
+    }
+  };
+
+  const handleDateClick = (date: Date) => {
+    if (canManageEvents) {
+      setSelectedDate(date);
+      setNewEvent({
+        ...newEvent,
+        date: format(date, 'yyyy-MM-dd')
       });
+      setIsAddEventOpen(true);
+    }
+  };
+
+  const handleAddEvent = async () => {
+    if (!newEvent.title || !newEvent.date) {
+      toast.error("Please fill in title and date");
       return;
     }
     
-    const event = {
-      id: events.length + 1,
-      ...newEvent,
-      createdBy: user?.id || "unknown"
-    };
+    if (!user) {
+      toast.error("You must be logged in to create events");
+      return;
+    }
     
-    setEvents([...events, event]);
-    setNewEvent({
-      title: "",
-      date: "",
-      time: "",
-      location: "",
-      type: "event",
-      description: ""
-    });
-    setIsAddEventOpen(false);
-    
-    toast({
-      title: "Success",
-      description: "Event added successfully!"
-    });
+    try {
+      const eventData = {
+        title: newEvent.title,
+        description: newEvent.description || null,
+        date: newEvent.date,
+        time: newEvent.time || null,
+        location: newEvent.location || null,
+        type: newEvent.type,
+        created_by: user.id,
+        status: userRole === 'admin' ? 'approved' : 'pending'
+      };
+
+      const { data, error } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select()
+        .single();
+        
+      if (error) {
+        console.error('Error creating event:', error);
+        toast.error("Failed to create event");
+        return;
+      }
+      
+      // Type cast the response to match our interface
+      const typedEvent = {
+        ...data,
+        status: data.status as 'pending' | 'approved' | 'rejected'
+      };
+      
+      setEvents([...events, typedEvent]);
+      setNewEvent({
+        title: "",
+        date: "",
+        time: "",
+        location: "",
+        type: "event",
+        description: ""
+      });
+      setIsAddEventOpen(false);
+      setSelectedDate(null);
+      
+      toast.success(userRole === 'admin' ? "Event created and approved!" : "Event created, pending approval");
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast.error("Failed to create event");
+    }
   };
   
-  const handleDeleteEvent = (eventId: number) => {
-    if (userRole === 'admin') {
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+        
+      if (error) {
+        console.error('Error deleting event:', error);
+        toast.error("Failed to delete event");
+        return;
+      }
+      
       setEvents(events.filter(event => event.id !== eventId));
-      toast({
-        title: "Success", 
-        description: "Event deleted successfully!"
-      });
-    } else {
-      toast({
-        title: "Error",
-        description: "Only admins can delete events",
-        variant: "destructive"
-      });
+      toast.success("Event deleted successfully!");
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast.error("Failed to delete event");
+    }
+  };
+
+  const handleApproveEvent = async (eventId: string) => {
+    if (userRole !== 'admin') return;
+    
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ 
+          status: 'approved', 
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', eventId);
+        
+      if (error) {
+        console.error('Error approving event:', error);
+        toast.error("Failed to approve event");
+        return;
+      }
+      
+      setEvents(events.map(event => 
+        event.id === eventId 
+          ? { ...event, status: 'approved' as const, approved_by: user?.id || null, approved_at: new Date().toISOString() }
+          : event
+      ));
+      toast.success("Event approved!");
+    } catch (error) {
+      console.error('Error approving event:', error);
+      toast.error("Failed to approve event");
     }
   };
 
@@ -118,6 +210,38 @@ const Calendar = () => {
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  // Filter events based on user role and status
+  const visibleEvents = events.filter(event => {
+    if (userRole === 'admin') return true;
+    if (event.created_by === user?.id) return true;
+    if (userRole === 'student' && event.status === 'approved') return true;
+    if (userRole === 'teacher' && event.status === 'approved') return true;
+    return false;
+  });
+
+  const pendingEvents = events.filter(event => event.status === 'pending');
+  const thisWeekEvents = visibleEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return eventDate >= today && eventDate <= weekFromNow;
+  });
+  const todayEvents = visibleEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    return eventDate.toDateString() === today.toDateString();
+  });
+  const examEvents = visibleEvents.filter(event => event.type === 'exam');
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,13 +279,13 @@ const Calendar = () => {
                   <DialogHeader>
                     <DialogTitle>Add New Event</DialogTitle>
                     <DialogDescription>
-                      Create a new calendar event for students and teachers.
+                      {selectedDate ? `Create event for ${format(selectedDate, 'MMMM d, yyyy')}` : 'Create a new calendar event'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <label htmlFor="title" className="text-right text-sm font-medium">
-                        Title
+                        Title *
                       </label>
                       <Input
                         id="title"
@@ -173,7 +297,7 @@ const Calendar = () => {
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <label htmlFor="date" className="text-right text-sm font-medium">
-                        Date
+                        Date *
                       </label>
                       <Input
                         id="date"
@@ -258,7 +382,7 @@ const Calendar = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-primary mb-1">{events.length}</div>
+                <div className="text-3xl font-bold text-primary mb-1">{thisWeekEvents.length}</div>
                 <p className="text-sm text-muted-foreground">Upcoming events</p>
               </CardContent>
             </Card>
@@ -271,7 +395,7 @@ const Calendar = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-secondary mb-1">2</div>
+                <div className="text-3xl font-bold text-secondary mb-1">{todayEvents.length}</div>
                 <p className="text-sm text-muted-foreground">Scheduled activities</p>
               </CardContent>
             </Card>
@@ -284,15 +408,129 @@ const Calendar = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-accent mb-1">3</div>
+                <div className="text-3xl font-bold text-accent mb-1">{examEvents.length}</div>
                 <p className="text-sm text-muted-foreground">This month</p>
               </CardContent>
             </Card>
           </div>
 
+          {/* Interactive Calendar */}
+          <Card className="mb-8 shadow-soft">
+            <CardHeader>
+              <CardTitle className="text-lg">Monthly View</CardTitle>
+              <CardDescription>
+                {canManageEvents 
+                  ? "Click on any date to create an event" 
+                  : "View all approved events"
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-center">
+                <Calendar
+                  onClickDay={handleDateClick}
+                  className="react-calendar"
+                  tileContent={({ date, view }) => {
+                    if (view === 'month') {
+                      const dayEvents = visibleEvents.filter(event => 
+                        new Date(event.date).toDateString() === date.toDateString()
+                      );
+                      if (dayEvents.length > 0) {
+                        return (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {dayEvents.slice(0, 2).map((event, index) => (
+                              <div
+                                key={event.id}
+                                className={`w-2 h-2 rounded-full ${
+                                  event.type === 'exam' ? 'bg-red-500' :
+                                  event.type === 'meeting' ? 'bg-green-500' : 'bg-blue-500'
+                                }`}
+                                title={event.title}
+                              />
+                            ))}
+                            {dayEvents.length > 2 && (
+                              <div className="w-2 h-2 rounded-full bg-gray-400" title={`+${dayEvents.length - 2} more`} />
+                            )}
+                          </div>
+                        );
+                      }
+                    }
+                    return null;
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pending Approvals (Admin only) */}
+          {userRole === 'admin' && pendingEvents.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-foreground mb-4">Pending Approvals</h3>
+              <div className="space-y-4">
+                {pendingEvents.map((event) => (
+                  <Card key={event.id} className="shadow-soft border-yellow-200">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="text-lg font-semibold text-foreground">{event.title}</h4>
+                            <Badge variant="outline" className={getEventColor(event.type)}>
+                              {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                            </Badge>
+                            <Badge variant="outline" className={getStatusColor(event.status)}>
+                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground mb-3">{event.description}</p>
+                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <CalendarIcon className="h-4 w-4" />
+                              {format(new Date(event.date), 'MMMM d, yyyy')}
+                            </div>
+                            {event.time && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                {event.time}
+                              </div>
+                            )}
+                            {event.location && (
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleApproveEvent(event.id)}
+                            className="text-green-600 hover:text-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Upcoming Events */}
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-foreground">Upcoming Events</h3>
+            <h3 className="text-xl font-semibold text-foreground">All Events</h3>
             {canManageEvents && (
               <Button onClick={() => setIsAddEventOpen(true)} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -302,85 +540,72 @@ const Calendar = () => {
           </div>
           
           <div className="space-y-4">
-            {events.map((event) => (
-              <Card key={event.id} className="shadow-soft hover:shadow-medium transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="text-lg font-semibold text-foreground">{event.title}</h4>
-                        <Badge variant="outline" className={getEventColor(event.type)}>
-                          {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground mb-3">{event.description}</p>
-                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          {event.date}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {event.time}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {event.location}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                      {userRole === 'admin' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => handleDeleteEvent(event.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+            {visibleEvents.length === 0 ? (
+              <Card className="shadow-soft">
+                <CardContent className="p-6 text-center">
+                  <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No events found</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              visibleEvents.map((event) => (
+                <Card key={event.id} className="shadow-soft hover:shadow-medium transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="text-lg font-semibold text-foreground">{event.title}</h4>
+                          <Badge variant="outline" className={getEventColor(event.type)}>
+                            {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                          </Badge>
+                          {(userRole === 'admin' || event.created_by === user?.id) && (
+                            <Badge variant="outline" className={getStatusColor(event.status)}>
+                              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-muted-foreground mb-3">{event.description}</p>
+                        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <CalendarIcon className="h-4 w-4" />
+                            {format(new Date(event.date), 'MMMM d, yyyy')}
+                          </div>
+                          {event.time && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-4 w-4" />
+                              {event.time}
+                            </div>
+                          )}
+                          {event.location && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-4 w-4" />
+                              {event.location}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {(userRole === 'admin' || event.created_by === user?.id) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleDeleteEvent(event.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
-
-          {/* Monthly View */}
-          <Card className="mt-8 shadow-soft">
-            <CardHeader>
-              <CardTitle className="text-lg">Monthly View</CardTitle>
-              <CardDescription>
-                {canManageEvents 
-                  ? "Interactive calendar with event management" 
-                  : "Interactive calendar view"
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 bg-muted/30 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">
-                    Full calendar widget with event management will be available soon
-                  </p>
-                  {canManageEvents && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      You can add and manage events using the buttons above
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </section>
     </div>
   );
 };
 
-export default Calendar;
+export default CalendarPage;

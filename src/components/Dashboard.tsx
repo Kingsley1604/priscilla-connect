@@ -77,7 +77,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
-              <img src="/lovable-uploads/8531ab46-9eb8-4245-bea2-d0619fec2567.png" alt="Priscilla Connect Logo" className="h-12 w-12 rounded" />
+              <GraduationCap className="h-12 w-12 text-white" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Priscilla Connect</h1>
