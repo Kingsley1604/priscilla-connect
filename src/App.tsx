@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SecurityProvider from "@/components/security/SecurityProvider";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import Reports from "./pages/Reports";
 import Achievements from "./pages/Achievements";
@@ -18,9 +19,12 @@ import Analytics from "./pages/teacher/Analytics";
 import ContentUpload from "./pages/teacher/ContentUpload";
 import ClassManagement from "./pages/teacher/ClassManagement";
 import ProfileSettings from "./pages/teacher/ProfileSettings";
+import UploadResult from "./pages/teacher/UploadResult";
 import ExamBuilder from "./pages/teacher/ExamBuilder";
 import ExamInterface from "./pages/student/ExamInterface";
 import ExamResults from "./pages/admin/ExamResults";
+import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
+import SystemSettings from "./pages/admin/SystemSettings";
 import ExamResult from "./pages/reports/ExamResult";
 import EntranceResult from "./pages/reports/EntranceResult";
 import MidtermResult from "./pages/reports/MidtermResult";
@@ -38,6 +42,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/achievements" element={<Achievements />} />
             <Route path="/calendar" element={<Calendar />} />
@@ -49,10 +54,13 @@ const App = () => (
             <Route path="/teacher/content-upload" element={<ComingSoon title="Content Upload" description="Upload and manage educational content" />} />
             <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
             <Route path="/teacher/profile-settings" element={<ProfileSettings />} />
+            <Route path="/teacher/upload-result" element={<UploadResult />} />
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
             <Route path="/student/exam" element={<ExamInterface />} />
             <Route path="/admin/exam-results" element={<ExamResults />} />
             <Route path="/admin/announcements" element={<AnnouncementManager />} />
+            <Route path="/admin/manage-announcements" element={<ManageAnnouncements />} />
+            <Route path="/admin/system-settings" element={<SystemSettings />} />
             <Route path="/admin/pass-announcement" element={<PassAnnouncement />} />
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />

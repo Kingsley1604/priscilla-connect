@@ -1,10 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, Award, BookOpen, Brain } from "lucide-react";
+import { ArrowLeft, FileText, Award, BookOpen, Brain, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Reports = () => {
+  const { user } = useAuth();
+  const userRole = user?.role || 'student';
   const reportSections = [
     {
       title: "Entrance Result",
@@ -41,22 +44,32 @@ const Reports = () => {
       {/* Header */}
       <header className="bg-gradient-hero text-white py-6 px-6 shadow-medium">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4 mb-4">
-            <Link to="/">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-              <FileText className="h-8 w-8" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                <FileText className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">Reports</h1>
+                <p className="text-white/90">View your academic performance</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Reports</h1>
-              <p className="text-white/90">View your academic performance</p>
-            </div>
+            
+            {/* Teacher Upload Result Button */}
+            {userRole === 'teacher' && (
+              <Link to="/teacher/upload-result">
+                <Button className="bg-green-600 hover:bg-green-700">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Result
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </header>

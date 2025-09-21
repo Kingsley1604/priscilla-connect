@@ -49,18 +49,18 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
-      { title: "Class Management", description: "Coming Soon", icon: Users, color: "bg-gradient-primary", path: "#", disabled: true },
+      { title: "Class Management", description: "Not Available", icon: Users, color: "bg-gradient-primary", path: "#", disabled: true },
       { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/analytics" },
-      { title: "Content Upload", description: "Coming Soon", icon: BookOpen, color: "bg-gradient-accent", path: "#", disabled: true },
+      { title: "Content Upload", description: "Not Available", icon: BookOpen, color: "bg-gradient-accent", path: "#", disabled: true },
     ];
 
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
-      { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/announcements" },
+      { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/manage-announcements" },
       { title: "School Management", description: "Coming Soon", icon: GraduationCap, color: "bg-gradient-primary", path: "#", disabled: true },
-      { title: "User Management", description: "Coming Soon", icon: Users, color: "bg-gradient-secondary", path: "#", disabled: true },
-      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "#" },
+      { title: "User Management", description: "Not Available", icon: Users, color: "bg-gradient-secondary", path: "#", disabled: true },
+      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "/admin/system-settings" },
     ];
 
     if (userRole === 'student') return [...baseModules, ...studentModules];
@@ -208,7 +208,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
                         <module.icon className="h-6 w-6 text-white" />
                       </div>
                       <Badge variant="outline" className={`${module.disabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                        {module.disabled ? "Soon" : "Open"}
+                        {module.disabled ? "Coming Soon" : "Open"}
                       </Badge>
                     </div>
                   </CardHeader>

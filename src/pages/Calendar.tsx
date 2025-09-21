@@ -80,6 +80,7 @@ const CalendarPage = () => {
   };
 
   const handleDateClick = (date: Date) => {
+    console.log('Date clicked:', date, 'User role:', userRole, 'Can manage events:', canManageEvents);
     if (canManageEvents) {
       setSelectedDate(date);
       setNewEvent({
