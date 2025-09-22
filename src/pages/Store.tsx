@@ -1,0 +1,268 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Search, ShoppingCart, Star, Filter, Package } from "lucide-react";
+import { Link } from "react-router-dom";
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  category: string;
+  rating: number;
+  stock: number;
+  description: string;
+}
+
+const Store = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [cart, setCart] = useState<{id: string, quantity: number}[]>([]);
+
+  const products: Product[] = [
+    {
+      id: "1",
+      name: "School Uniform - Complete Set",
+      price: 8500,
+      image: "/placeholder.svg",
+      category: "uniform",
+      rating: 4.8,
+      stock: 25,
+      description: "Complete school uniform set including shirt, trouser/skirt, tie, and socks"
+    },
+    {
+      id: "2", 
+      name: "Mathematics Textbook - JSS 1",
+      price: 2500,
+      image: "/placeholder.svg",
+      category: "textbooks",
+      rating: 4.5,
+      stock: 50,
+      description: "Comprehensive mathematics textbook for JSS 1 students"
+    },
+    {
+      id: "3",
+      name: "Exercise Notebooks - Pack of 10",
+      price: 1200,
+      image: "/placeholder.svg", 
+      category: "notebooks",
+      rating: 4.7,
+      stock: 100,
+      description: "High-quality exercise notebooks, 80 pages each"
+    },
+    {
+      id: "4",
+      name: "Sports Wear - Complete Kit",
+      price: 6500,
+      image: "/placeholder.svg",
+      category: "sportwear",
+      rating: 4.6,
+      stock: 15,
+      description: "Complete sports kit including jersey, shorts, and sports shoes"
+    },
+    {
+      id: "5",
+      name: "Friday Casual Wear",
+      price: 4500,
+      image: "/placeholder.svg",
+      category: "fridaywear", 
+      rating: 4.4,
+      stock: 30,
+      description: "Smart casual outfit for Fridays - polo shirt and khaki trousers"
+    },
+    {
+      id: "6",
+      name: "Science Practical Set",
+      price: 3500,
+      image: "/placeholder.svg",
+      category: "textbooks",
+      rating: 4.9,
+      stock: 20,
+      description: "Complete science practical kit with apparatus and safety gear"
+    }
+  ];
+
+  const categories = [
+    { id: "all", name: "All Items", icon: Package },
+    { id: "uniform", name: "School Uniform", icon: Package },
+    { id: "textbooks", name: "Textbooks", icon: Package },
+    { id: "notebooks", name: "Notebooks", icon: Package },
+    { id: "sportwear", name: "Sports Wear", icon: Package },
+    { id: "fridaywear", name: "Friday Wear", icon: Package }
+  ];
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const addToCart = (productId: string) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === productId);
+      if (existing) {
+        return prev.map(item => 
+          item.id === productId 
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { id: productId, quantity: 1 }];
+    });
+  };
+
+  const getCartItemCount = () => {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Package className="h-6 w-6" />
+                Priscilla Store
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                School supplies delivered to your doorstep
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Button variant="outline" className="relative">
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              Cart
+              {getCartItemCount() > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                  {getCartItemCount()}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* Search and Filter */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-2 overflow-x-auto">
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(category.id)}
+                className="whitespace-nowrap"
+              >
+                <category.icon className="h-4 w-4 mr-1" />
+                {category.name}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Store Notice */}
+        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <div className="bg-blue-500 text-white p-2 rounded-full">
+                <Package className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                  Parent-Friendly Shopping
+                </h3>
+                <p className="text-blue-700 dark:text-blue-300 text-sm mt-1">
+                  Students can browse and add items to cart. Parents can complete purchases at home for safe delivery to school or home address.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Products Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+                <Package className="h-12 w-12 text-slate-400" />
+              </div>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-lg">{product.name}</h3>
+                  <Badge variant={product.stock > 10 ? "default" : "destructive"}>
+                    {product.stock > 10 ? "In Stock" : "Low Stock"}
+                  </Badge>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-3">{product.description}</p>
+                
+                <div className="flex items-center gap-1 mb-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i < Math.floor(product.rating) 
+                          ? "text-yellow-400 fill-current" 
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                  <span className="text-sm text-muted-foreground ml-1">
+                    ({product.rating})
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-2xl font-bold text-primary">
+                      ₦{product.price.toLocaleString()}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={() => addToCart(product.id)}
+                    disabled={product.stock === 0}
+                    size="sm"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    Add to Cart
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-muted-foreground mb-2">No products found</h3>
+            <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Store;

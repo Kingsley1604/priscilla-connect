@@ -3,6 +3,9 @@ import { useAuth } from '@/hooks/useAuth';
 import PhoneRegistration from '@/components/chat/PhoneRegistration';
 import ContactSync from '@/components/chat/ContactSync';
 import ChatInterfaceWithHeader from '@/components/chat/ChatInterfaceWithHeader';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Contact {
   id: string;
@@ -76,10 +79,20 @@ const Messages = () => {
 
   if (chatUser) {
     return (
-      <ChatInterfaceWithHeader 
-        contacts={chatUser.contacts} 
-        currentUser={{ phone: chatUser.phone, name: chatUser.name }}
-      />
+      <div>
+        <div className="p-4 border-b">
+          <Link to="/">
+            <Button variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </div>
+        <ChatInterfaceWithHeader 
+          contacts={chatUser.contacts} 
+          currentUser={{ phone: chatUser.phone, name: chatUser.name }}
+        />
+      </div>
     );
   }
 

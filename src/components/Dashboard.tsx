@@ -41,6 +41,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const studentModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Take Exam", description: "Take entrance or CBT exam", icon: FileText, color: "bg-gradient-primary", path: "/student/exam" },
+      { title: "Store", description: "School supplies & uniforms", icon: Trophy, color: "bg-gradient-accent", path: "/store" },
       { title: "Priscilla Brain", description: "Coming Soon", icon: Brain, color: "bg-gradient-primary", path: "#", disabled: true },
       { title: "Priscilla Tube", description: "Coming Soon", icon: PlayCircle, color: "bg-gradient-secondary", path: "#", disabled: true },
       { title: "Games Arena", description: "Coming Soon", icon: GamepadIcon, color: "bg-gradient-accent", path: "#", disabled: true },

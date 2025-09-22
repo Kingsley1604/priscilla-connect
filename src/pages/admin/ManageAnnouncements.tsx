@@ -148,69 +148,70 @@ const ManageAnnouncements = () => {
             </div>
           </div>
           
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Announcement
-              </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Create New Announcement</DialogTitle>
                 <DialogDescription>
                   Create a new announcement {canManageAll ? 'that will be immediately active' : 'for admin approval'}
                 </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    value={newAnnouncement.title}
-                    onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
-                    placeholder="Enter announcement title"
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium">Content</label>
-                  <Textarea
-                    value={newAnnouncement.content}
-                    onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
-                    placeholder="Enter announcement content"
-                    rows={5}
-                  />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium">Target Audience</label>
-                  <Select 
-                    value={newAnnouncement.target_roles.join(',')} 
-                    onValueChange={(value) => setNewAnnouncement({...newAnnouncement, target_roles: value.split(',')})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student,teacher">Students & Teachers</SelectItem>
-                      <SelectItem value="student">Students Only</SelectItem>
-                      <SelectItem value="teacher">Teachers Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+            </CardHeader>
+          </Card>
+        )}
+
+        {/* All Announcements */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              {canManageAll ? 'All Active Announcements' : 'My Announcements'}
+            </CardTitle>
+            <CardDescription>
+              {canManageAll ? 'Manage all published announcements' : 'View your created announcements'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {announcements.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-500">No announcements found</p>
               </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateAnnouncement}>
-                  {canManageAll ? 'Create & Publish' : 'Submit for Approval'}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            ) : (
+              <div className="space-y-4">
+                {announcements.map((announcement) => (
+                  <div key={announcement.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg">{announcement.title}</h3>
+                        <p className="text-slate-600 dark:text-slate-400 mt-1">{announcement.content}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge variant={announcement.is_active ? "default" : "secondary"}>
+                            {announcement.is_active ? 'Active' : 'Pending'}
+                          </Badge>
+                          <Badge variant="outline">
+                            {announcement.target_roles.join(', ')}
+                          </Badge>
+                          <span className="text-sm text-slate-500">
+                            Created {format(new Date(announcement.created_at), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                      </div>
+                      {canManageAll && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteAnnouncement(announcement.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
         </div>
 
         {/* Pending Approvals (Admin only) */}
