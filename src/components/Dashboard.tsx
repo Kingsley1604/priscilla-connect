@@ -19,7 +19,8 @@ import {
   PlayCircle,
   Brain,
   FileText,
-  GamepadIcon
+  GamepadIcon,
+  ShoppingBag
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -41,27 +42,28 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const studentModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Take Exam", description: "Take entrance or CBT exam", icon: FileText, color: "bg-gradient-primary", path: "/student/exam" },
-      { title: "Store", description: "School supplies & uniforms", icon: Trophy, color: "bg-gradient-accent", path: "/store" },
-      { title: "Priscilla Brain", description: "Coming Soon", icon: Brain, color: "bg-gradient-primary", path: "#", disabled: true },
-      { title: "Priscilla Tube", description: "Coming Soon", icon: PlayCircle, color: "bg-gradient-secondary", path: "#", disabled: true },
-      { title: "Games Arena", description: "Coming Soon", icon: GamepadIcon, color: "bg-gradient-accent", path: "#", disabled: true },
+      { title: "Store", description: "School supplies & uniforms", icon: ShoppingBag, color: "bg-gradient-accent", path: "/store" },
+      { title: "Priscilla Brain", description: "AI homework assistant", icon: Brain, color: "bg-gradient-primary", path: "/priscilla-brain" },
+      { title: "Priscilla Tube", description: "Educational videos", icon: PlayCircle, color: "bg-gradient-secondary", path: "/priscilla-tube" },
+      { title: "Games Arena", description: "Educational games", icon: GamepadIcon, color: "bg-gradient-accent", path: "/games-arena" },
       { title: "Achievements", description: "Your badges & rewards", icon: Trophy, color: "bg-gradient-primary", path: "/achievements" },
     ];
 
     const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
-      { title: "Class Management", description: "Not Available", icon: Users, color: "bg-gradient-primary", path: "#", disabled: true },
-      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/analytics" },
-      { title: "Content Upload", description: "Not Available", icon: BookOpen, color: "bg-gradient-accent", path: "#", disabled: true },
+      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management" },
+      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics" },
+      { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload" },
+      { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-secondary", path: "/teacher/profile-settings" },
     ];
 
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
+      { title: "Manage Store", description: "Add and manage store items", icon: ShoppingBag, color: "bg-gradient-secondary", path: "/admin/manage-store" },
+      { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-accent", path: "/admin/manage-priscilla-tube" },
       { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/manage-announcements" },
-      { title: "School Management", description: "Coming Soon", icon: GraduationCap, color: "bg-gradient-primary", path: "#", disabled: true },
-      { title: "User Management", description: "Not Available", icon: Users, color: "bg-gradient-secondary", path: "#", disabled: true },
-      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "/admin/system-settings" },
+      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-secondary", path: "/admin/system-settings" },
     ];
 
     if (userRole === 'student') return [...baseModules, ...studentModules];
