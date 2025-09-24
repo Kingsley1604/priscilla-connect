@@ -314,6 +314,132 @@ export type Database = {
         }
         Relationships: []
       }
+      store_items: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          price: number
+          rating: number | null
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          price: number
+          rating?: number | null
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          price?: number
+          rating?: number | null
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      store_orders: {
+        Row: {
+          delivery_address: string | null
+          id: string
+          items: Json
+          notes: string | null
+          order_date: string
+          phone_number: string | null
+          status: string
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          delivery_address?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_date?: string
+          phone_number?: string | null
+          status?: string
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          delivery_address?: string | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_date?: string
+          phone_number?: string | null
+          status?: string
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_content: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration: string | null
+          id: string
+          status: string
+          subject: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+          video_url: string | null
+          views: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          status?: string
+          subject: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          video_url?: string | null
+          views?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration?: string | null
+          id?: string
+          status?: string
+          subject?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          video_url?: string | null
+          views?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
