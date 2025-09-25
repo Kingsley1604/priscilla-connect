@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, ShoppingCart, Star, Filter, Package } from "lucide-react";
+import { ArrowLeft, Search, ShoppingCart as CartIcon, Star, Filter, Package } from "lucide-react";
 import { Link } from "react-router-dom";
+import ShoppingCartComponent from "@/components/store/ShoppingCart";
 
 interface Product {
   id: string;
@@ -21,6 +22,7 @@ const Store = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<{id: string, quantity: number}[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const products: Product[] = [
     {
@@ -118,6 +120,26 @@ const Store = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const getCartItems = () => {
+    return cart.map(cartItem => {
+      const product = products.find(p => p.id === cartItem.id);
+      return product ? {
+        ...product,
+        quantity: cartItem.quantity
+      } : null;
+    }).filter(Boolean) as Array<Product & {quantity: number}>;
+  };
+
+  const updateCartQuantity = (id: string, quantity: number) => {
+    setCart(prev => prev.map(item => 
+      item.id === id ? { ...item, quantity } : item
+    ));
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -142,8 +164,12 @@ const Store = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button variant="outline" className="relative">
-              <ShoppingCart className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              className="relative"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <CartIcon className="h-4 w-4 mr-2" />
               Cart
               {getCartItemCount() > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
@@ -244,7 +270,7 @@ const Store = () => {
                     disabled={product.stock === 0}
                     size="sm"
                   >
-                    <ShoppingCart className="h-4 w-4 mr-1" />
+                    <CartIcon className="h-4 w-4 mr-1" />
                     Add to Cart
                   </Button>
                 </div>
@@ -260,6 +286,15 @@ const Store = () => {
             <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
           </div>
         )}
+
+        {/* Shopping Cart */}
+        <ShoppingCartComponent
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          cartItems={getCartItems()}
+          onUpdateQuantity={updateCartQuantity}
+          onRemoveItem={removeFromCart}
+        />
       </div>
     </div>
   );

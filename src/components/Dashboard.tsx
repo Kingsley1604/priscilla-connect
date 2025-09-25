@@ -51,10 +51,10 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
-      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management" },
-      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics" },
-      { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload" },
-      { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-secondary", path: "/teacher/profile-settings" },
+      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management", disabled: true },
+      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics", disabled: true },
+      { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload", disabled: true },
+      { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-secondary", path: "/profile-settings" },
     ];
 
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
@@ -101,8 +101,25 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
                   Logout
                 </Button>
               )}
-              <Link to="/profile-settings">
-                <div className="flex items-center space-x-3 cursor-pointer hover:bg-white/10 p-2 rounded-lg transition-colors">
+              {userRole === 'student' ? (
+                <Link to="/profile-settings">
+                  <div className="flex items-center space-x-3 cursor-pointer hover:bg-white/10 p-2 rounded-lg transition-colors">
+                    <Avatar className="h-10 w-10 border-2 border-white/30">
+                      <AvatarImage src={userAvatar} />
+                      <AvatarFallback className="bg-white/20 text-white">
+                        {userName.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-right">
+                      <p className="font-medium">{userName}</p>
+                      <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                        {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                      </Badge>
+                    </div>
+                  </div>
+                </Link>
+              ) : (
+                <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10 border-2 border-white/30">
                     <AvatarImage src={userAvatar} />
                     <AvatarFallback className="bg-white/20 text-white">
@@ -116,7 +133,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
                     </Badge>
                   </div>
                 </div>
-              </Link>
+              )}
             </div>
         </div>
       </header>

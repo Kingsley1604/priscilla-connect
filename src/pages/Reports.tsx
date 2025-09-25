@@ -4,10 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, FileText, Award, BookOpen, Brain, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import ResultCodeChecker from "@/components/reports/ResultCodeChecker";
+import { useState } from "react";
 
 const Reports = () => {
   const { user } = useAuth();
   const userRole = user?.role || 'student';
+  const [checkerOpen, setCheckerOpen] = useState<'entrance' | 'midterm' | 'exam' | null>(null);
   const reportSections = [
     {
       title: "Entrance Result",
@@ -92,13 +95,15 @@ const Reports = () => {
           <h3 className="text-xl font-semibold mb-6 text-foreground">Report Categories</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {reportSections.map((section) => (
-              <Link 
+              <div 
                 key={section.title}
-                to={
-                  section.title === "Exam Result" ? "/reports/exam-result" :
-                  section.title === "Entrance Result" ? "/reports/entrance-result" :
-                  section.title === "Midterm Result" ? "/reports/midterm-result" : "#"
-                }
+                onClick={() => {
+                  if (section.available) {
+                    if (section.title === "Entrance Result") setCheckerOpen('entrance');
+                    else if (section.title === "Midterm Result") setCheckerOpen('midterm');
+                    else if (section.title === "Exam Result") setCheckerOpen('exam');
+                  }
+                }}
               >
                 <Card className="shadow-soft hover:shadow-medium transition-all duration-300 cursor-pointer">
                   <CardHeader>
@@ -124,7 +129,7 @@ const Reports = () => {
                   </Button>
                 </CardContent>
                 </Card>
-              </Link>
+              </div>
             ))}
           </div>
 
@@ -142,6 +147,15 @@ const Reports = () => {
               </ul>
             </CardContent>
           </Card>
+
+          {/* Result Code Checkers */}
+          {checkerOpen && (
+            <ResultCodeChecker
+              examType={checkerOpen}
+              isOpen={!!checkerOpen}
+              onClose={() => setCheckerOpen(null)}
+            />
+          )}
         </div>
       </section>
     </div>

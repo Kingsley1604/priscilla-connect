@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause, Users, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -31,6 +32,16 @@ interface Exam {
   status: 'draft' | 'active' | 'completed';
   created_at: string;
   total_questions?: number;
+  randomize_questions: boolean;
+}
+
+interface ExamStatistics {
+  exam_id: string;
+  title: string;
+  students_taking: number;
+  students_completed: number;
+  students_not_started: number;
+  total_students: number;
 }
 
 const ExamBuilder = () => {
@@ -42,16 +53,19 @@ const ExamBuilder = () => {
   const [isCreateQuestionOpen, setIsCreateQuestionOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [examStats, setExamStats] = useState<ExamStatistics[]>([]);
 
   // Create exam form state
   const [newExam, setNewExam] = useState<{
     title: string;
     exam_type: 'entrance' | 'cbt';
     duration_minutes: number;
+    randomize_questions: boolean;
   }>({
     title: "",
     exam_type: "entrance",
-    duration_minutes: 60
+    duration_minutes: 60,
+    randomize_questions: false
   });
 
   // Create question form state
@@ -67,6 +81,7 @@ const ExamBuilder = () => {
 
   useEffect(() => {
     loadExams();
+    loadExamStatistics();
   }, []);
 
   useEffect(() => {
@@ -74,6 +89,23 @@ const ExamBuilder = () => {
       loadQuestions(selectedExam.id);
     }
   }, [selectedExam]);
+
+  const loadExamStatistics = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data, error } = await supabase
+        .from('exam_statistics')
+        .select('*')
+        .eq('created_by', user.user.id);
+
+      if (error) throw error;
+      setExamStats(data || []);
+    } catch (error) {
+      console.error("Error loading exam statistics:", error);
+    }
+  };
 
   const loadExams = async () => {
     try {
@@ -139,6 +171,7 @@ const ExamBuilder = () => {
           title: newExam.title,
           exam_type: newExam.exam_type,
           duration_minutes: newExam.duration_minutes,
+          randomize_questions: newExam.randomize_questions,
           created_by: user.user.id
         })
         .select()
@@ -148,8 +181,9 @@ const ExamBuilder = () => {
 
       toast.success("Exam created successfully!");
       setIsCreateExamOpen(false);
-      setNewExam({ title: "", exam_type: "entrance", duration_minutes: 60 });
+      setNewExam({ title: "", exam_type: "entrance", duration_minutes: 60, randomize_questions: false });
       loadExams();
+      loadExamStatistics();
       setSelectedExam(data);
     } catch (error) {
       console.error("Error creating exam:", error);
@@ -254,6 +288,7 @@ const ExamBuilder = () => {
 
       toast.success(`Exam ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
       loadExams();
+      loadExamStatistics();
     } catch (error) {
       console.error("Error updating exam status:", error);
       toast.error("Failed to update exam status");
@@ -357,6 +392,17 @@ const ExamBuilder = () => {
                   />
                 </div>
 
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="randomize"
+                    checked={newExam.randomize_questions}
+                    onCheckedChange={(checked) => setNewExam(prev => ({ ...prev, randomize_questions: !!checked }))}
+                  />
+                  <Label htmlFor="randomize" className="text-sm">
+                    Randomize question order for each student
+                  </Label>
+                </div>
+
                 <Button onClick={createExam} disabled={isLoading} className="w-full">
                   {isLoading ? "Creating..." : "Create Exam"}
                 </Button>
@@ -385,16 +431,45 @@ const ExamBuilder = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="font-medium">{exam.title}</h4>
-                          <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
-                            <Badge variant={exam.exam_type === 'entrance' ? 'default' : 'secondary'}>
-                              {exam.exam_type.toUpperCase()}
-                            </Badge>
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
+                        <Badge variant={exam.exam_type === 'entrance' ? 'default' : 'secondary'}>
+                          {exam.exam_type.toUpperCase()}
+                        </Badge>
+                        <span>•</span>
+                        <span>{formatTime(exam.duration_minutes)}</span>
+                        {exam.randomize_questions && (
+                          <>
                             <span>•</span>
-                            <span>{formatTime(exam.duration_minutes)}</span>
+                            <Badge variant="outline" className="text-xs">
+                              Randomized
+                            </Badge>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {exam.total_questions} questions
+                      </div>
+                      
+                      {/* Exam Statistics */}
+                      {exam.status === 'active' && (() => {
+                        const stats = examStats.find(s => s.exam_id === exam.id);
+                        return stats ? (
+                          <div className="flex items-center gap-4 mt-2 p-2 bg-muted/50 rounded text-xs">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-orange-500" />
+                              <span>{stats.students_taking} taking</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              <span>{stats.students_completed} done</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3 text-blue-500" />
+                              <span>{stats.students_not_started} not started</span>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {exam.total_questions} questions
-                          </div>
+                        ) : null;
+                      })()}
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge variant={exam.status === 'active' ? 'default' : 'secondary'}>
