@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          related_order_id: string | null
+          target_admin_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          related_order_id?: string | null
+          target_admin_id?: string | null
+          title: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          related_order_id?: string | null
+          target_admin_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_related_order_id_fkey"
+            columns: ["related_order_id"]
+            isOneToOne: false
+            referencedRelation: "store_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           content: string
@@ -137,6 +178,13 @@ export type Database = {
             foreignKeyName: "exam_attempts_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
+            referencedRelation: "exam_statistics"
+            referencedColumns: ["exam_id"]
+          },
+          {
+            foreignKeyName: "exam_attempts_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
             referencedRelation: "exams"
             referencedColumns: ["id"]
           },
@@ -180,6 +228,13 @@ export type Database = {
           question_text?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "exam_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exam_statistics"
+            referencedColumns: ["exam_id"]
+          },
           {
             foreignKeyName: "exam_questions_exam_id_fkey"
             columns: ["exam_id"]
@@ -238,6 +293,13 @@ export type Database = {
             foreignKeyName: "exam_results_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
+            referencedRelation: "exam_statistics"
+            referencedColumns: ["exam_id"]
+          },
+          {
+            foreignKeyName: "exam_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
             referencedRelation: "exams"
             referencedColumns: ["id"]
           },
@@ -276,6 +338,13 @@ export type Database = {
             foreignKeyName: "exam_tokens_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
+            referencedRelation: "exam_statistics"
+            referencedColumns: ["exam_id"]
+          },
+          {
+            foreignKeyName: "exam_tokens_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
             referencedRelation: "exams"
             referencedColumns: ["id"]
           },
@@ -288,6 +357,7 @@ export type Database = {
           duration_minutes: number
           exam_type: Database["public"]["Enums"]["exam_type"]
           id: string
+          randomize_questions: boolean | null
           status: Database["public"]["Enums"]["exam_status"]
           title: string
           updated_at: string
@@ -298,6 +368,7 @@ export type Database = {
           duration_minutes?: number
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
+          randomize_questions?: boolean | null
           status?: Database["public"]["Enums"]["exam_status"]
           title: string
           updated_at?: string
@@ -308,9 +379,40 @@ export type Database = {
           duration_minutes?: number
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
+          randomize_questions?: boolean | null
           status?: Database["public"]["Enums"]["exam_status"]
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      result_codes: {
+        Row: {
+          code: string
+          created_at: string
+          exam_type: string
+          id: string
+          is_used: boolean
+          student_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          exam_type: string
+          id?: string
+          is_used?: boolean
+          student_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          exam_type?: string
+          id?: string
+          is_used?: boolean
+          student_id?: string
+          used_at?: string | null
         }
         Relationships: []
       }
@@ -442,7 +544,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      exam_statistics: {
+        Row: {
+          created_by: string | null
+          exam_id: string | null
+          students_completed: number | null
+          students_not_started: number | null
+          students_taking: number | null
+          title: string | null
+          total_students: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       auto_submit_expired_attempts: {
