@@ -64,6 +64,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
       { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-accent", path: "/admin/manage-priscilla-tube" },
       { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/manage-announcements" },
       { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-secondary", path: "/admin/system-settings" },
+      { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-primary", path: "/admin/profile-settings" },
     ];
 
     if (userRole === 'student') return [...baseModules, ...studentModules];

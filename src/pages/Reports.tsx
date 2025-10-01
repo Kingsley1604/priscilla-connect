@@ -5,12 +5,14 @@ import { ArrowLeft, FileText, Award, BookOpen, Brain, Upload } from "lucide-reac
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import ResultCodeChecker from "@/components/reports/ResultCodeChecker";
+import ClassResultsView from "./reports/ClassResultsView";
 import { useState } from "react";
 
 const Reports = () => {
   const { user } = useAuth();
   const userRole = user?.role || 'student';
   const [checkerOpen, setCheckerOpen] = useState<'entrance' | 'midterm' | 'exam' | null>(null);
+  const [classViewOpen, setClassViewOpen] = useState<'entrance' | 'midterm' | 'exam' | null>(null);
   const reportSections = [
     {
       title: "Entrance Result",
@@ -99,9 +101,16 @@ const Reports = () => {
                 key={section.title}
                 onClick={() => {
                   if (section.available) {
-                    if (section.title === "Entrance Result") setCheckerOpen('entrance');
-                    else if (section.title === "Midterm Result") setCheckerOpen('midterm');
-                    else if (section.title === "Exam Result") setCheckerOpen('exam');
+                    // Teachers and admins see class selection, students see result code checker
+                    if (userRole === 'teacher' || userRole === 'admin') {
+                      if (section.title === "Entrance Result") setClassViewOpen('entrance');
+                      else if (section.title === "Midterm Result") setClassViewOpen('midterm');
+                      else if (section.title === "Exam Result") setClassViewOpen('exam');
+                    } else {
+                      if (section.title === "Entrance Result") setCheckerOpen('entrance');
+                      else if (section.title === "Midterm Result") setCheckerOpen('midterm');
+                      else if (section.title === "Exam Result") setCheckerOpen('exam');
+                    }
                   }
                 }}
               >
@@ -148,13 +157,23 @@ const Reports = () => {
             </CardContent>
           </Card>
 
-          {/* Result Code Checkers */}
+          {/* Result Code Checkers for Students */}
           {checkerOpen && (
             <ResultCodeChecker
               examType={checkerOpen}
               isOpen={!!checkerOpen}
               onClose={() => setCheckerOpen(null)}
             />
+          )}
+
+          {/* Class Results View for Teachers/Admins */}
+          {classViewOpen && (
+            <div className="fixed inset-0 bg-background z-50">
+              <ClassResultsView
+                examType={classViewOpen}
+                onBack={() => setClassViewOpen(null)}
+              />
+            </div>
           )}
         </div>
       </section>
