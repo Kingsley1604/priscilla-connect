@@ -497,6 +497,69 @@ export type Database = {
         }
         Relationships: []
       }
+      student_results: {
+        Row: {
+          academic_session: string
+          admission_no: string
+          class_level: string
+          created_at: string
+          created_by: string
+          exam_score: number
+          grade: string
+          grade_letter: string | null
+          half_term_score: number
+          id: string
+          remark: string | null
+          result_type: string
+          student_id: string
+          student_name: string
+          subject: string
+          term: string
+          total_score: number
+          updated_at: string
+        }
+        Insert: {
+          academic_session: string
+          admission_no: string
+          class_level: string
+          created_at?: string
+          created_by: string
+          exam_score?: number
+          grade: string
+          grade_letter?: string | null
+          half_term_score?: number
+          id?: string
+          remark?: string | null
+          result_type: string
+          student_id: string
+          student_name: string
+          subject: string
+          term: string
+          total_score?: number
+          updated_at?: string
+        }
+        Update: {
+          academic_session?: string
+          admission_no?: string
+          class_level?: string
+          created_at?: string
+          created_by?: string
+          exam_score?: number
+          grade?: string
+          grade_letter?: string | null
+          half_term_score?: number
+          id?: string
+          remark?: string | null
+          result_type?: string
+          student_id?: string
+          student_name?: string
+          subject?: string
+          term?: string
+          total_score?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       video_content: {
         Row: {
           created_at: string

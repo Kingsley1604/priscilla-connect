@@ -35,6 +35,8 @@ import PassAnnouncement from "./pages/admin/PassAnnouncement";
 import ProfileSettings from "./pages/ProfileSettings";
 import Store from "./pages/Store";
 import ResultsManagement from "./pages/teacher/ResultsManagement";
+import AdminProfileSettings from "./pages/admin/AdminProfileSettings";
+import EnhancedUploadResult from "./pages/teacher/EnhancedUploadResult";
 
 const queryClient = new QueryClient();
 
@@ -61,8 +63,9 @@ const App = () => (
             <Route path="/teacher/content-upload" element={<ComingSoon title="Content Upload" description="Upload and manage educational content" />} />
             <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
-            <Route path="/teacher/upload-result" element={<UploadResult />} />
+            <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />
             <Route path="/teacher/results-management" element={<ResultsManagement />} />
+            <Route path="/admin/profile-settings" element={<AdminProfileSettings />} />
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
             <Route path="/student/exam" element={<ExamInterface />} />
             <Route path="/admin/exam-results" element={<ExamResults />} />
