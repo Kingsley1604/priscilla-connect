@@ -22,7 +22,7 @@ interface StudentResult {
 
 const EnhancedUploadResult = () => {
   const [formData, setFormData] = useState({
-    academicSession: "2024/2025",
+    academicSession: new Date().getFullYear() + "/" + (new Date().getFullYear() + 1),
     totalTimeOpened: "",
     resultType: "",
     term: "",
@@ -110,7 +110,11 @@ const EnhancedUploadResult = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Academic Session</Label>
-                <Input value={formData.academicSession} disabled />
+                <Input 
+                  value={formData.academicSession} 
+                  onChange={(e) => setFormData({...formData, academicSession: e.target.value})}
+                  placeholder="e.g., 2024/2025"
+                />
               </div>
               <div>
                 <Label>Total Time School Opened</Label>
@@ -213,7 +217,14 @@ const EnhancedUploadResult = () => {
 
         <div className="flex justify-end gap-4">
           <Button variant="outline" onClick={() => toast.success("Saved as draft")}><Save className="h-4 w-4 mr-2" />Save Draft</Button>
-          <Button onClick={() => toast.success("Results submitted")}><Send className="h-4 w-4 mr-2" />Submit Final</Button>
+          <Button onClick={() => {
+            toast.success("Creating result...");
+            // Navigate to report card system with form data
+            window.location.href = `/teacher/report-card?session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}`;
+          }}>
+            <Send className="h-4 w-4 mr-2" />
+            Create Result
+          </Button>
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   Settings,
   PlayCircle,
   Brain,
+  Package,
   FileText,
   GamepadIcon,
   ShoppingBag
@@ -64,6 +65,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
       { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-accent", path: "/admin/manage-priscilla-tube" },
       { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/manage-announcements" },
       { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-secondary", path: "/admin/system-settings" },
+      { title: "Inventory Manager", description: "Monitor stock levels & alerts", icon: Package, color: "bg-gradient-primary", path: "/admin/inventory-manager" },
       { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-primary", path: "/admin/profile-settings" },
     ];
 

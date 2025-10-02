@@ -61,11 +61,15 @@ const ExamBuilder = () => {
     exam_type: 'entrance' | 'cbt';
     duration_minutes: number;
     randomize_questions: boolean;
+    class_level: string;
+    grade: string;
   }>({
     title: "",
     exam_type: "entrance",
     duration_minutes: 60,
-    randomize_questions: false
+    randomize_questions: false,
+    class_level: "",
+    grade: ""
   });
 
   // Create question form state
@@ -159,6 +163,11 @@ const ExamBuilder = () => {
       toast.error("Please enter exam title");
       return;
     }
+    
+    if (!newExam.class_level || !newExam.grade) {
+      toast.error("Please select class level and grade");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -181,7 +190,14 @@ const ExamBuilder = () => {
 
       toast.success("Exam created successfully!");
       setIsCreateExamOpen(false);
-      setNewExam({ title: "", exam_type: "entrance", duration_minutes: 60, randomize_questions: false });
+      setNewExam({ 
+        title: "", 
+        exam_type: "entrance", 
+        duration_minutes: 60, 
+        randomize_questions: false,
+        class_level: "",
+        grade: ""
+      });
       loadExams();
       loadExamStatistics();
       setSelectedExam(data);
@@ -369,7 +385,7 @@ const ExamBuilder = () => {
                   <Label htmlFor="type">Exam Type</Label>
                   <Select 
                     value={newExam.exam_type} 
-                    onValueChange={(value) => setNewExam(prev => ({ ...prev, exam_type: value as 'entrance' | 'cbt' }))}
+                    onValueChange={(value) => setNewExam(prev => ({ ...prev, exam_type: value as 'entrance' | 'cbt', class_level: "", grade: "" }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -380,6 +396,88 @@ const ExamBuilder = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Class Level Selection */}
+                <div>
+                  <Label htmlFor="classLevel">Class Level</Label>
+                  <Select
+                    value={newExam.class_level}
+                    onValueChange={(value) => setNewExam(prev => ({ ...prev, class_level: value, grade: "" }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newExam.exam_type === 'entrance' ? (
+                        <>
+                          <SelectItem value="Primary">Primary</SelectItem>
+                          <SelectItem value="Junior Secondary">Junior Secondary</SelectItem>
+                          <SelectItem value="Senior Secondary">Senior Secondary</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="Primary Upper">Primary Upper (5&6)</SelectItem>
+                          <SelectItem value="JSS3">JSS3</SelectItem>
+                          <SelectItem value="SS3">SS3</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Grade Selection */}
+                {newExam.class_level && (
+                  <div>
+                    <Label htmlFor="grade">Grade</Label>
+                    <Select
+                      value={newExam.grade}
+                      onValueChange={(value) => setNewExam(prev => ({ ...prev, grade: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {newExam.exam_type === 'entrance' ? (
+                          newExam.class_level === 'Primary' ? (
+                            <>
+                              <SelectItem value="Play Group 1">Play Group 1 Result</SelectItem>
+                              <SelectItem value="Play Group 2">Play Group 2 Result</SelectItem>
+                              <SelectItem value="First Grade">First Grade Result</SelectItem>
+                              <SelectItem value="Second Grade">Second Grade Result</SelectItem>
+                              <SelectItem value="Third Grade">Third Grade Result</SelectItem>
+                              <SelectItem value="Fourth Grade">Fourth Grade Result</SelectItem>
+                              <SelectItem value="Fifth Grade">Fifth Grade Result</SelectItem>
+                              <SelectItem value="Sixth Grade">Sixth Grade Result</SelectItem>
+                            </>
+                          ) : newExam.class_level === 'Junior Secondary' ? (
+                            <>
+                              <SelectItem value="Seventh Grade">Seventh Grade Result</SelectItem>
+                              <SelectItem value="Eighth Grade">Eighth Grade Result</SelectItem>
+                              <SelectItem value="Nineth Grade">Nineth Grade Result</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="Tenth Grade">Tenth Grade Result</SelectItem>
+                              <SelectItem value="Eleventh Grade">Eleventh Grade Result</SelectItem>
+                              <SelectItem value="Twelfth Grade">Twelfth Grade Result</SelectItem>
+                            </>
+                          )
+                        ) : (
+                          newExam.class_level === 'Primary Upper' ? (
+                            <>
+                              <SelectItem value="Fifth Grade">Fifth Grade Result</SelectItem>
+                              <SelectItem value="Sixth Grade">Sixth Grade Result</SelectItem>
+                            </>
+                          ) : newExam.class_level === 'JSS3' ? (
+                            <SelectItem value="Nineth Grade">Nineth Grade Result</SelectItem>
+                          ) : (
+                            <SelectItem value="Twelfth Grade">Twelfth Grade Result</SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="duration">Duration (minutes)</Label>

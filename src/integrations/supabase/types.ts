@@ -386,6 +386,199 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_alerts: {
+        Row: {
+          alert_threshold: number
+          created_at: string
+          created_by: string
+          current_stock: number
+          id: string
+          is_active: boolean | null
+          item_name: string
+          store_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          alert_threshold?: number
+          created_at?: string
+          created_by: string
+          current_stock?: number
+          id?: string
+          is_active?: boolean | null
+          item_name: string
+          store_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alert_threshold?: number
+          created_at?: string
+          created_by?: string
+          current_stock?: number
+          id?: string
+          is_active?: boolean | null
+          item_name?: string
+          store_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_alerts_store_item_id_fkey"
+            columns: ["store_item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_card_subjects: {
+        Row: {
+          created_at: string
+          exam_score: number | null
+          grade: string | null
+          half_term_score: number | null
+          id: string
+          report_card_id: string
+          subject_name: string
+          teacher_remark: string | null
+          total_score: number | null
+        }
+        Insert: {
+          created_at?: string
+          exam_score?: number | null
+          grade?: string | null
+          half_term_score?: number | null
+          id?: string
+          report_card_id: string
+          subject_name: string
+          teacher_remark?: string | null
+          total_score?: number | null
+        }
+        Update: {
+          created_at?: string
+          exam_score?: number | null
+          grade?: string | null
+          half_term_score?: number | null
+          id?: string
+          report_card_id?: string
+          subject_name?: string
+          teacher_remark?: string | null
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_card_subjects_report_card_id_fkey"
+            columns: ["report_card_id"]
+            isOneToOne: false
+            referencedRelation: "report_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_cards: {
+        Row: {
+          academic_session: string
+          admission_no: string
+          average_score: number | null
+          class_level: string
+          class_teacher_comments: string | null
+          class_teacher_name: string | null
+          club_organization: string | null
+          conduct_percentage: number | null
+          conduct_rating: string | null
+          created_at: string
+          created_by: string
+          date_of_birth: string | null
+          gender: string | null
+          head_teacher_comments: string | null
+          head_teacher_name: string | null
+          id: string
+          is_exemplary: boolean | null
+          next_term_begins: string | null
+          other_activities: string[] | null
+          passport_photo_url: string | null
+          percentage: number | null
+          position: string | null
+          school_sports: string[] | null
+          student_id: string
+          student_name: string
+          term: string
+          times_absent: number | null
+          times_present: number | null
+          total_obtainable_score: number | null
+          total_school_opened: number | null
+          total_score_obtained: number | null
+          updated_at: string
+        }
+        Insert: {
+          academic_session: string
+          admission_no: string
+          average_score?: number | null
+          class_level: string
+          class_teacher_comments?: string | null
+          class_teacher_name?: string | null
+          club_organization?: string | null
+          conduct_percentage?: number | null
+          conduct_rating?: string | null
+          created_at?: string
+          created_by: string
+          date_of_birth?: string | null
+          gender?: string | null
+          head_teacher_comments?: string | null
+          head_teacher_name?: string | null
+          id?: string
+          is_exemplary?: boolean | null
+          next_term_begins?: string | null
+          other_activities?: string[] | null
+          passport_photo_url?: string | null
+          percentage?: number | null
+          position?: string | null
+          school_sports?: string[] | null
+          student_id: string
+          student_name: string
+          term: string
+          times_absent?: number | null
+          times_present?: number | null
+          total_obtainable_score?: number | null
+          total_school_opened?: number | null
+          total_score_obtained?: number | null
+          updated_at?: string
+        }
+        Update: {
+          academic_session?: string
+          admission_no?: string
+          average_score?: number | null
+          class_level?: string
+          class_teacher_comments?: string | null
+          class_teacher_name?: string | null
+          club_organization?: string | null
+          conduct_percentage?: number | null
+          conduct_rating?: string | null
+          created_at?: string
+          created_by?: string
+          date_of_birth?: string | null
+          gender?: string | null
+          head_teacher_comments?: string | null
+          head_teacher_name?: string | null
+          id?: string
+          is_exemplary?: boolean | null
+          next_term_begins?: string | null
+          other_activities?: string[] | null
+          passport_photo_url?: string | null
+          percentage?: number | null
+          position?: string | null
+          school_sports?: string[] | null
+          student_id?: string
+          student_name?: string
+          term?: string
+          times_absent?: number | null
+          times_present?: number | null
+          total_obtainable_score?: number | null
+          total_school_opened?: number | null
+          total_score_obtained?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       result_codes: {
         Row: {
           code: string
@@ -423,6 +616,7 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          image_file: string | null
           image_url: string | null
           is_active: boolean
           name: string
@@ -437,6 +631,7 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          image_file?: string | null
           image_url?: string | null
           is_active?: boolean
           name: string
@@ -451,6 +646,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          image_file?: string | null
           image_url?: string | null
           is_active?: boolean
           name?: string
@@ -622,6 +818,10 @@ export type Database = {
     }
     Functions: {
       auto_submit_expired_attempts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      check_inventory_levels: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

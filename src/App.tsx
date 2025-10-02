@@ -37,6 +37,9 @@ import Store from "./pages/Store";
 import ResultsManagement from "./pages/teacher/ResultsManagement";
 import AdminProfileSettings from "./pages/admin/AdminProfileSettings";
 import EnhancedUploadResult from "./pages/teacher/EnhancedUploadResult";
+import StudentReportCardSystem from "./pages/teacher/StudentReportCardSystem";
+import InventoryManager from "./pages/admin/InventoryManager";
+import ManageStoreEnhanced from "./pages/admin/ManageStoreEnhanced";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +67,7 @@ const App = () => (
             <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
             <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />
+            <Route path="/teacher/report-card" element={<StudentReportCardSystem />} />
             <Route path="/teacher/results-management" element={<ResultsManagement />} />
             <Route path="/admin/profile-settings" element={<AdminProfileSettings />} />
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
@@ -71,7 +75,8 @@ const App = () => (
             <Route path="/admin/exam-results" element={<ExamResults />} />
             <Route path="/admin/announcements" element={<AnnouncementManager />} />
             <Route path="/admin/manage-announcements" element={<ManageAnnouncements />} />
-            <Route path="/admin/manage-store" element={<ManageStore />} />
+            <Route path="/admin/manage-store" element={<ManageStoreEnhanced />} />
+            <Route path="/admin/inventory-manager" element={<InventoryManager />} />
             <Route path="/admin/manage-priscilla-tube" element={<ManagePriscillaTube />} />
             <Route path="/admin/system-settings" element={<SystemSettings />} />
             <Route path="/admin/pass-announcement" element={<PassAnnouncement />} />
