@@ -79,20 +79,10 @@ const Messages = () => {
 
   if (chatUser) {
     return (
-      <div>
-        <div className="p-4 border-b">
-          <Link to="/dashboard">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
-        <ChatInterfaceWithHeader 
-          contacts={chatUser.contacts} 
-          currentUser={{ phone: chatUser.phone, name: chatUser.name }}
-        />
-      </div>
+      <ChatInterfaceWithHeader 
+        contacts={chatUser.contacts} 
+        currentUser={{ phone: chatUser.phone, name: chatUser.name }}
+      />
     );
   }
 

@@ -83,7 +83,12 @@ const StudentReportCardSystem = () => {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [classTeacherSignature, setClassTeacherSignature] = useState<string>("");
+  const [headTeacherSignature, setHeadTeacherSignature] = useState<string>("");
+  const [sportInput, setSportInput] = useState("");
+  const [activityInput, setActivityInput] = useState("");
 
   const defaultSubjects = [
     "Mathematics", "English Studies", "Social Studies", "Basic Science",
@@ -108,6 +113,12 @@ const StudentReportCardSystem = () => {
       setReportCard(prev => ({ ...prev, subjects: initialSubjects }));
     }
   }, []);
+
+  // Auto-calculate absent times
+  useEffect(() => {
+    const absent = reportCard.total_school_opened - reportCard.times_present;
+    setReportCard(prev => ({ ...prev, times_absent: Math.max(0, absent) }));
+  }, [reportCard.total_school_opened, reportCard.times_present]);
 
   const calculateGrade = (total: number): { grade: string; remark: string } => {
     if (total >= 90) return { grade: "A", remark: "EXCELLENT" };
@@ -190,6 +201,60 @@ const StudentReportCardSystem = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSignatureUpload = (type: 'class' | 'head', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload an image file');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (type === 'class') {
+          setClassTeacherSignature(e.target?.result as string);
+        } else {
+          setHeadTeacherSignature(e.target?.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const addSport = () => {
+    if (sportInput.trim()) {
+      setReportCard(prev => ({
+        ...prev,
+        school_sports: [...prev.school_sports, sportInput.trim()]
+      }));
+      setSportInput("");
+    }
+  };
+
+  const removeSport = (index: number) => {
+    setReportCard(prev => ({
+      ...prev,
+      school_sports: prev.school_sports.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addActivity = () => {
+    if (activityInput.trim()) {
+      setReportCard(prev => ({
+        ...prev,
+        other_activities: [...prev.other_activities, activityInput.trim()]
+      }));
+      setActivityInput("");
+    }
+  };
+
+  const removeActivity = (index: number) => {
+    setReportCard(prev => ({
+      ...prev,
+      other_activities: prev.other_activities.filter((_, i) => i !== index)
+    }));
   };
 
   const calculateSummary = () => {
@@ -287,6 +352,101 @@ const StudentReportCardSystem = () => {
     }
   };
 
+  const handleSubmit = async () => {
+    // Validation
+    const missingFields = [];
+    if (!reportCard.admission_no) missingFields.push("Admission No");
+    if (!reportCard.date_of_birth) missingFields.push("Date of Birth");
+    if (!reportCard.gender) missingFields.push("Gender");
+    if (!reportCard.total_school_opened) missingFields.push("Total Time School Opened");
+    if (!reportCard.times_present) missingFields.push("No. of Time Present");
+    if (reportCard.other_activities.length === 0) missingFields.push("Other Organized Activities");
+    if (!reportCard.class_teacher_comments) missingFields.push("Class Teacher's comments");
+    if (!reportCard.head_teacher_comments) missingFields.push("Head teacher's comments");
+    if (!reportCard.head_teacher_name) missingFields.push("Head Teacher's Name");
+    if (!reportCard.class_teacher_name) missingFields.push("Class Teacher's Name");
+    if (!reportCard.next_term_begins) missingFields.push("Next Term Begins");
+    if (!reportCard.passport_photo_url) missingFields.push("Child photo/passport");
+
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in: ${missingFields.join(", ")}`);
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to submit report cards');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const summary = calculateSummary();
+      
+      // Insert report card
+      const { data: reportCardData, error: reportError } = await supabase
+        .from('report_cards')
+        .insert({
+          student_id: user.id,
+          student_name: reportCard.student_name,
+          admission_no: reportCard.admission_no,
+          date_of_birth: reportCard.date_of_birth,
+          gender: reportCard.gender,
+          class_level: reportCard.class_level,
+          academic_session: reportCard.academic_session,
+          term: reportCard.term,
+          passport_photo_url: reportCard.passport_photo_url,
+          total_school_opened: reportCard.total_school_opened,
+          times_present: reportCard.times_present,
+          times_absent: reportCard.times_absent,
+          school_sports: reportCard.school_sports,
+          other_activities: reportCard.other_activities,
+          conduct_rating: reportCard.conduct_rating,
+          conduct_percentage: reportCard.conduct_percentage,
+          total_obtainable_score: summary.totalObtainable,
+          total_score_obtained: summary.totalObtained,
+          average_score: parseFloat(summary.average),
+          percentage: parseFloat(summary.percentage),
+          club_organization: reportCard.club_organization,
+          class_teacher_comments: reportCard.class_teacher_comments,
+          head_teacher_comments: reportCard.head_teacher_comments,
+          class_teacher_name: reportCard.class_teacher_name,
+          head_teacher_name: reportCard.head_teacher_name,
+          next_term_begins: reportCard.next_term_begins,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (reportError) throw reportError;
+
+      // Insert subjects
+      const subjectsToInsert = reportCard.subjects.map(subj => ({
+        report_card_id: reportCardData.id,
+        subject_name: subj.subject_name,
+        half_term_score: subj.half_term_score,
+        exam_score: subj.exam_score,
+        total_score: subj.total_score,
+        grade: subj.grade,
+        teacher_remark: subj.teacher_remark
+      }));
+
+      const { error: subjectsError } = await supabase
+        .from('report_card_subjects')
+        .insert(subjectsToInsert);
+
+      if (subjectsError) throw subjectsError;
+
+      toast.success('Report card submitted successfully to admin!');
+      navigate('/reports');
+    } catch (error) {
+      console.error('Error submitting report card:', error);
+      toast.error('Failed to submit report card');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -303,9 +463,13 @@ const StudentReportCardSystem = () => {
             Back
           </Button>
           <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving} variant="outline">
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Report Card'}
+              {isSaving ? 'Saving...' : 'Save Draft'}
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              <Save className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Submitting...' : 'Submit Result'}
             </Button>
             <Button onClick={handlePrint} variant="secondary">
               <Printer className="h-4 w-4 mr-2" />
@@ -458,17 +622,66 @@ const StudentReportCardSystem = () => {
                 <div className="border-t border-black p-2 text-center">Art Exhibition</div>
                 
                 <div className="col-span-2 border-t border-r border-black p-2 print:hidden">
-                  <Label>No. of Time Absent</Label>
+                  <Label>No. of Time Absent (Auto-calculated)</Label>
                   <Input
                     type="number"
                     value={reportCard.times_absent}
-                    onChange={(e) => setReportCard(prev => ({ ...prev, times_absent: parseInt(e.target.value) || 0 }))}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Absent</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_absent}</div>
-                <div className="border-t border-r border-black p-2 text-center"></div>
-                <div className="border-t border-black p-2 text-center">Egg Hunt</div>
+                <div className="border-t border-r border-black p-2 print:hidden">
+                  <div className="space-y-2">
+                    {reportCard.school_sports.map((sport, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span>{sport}</span>
+                        <Button size="sm" variant="ghost" onClick={() => removeSport(idx)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="flex gap-1">
+                      <Input
+                        value={sportInput}
+                        onChange={(e) => setSportInput(e.target.value)}
+                        placeholder="Add sport"
+                        className="h-7 text-xs"
+                        onKeyPress={(e) => e.key === 'Enter' && addSport()}
+                      />
+                      <Button size="sm" onClick={addSport} className="h-7">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports.join(', ')}</div>
+                <div className="border-t border-black p-2 print:hidden">
+                  <div className="space-y-2">
+                    {reportCard.other_activities.map((activity, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span>{activity}</span>
+                        <Button size="sm" variant="ghost" onClick={() => removeActivity(idx)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="flex gap-1">
+                      <Input
+                        value={activityInput}
+                        onChange={(e) => setActivityInput(e.target.value)}
+                        placeholder="Add activity"
+                        className="h-7 text-xs"
+                        onKeyPress={(e) => e.key === 'Enter' && addActivity()}
+                      />
+                      <Button size="sm" onClick={addActivity} className="h-7">
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities.join(', ')}</div>
               </div>
             </div>
 
@@ -626,6 +839,32 @@ const StudentReportCardSystem = () => {
                   value={reportCard.head_teacher_name}
                   onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_name: e.target.value }))}
                 />
+              </div>
+              <div>
+                <Label>Class Teacher's Signature</Label>
+                <div className="flex items-center gap-2">
+                  {classTeacherSignature && (
+                    <img src={classTeacherSignature} alt="Signature" className="h-16 border" />
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleSignatureUpload('class', e)}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Head Teacher's Signature</Label>
+                <div className="flex items-center gap-2">
+                  {headTeacherSignature && (
+                    <img src={headTeacherSignature} alt="Signature" className="h-16 border" />
+                  )}
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleSignatureUpload('head', e)}
+                  />
+                </div>
               </div>
               <div>
                 <Label>Next Term Begins</Label>

@@ -200,7 +200,9 @@ const ExamBuilder = () => {
       });
       loadExams();
       loadExamStatistics();
-      setSelectedExam(data);
+      
+      // Navigate to exam overview page
+      navigate(`/teacher/exam-overview?title=${encodeURIComponent(data.title)}`);
     } catch (error) {
       console.error("Error creating exam:", error);
       toast.error("Failed to create exam");
@@ -216,6 +218,12 @@ const ExamBuilder = () => {
         !newQuestion.option_b.trim() || !newQuestion.option_c.trim() || 
         !newQuestion.option_d.trim()) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    // Check question limit for entrance exams
+    if (selectedExam.exam_type === 'entrance' && questions.length >= 30 && !editingQuestion) {
+      toast.error("Entrance exams can have a maximum of 30 questions");
       return;
     }
 
