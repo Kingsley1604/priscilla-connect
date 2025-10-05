@@ -1,4 +1,4 @@
-import logo from "@/assets/priscilla-logo.png";
+import logo from "@/assets/priscilla-connect-logo.jpg";
 
 const LoadingScreen = () => {
   return (
@@ -7,7 +7,7 @@ const LoadingScreen = () => {
         <img 
           src={logo} 
           alt="Priscilla Connect Logo" 
-          className="w-32 h-32 mx-auto mb-4 animate-pulse"
+          className="w-40 h-40 mx-auto mb-4 animate-pulse rounded-full object-cover"
         />
         <h2 className="text-2xl font-bold text-foreground mb-2">Priscilla Connect</h2>
         <p className="text-muted-foreground">Loading...</p>

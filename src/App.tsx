@@ -38,6 +38,7 @@ import ResultsManagement from "./pages/teacher/ResultsManagement";
 import AdminProfileSettings from "./pages/admin/AdminProfileSettings";
 import EnhancedUploadResult from "./pages/teacher/EnhancedUploadResult";
 import StudentReportCardSystem from "./pages/teacher/StudentReportCardSystem";
+import DraftResults from "./pages/teacher/DraftResults";
 import ExamOverview from "./pages/teacher/ExamOverview";
 import ExamSetup from "./pages/teacher/ExamSetup";
 import InventoryManager from "./pages/admin/InventoryManager";
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
             <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />
             <Route path="/teacher/report-card" element={<StudentReportCardSystem />} />
+            <Route path="/teacher/draft-results" element={<DraftResults />} />
             <Route path="/teacher/exam-overview" element={<ExamOverview />} />
             <Route path="/teacher/exam-setup" element={<ExamSetup />} />
             <Route path="/teacher/results-management" element={<ResultsManagement />} />

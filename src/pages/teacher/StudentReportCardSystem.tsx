@@ -69,12 +69,12 @@ const StudentReportCardSystem = () => {
     total_school_opened: 116,
     times_present: 0,
     times_absent: 0,
-    school_sports: ["Aerobics"],
-    other_activities: ["Sport Fiesta", "Art Exhibition"],
+    school_sports: ["", "", ""],
+    other_activities: ["", "", ""],
     conduct_rating: "Good",
     conduct_percentage: 95,
     subjects: [],
-    club_organization: "Football and Reading Club",
+    club_organization: "",
     class_teacher_comments: "",
     head_teacher_comments: "",
     class_teacher_name: "",
@@ -87,6 +87,10 @@ const StudentReportCardSystem = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [classTeacherSignature, setClassTeacherSignature] = useState<string>("");
   const [headTeacherSignature, setHeadTeacherSignature] = useState<string>("");
+  const [classSignatureWidth, setClassSignatureWidth] = useState(120);
+  const [classSignatureHeight, setClassSignatureHeight] = useState(60);
+  const [headSignatureWidth, setHeadSignatureWidth] = useState(120);
+  const [headSignatureHeight, setHeadSignatureHeight] = useState(60);
   const [sportInput, setSportInput] = useState("");
   const [activityInput, setActivityInput] = useState("");
 
@@ -223,37 +227,17 @@ const StudentReportCardSystem = () => {
     }
   };
 
-  const addSport = () => {
-    if (sportInput.trim()) {
-      setReportCard(prev => ({
-        ...prev,
-        school_sports: [...prev.school_sports, sportInput.trim()]
-      }));
-      setSportInput("");
-    }
-  };
-
-  const removeSport = (index: number) => {
+  const updateSport = (index: number, value: string) => {
     setReportCard(prev => ({
       ...prev,
-      school_sports: prev.school_sports.filter((_, i) => i !== index)
+      school_sports: prev.school_sports.map((sport, i) => i === index ? value : sport)
     }));
   };
 
-  const addActivity = () => {
-    if (activityInput.trim()) {
-      setReportCard(prev => ({
-        ...prev,
-        other_activities: [...prev.other_activities, activityInput.trim()]
-      }));
-      setActivityInput("");
-    }
-  };
-
-  const removeActivity = (index: number) => {
+  const updateActivity = (index: number, value: string) => {
     setReportCard(prev => ({
       ...prev,
-      other_activities: prev.other_activities.filter((_, i) => i !== index)
+      other_activities: prev.other_activities.map((activity, i) => i === index ? value : activity)
     }));
   };
 
@@ -342,8 +326,8 @@ const StudentReportCardSystem = () => {
 
       if (subjectsError) throw subjectsError;
 
-      toast.success('Report card saved successfully!');
-      navigate('/reports');
+      toast.success('Report card saved as draft!');
+      navigate('/teacher/draft-results', { state: { reportCardId: reportCardData.id } });
     } catch (error) {
       console.error('Error saving report card:', error);
       toast.error('Failed to save report card');
@@ -605,8 +589,24 @@ const StudentReportCardSystem = () => {
                 </div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">Total Time School Opened</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.total_school_opened}</div>
-                <div className="border-t border-r border-black p-2 text-center">Aerobics</div>
-                <div className="border-t border-black p-2 text-center">Sport Fiesta</div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden">
+                  <Input
+                    value={reportCard.school_sports[0] || ""}
+                    onChange={(e) => updateSport(0, e.target.value)}
+                    placeholder="Sport 1"
+                    className="h-8 text-xs text-center"
+                  />
+                </div>
+                <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[0]}</div>
+                <div className="border-t border-black p-2 text-center print:hidden">
+                  <Input
+                    value={reportCard.other_activities[0] || ""}
+                    onChange={(e) => updateActivity(0, e.target.value)}
+                    placeholder="Activity 1"
+                    className="h-8 text-xs text-center"
+                  />
+                </div>
+                <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[0]}</div>
                 
                 <div className="col-span-2 border-t border-r border-black p-2 print:hidden">
                   <Label>No. of Time Present</Label>
@@ -618,8 +618,24 @@ const StudentReportCardSystem = () => {
                 </div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Present</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_present}</div>
-                <div className="border-t border-r border-black p-2 text-center"></div>
-                <div className="border-t border-black p-2 text-center">Art Exhibition</div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden">
+                  <Input
+                    value={reportCard.school_sports[1] || ""}
+                    onChange={(e) => updateSport(1, e.target.value)}
+                    placeholder="Sport 2"
+                    className="h-8 text-xs text-center"
+                  />
+                </div>
+                <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[1]}</div>
+                <div className="border-t border-black p-2 text-center print:hidden">
+                  <Input
+                    value={reportCard.other_activities[1] || ""}
+                    onChange={(e) => updateActivity(1, e.target.value)}
+                    placeholder="Activity 2"
+                    className="h-8 text-xs text-center"
+                  />
+                </div>
+                <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[1]}</div>
                 
                 <div className="col-span-2 border-t border-r border-black p-2 print:hidden">
                   <Label>No. of Time Absent (Auto-calculated)</Label>
@@ -632,56 +648,24 @@ const StudentReportCardSystem = () => {
                 </div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Absent</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_absent}</div>
-                <div className="border-t border-r border-black p-2 print:hidden">
-                  <div className="space-y-2">
-                    {reportCard.school_sports.map((sport, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs">
-                        <span>{sport}</span>
-                        <Button size="sm" variant="ghost" onClick={() => removeSport(idx)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    <div className="flex gap-1">
-                      <Input
-                        value={sportInput}
-                        onChange={(e) => setSportInput(e.target.value)}
-                        placeholder="Add sport"
-                        className="h-7 text-xs"
-                        onKeyPress={(e) => e.key === 'Enter' && addSport()}
-                      />
-                      <Button size="sm" onClick={addSport} className="h-7">
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden">
+                  <Input
+                    value={reportCard.school_sports[2] || ""}
+                    onChange={(e) => updateSport(2, e.target.value)}
+                    placeholder="Sport 3"
+                    className="h-8 text-xs text-center"
+                  />
                 </div>
-                <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports.join(', ')}</div>
-                <div className="border-t border-black p-2 print:hidden">
-                  <div className="space-y-2">
-                    {reportCard.other_activities.map((activity, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs">
-                        <span>{activity}</span>
-                        <Button size="sm" variant="ghost" onClick={() => removeActivity(idx)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    <div className="flex gap-1">
-                      <Input
-                        value={activityInput}
-                        onChange={(e) => setActivityInput(e.target.value)}
-                        placeholder="Add activity"
-                        className="h-7 text-xs"
-                        onKeyPress={(e) => e.key === 'Enter' && addActivity()}
-                      />
-                      <Button size="sm" onClick={addActivity} className="h-7">
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
+                <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[2]}</div>
+                <div className="border-t border-black p-2 text-center print:hidden">
+                  <Input
+                    value={reportCard.other_activities[2] || ""}
+                    onChange={(e) => updateActivity(2, e.target.value)}
+                    placeholder="Activity 3"
+                    className="h-8 text-xs text-center"
+                  />
                 </div>
-                <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities.join(', ')}</div>
+                <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[2]}</div>
               </div>
             </div>
 
@@ -808,8 +792,27 @@ const StudentReportCardSystem = () => {
               </div>
             </div>
 
-            {/* Comments - Print only */}
+            {/* Comments and Additional Info */}
             <div className="grid grid-cols-2 gap-4 text-sm print:hidden mt-4">
+              <div>
+                <Label>Club/Organization</Label>
+                <Input
+                  value={reportCard.club_organization}
+                  onChange={(e) => setReportCard(prev => ({ ...prev, club_organization: e.target.value }))}
+                  placeholder="e.g., Football and Reading Club"
+                />
+              </div>
+              <div>
+                <Label>Term</Label>
+                <Select value={reportCard.term} onValueChange={(value) => setReportCard(prev => ({ ...prev, term: value }))}>
+                  <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="First Term">First Term</SelectItem>
+                    <SelectItem value="Second Term">Second Term</SelectItem>
+                    <SelectItem value="Third Term">Third Term</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label>Class Teacher's Comments</Label>
                 <Textarea
@@ -842,28 +845,94 @@ const StudentReportCardSystem = () => {
               </div>
               <div>
                 <Label>Class Teacher's Signature</Label>
-                <div className="flex items-center gap-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {classTeacherSignature && (
+                      <img 
+                        src={classTeacherSignature} 
+                        alt="Signature" 
+                        style={{ width: `${classSignatureWidth}px`, height: `${classSignatureHeight}px` }}
+                        className="border object-contain"
+                      />
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleSignatureUpload('class', e)}
+                    />
+                  </div>
                   {classTeacherSignature && (
-                    <img src={classTeacherSignature} alt="Signature" className="h-16 border" />
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Label className="text-xs">Width: {classSignatureWidth}px</Label>
+                        <Input
+                          type="range"
+                          min="60"
+                          max="200"
+                          value={classSignatureWidth}
+                          onChange={(e) => setClassSignatureWidth(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs">Height: {classSignatureHeight}px</Label>
+                        <Input
+                          type="range"
+                          min="30"
+                          max="120"
+                          value={classSignatureHeight}
+                          onChange={(e) => setClassSignatureHeight(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
                   )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleSignatureUpload('class', e)}
-                  />
                 </div>
               </div>
               <div>
                 <Label>Head Teacher's Signature</Label>
-                <div className="flex items-center gap-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    {headTeacherSignature && (
+                      <img 
+                        src={headTeacherSignature} 
+                        alt="Signature" 
+                        style={{ width: `${headSignatureWidth}px`, height: `${headSignatureHeight}px` }}
+                        className="border object-contain"
+                      />
+                    )}
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleSignatureUpload('head', e)}
+                    />
+                  </div>
                   {headTeacherSignature && (
-                    <img src={headTeacherSignature} alt="Signature" className="h-16 border" />
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Label className="text-xs">Width: {headSignatureWidth}px</Label>
+                        <Input
+                          type="range"
+                          min="60"
+                          max="200"
+                          value={headSignatureWidth}
+                          onChange={(e) => setHeadSignatureWidth(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs">Height: {headSignatureHeight}px</Label>
+                        <Input
+                          type="range"
+                          min="30"
+                          max="120"
+                          value={headSignatureHeight}
+                          onChange={(e) => setHeadSignatureHeight(parseInt(e.target.value))}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
                   )}
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleSignatureUpload('head', e)}
-                  />
                 </div>
               </div>
               <div>
@@ -890,11 +959,27 @@ const StudentReportCardSystem = () => {
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <div className="font-bold">Class Teacher's Name and Signature</div>
-                  <div className="border-t-2 border-black mt-8 pt-2">{reportCard.class_teacher_name}</div>
+                  {classTeacherSignature && (
+                    <img 
+                      src={classTeacherSignature} 
+                      alt="Class Teacher Signature" 
+                      style={{ width: `${classSignatureWidth}px`, height: `${classSignatureHeight}px` }}
+                      className="my-2 object-contain"
+                    />
+                  )}
+                  <div className="border-t-2 border-black pt-2">{reportCard.class_teacher_name}</div>
                 </div>
                 <div>
                   <div className="font-bold">Head Teacher's Name and Signature</div>
-                  <div className="border-t-2 border-black mt-8 pt-2">{reportCard.head_teacher_name}</div>
+                  {headTeacherSignature && (
+                    <img 
+                      src={headTeacherSignature} 
+                      alt="Head Teacher Signature" 
+                      style={{ width: `${headSignatureWidth}px`, height: `${headSignatureHeight}px` }}
+                      className="my-2 object-contain"
+                    />
+                  )}
+                  <div className="border-t-2 border-black pt-2">{reportCard.head_teacher_name}</div>
                 </div>
               </div>
               <div className="text-center mt-4">
