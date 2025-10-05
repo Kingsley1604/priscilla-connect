@@ -41,16 +41,14 @@ import StudentReportCardSystem from "./pages/teacher/StudentReportCardSystem";
 import DraftResults from "./pages/teacher/DraftResults";
 import ExamOverview from "./pages/teacher/ExamOverview";
 import ExamSetup from "./pages/teacher/ExamSetup";
+import CreateQuestions from "./pages/teacher/CreateQuestions";
 import InventoryManager from "./pages/admin/InventoryManager";
 import ManageStoreEnhanced from "./pages/admin/ManageStoreEnhanced";
-import CreateQuestions from "./pages/teacher/CreateQuestions";
-import Error404 from "./pages/Error404";
-import Error403 from "./pages/Error403";
-import Error401 from "./pages/Error401";
-import Error500 from "./pages/Error500";
-import ErrorNetwork from "./pages/ErrorNetwork";
-import ComingSoonShareTest from "./pages/ComingSoonShareTest";
-import ComingSoonCheckScores from "./pages/ComingSoonCheckScores";
+import Error404 from "./pages/errors/Error404";
+import Error403 from "./pages/errors/Error403";
+import Error401 from "./pages/errors/Error401";
+import Error500 from "./pages/errors/Error500";
+import ErrorNetwork from "./pages/errors/ErrorNetwork";
 
 const queryClient = new QueryClient();
 
@@ -98,15 +96,13 @@ const App = () => (
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />
             <Route path="/reports/midterm-result" element={<MidtermResult />} />
-            <Route path="/coming-soon-share-test" element={<ComingSoonShareTest />} />
-            <Route path="/coming-soon-check-scores" element={<ComingSoonCheckScores />} />
-            <Route path="/error/404" element={<Error404 />} />
+            {/* Error Pages */}
             <Route path="/error/403" element={<Error403 />} />
             <Route path="/error/401" element={<Error401 />} />
             <Route path="/error/500" element={<Error500 />} />
             <Route path="/error/network" element={<ErrorNetwork />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<Error404 />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

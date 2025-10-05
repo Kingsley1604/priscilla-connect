@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, CheckSquare, CircleDot, ArrowLeftRight, Hash, Type, AlignLeft, FileUp } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const CreateQuestions = () => {
   const navigate = useNavigate();
@@ -11,67 +11,53 @@ const CreateQuestions = () => {
     {
       title: "Multiple Choice",
       description: "Students select one correct answer from multiple options",
-      icon: CircleDot,
-      path: "/teacher/question-multiple-choice",
-      color: "text-blue-600"
+      icon: FileText,
     },
     {
       title: "Multiple Response",
       description: "Students can select multiple correct answers",
-      icon: CheckSquare,
-      path: "/teacher/question-multiple-response",
-      color: "text-green-600"
+      icon: FileText,
     },
     {
       title: "True / False",
       description: "Students choose between true or false",
-      icon: CheckSquare,
-      path: "/teacher/question-true-false",
-      color: "text-purple-600"
+      icon: FileText,
     },
     {
       title: "Matching / Ordering",
       description: "Students match items or put them in correct order",
-      icon: ArrowLeftRight,
-      path: "/teacher/question-matching",
-      color: "text-orange-600"
+      icon: FileText,
     },
     {
       title: "Numeric",
       description: "Students enter a numeric answer",
-      icon: Hash,
-      path: "/teacher/question-numeric",
-      color: "text-red-600"
+      icon: FileText,
     },
     {
       title: "Fill in the Blank",
       description: "Students complete sentences with missing words",
-      icon: Type,
-      path: "/teacher/question-fill-blank",
-      color: "text-indigo-600"
+      icon: FileText,
     },
     {
       title: "Short Answer",
       description: "Students provide brief text responses",
-      icon: AlignLeft,
-      path: "/teacher/question-short-answer",
-      color: "text-teal-600"
+      icon: FileText,
     },
     {
       title: "Essay",
-      description: "Students write detailed long-form responses",
+      description: "Students write detailed essay responses",
       icon: FileText,
-      path: "/teacher/question-essay",
-      color: "text-pink-600"
     },
     {
       title: "File Upload",
       description: "Students upload files as their answer",
-      icon: FileUp,
-      path: "/teacher/question-file-upload",
-      color: "text-cyan-600"
+      icon: FileText,
     }
   ];
+
+  const handleQuestionTypeClick = (type: string) => {
+    toast.info(`${type} question type - Coming Soon!`);
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -84,7 +70,7 @@ const CreateQuestions = () => {
           <div>
             <h1 className="text-3xl font-bold">Create Questions</h1>
             <p className="text-muted-foreground mt-1">
-              Choose the type of question you want to create for your test
+              Select a question type to add to your exam
             </p>
           </div>
         </div>
@@ -94,11 +80,11 @@ const CreateQuestions = () => {
             <Card 
               key={index}
               className="hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1"
-              onClick={() => navigate(type.path)}
+              onClick={() => handleQuestionTypeClick(type.title)}
             >
               <CardHeader>
                 <div className="flex items-start gap-3">
-                  <div className={`p-3 rounded-lg bg-muted ${type.color}`}>
+                  <div className="p-2 rounded-lg bg-muted text-primary">
                     <type.icon className="h-6 w-6" />
                   </div>
                   <div className="flex-1">

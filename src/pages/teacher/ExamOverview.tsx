@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, BookOpen, Send, BarChart } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
 
 const ExamOverview = () => {
   const navigate = useNavigate();
@@ -28,14 +29,14 @@ const ExamOverview = () => {
       title: "Share Test",
       description: "Send the test link to your students and begin collecting their answers.",
       icon: Send,
-      path: "/coming-soon-share-test",
+      comingSoon: true,
       color: "text-accent"
     },
     {
       title: "Check Scores",
       description: "Review how each student performed and track their results.",
       icon: BarChart,
-      path: "/coming-soon-check-scores",
+      comingSoon: true,
       color: "text-green-600"
     }
   ];
@@ -62,7 +63,13 @@ const ExamOverview = () => {
             <Card 
               key={index}
               className="hover:shadow-lg transition-all cursor-pointer hover:-translate-y-1"
-              onClick={() => section.path && navigate(section.path)}
+              onClick={() => {
+                if (section.comingSoon) {
+                  toast.info(`${section.title} - Coming Soon Feature!`);
+                } else if (section.path) {
+                  navigate(section.path);
+                }
+              }}
             >
               <CardHeader>
                 <div className="flex items-start gap-3">
