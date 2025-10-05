@@ -38,7 +38,7 @@ const ExamSetup = () => {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/teacher/exam-builder')}>
+          <Button variant="outline" onClick={() => navigate('/teacher/exam-overview')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>

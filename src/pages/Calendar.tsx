@@ -64,6 +64,7 @@ const CalendarPage = () => {
         
       if (error) {
         console.error('Error loading events:', error);
+        toast.error("Failed to load events");
         return;
       }
       
@@ -76,6 +77,7 @@ const CalendarPage = () => {
       setEvents(typedEvents);
     } catch (error) {
       console.error('Error loading events:', error);
+      toast.error("Failed to load events");
     }
   };
 

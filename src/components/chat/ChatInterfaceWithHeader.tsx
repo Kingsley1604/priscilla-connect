@@ -42,6 +42,7 @@ const ChatInterfaceWithHeader = ({ contacts, currentUser }: ChatInterfaceWithHea
             </div>
             <div>
               <h1 className="text-3xl font-bold">Priscilla Chat</h1>
+              <p className="text-white/90 mt-1">Simple. Fast. Free</p>
             </div>
           </div>
         </div>

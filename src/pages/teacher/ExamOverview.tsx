@@ -21,20 +21,21 @@ const ExamOverview = () => {
       title: "Create Questions",
       description: "Add the questions your students will answer during the test.",
       icon: BookOpen,
-      path: "/teacher/exam-builder",
+      path: "/teacher/create-questions",
       color: "text-secondary"
     },
     {
       title: "Share Test",
       description: "Send the test link to your students and begin collecting their answers.",
       icon: Send,
+      path: "/coming-soon-share-test",
       color: "text-accent"
     },
     {
       title: "Check Scores",
       description: "Review how each student performed and track their results.",
       icon: BarChart,
-      path: "/teacher/analytics",
+      path: "/coming-soon-check-scores",
       color: "text-green-600"
     }
   ];
@@ -48,7 +49,8 @@ const ExamOverview = () => {
             Back
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">{examTitle}</h1>
+            <h1 className="text-3xl font-bold">Exam Overview</h1>
+            <h2 className="text-2xl font-semibold mt-2">{examTitle}</h2>
             <p className="text-muted-foreground mt-1">
               This is where you can set up your test, add questions, share it with students, and check their scores.
             </p>
