@@ -13,7 +13,6 @@ import {
   Calendar, 
   MessageSquare, 
   BarChart3, 
-  GraduationCap,
   Bell,
   Settings,
   PlayCircle,
@@ -24,6 +23,7 @@ import {
   ShoppingBag
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
@@ -83,7 +83,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
-              <GraduationCap className="h-12 w-12 text-white" />
+              <img src={priscillaLogo} alt="Priscilla Connect" className="h-12 w-12 object-contain" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Priscilla Connect</h1>

@@ -68,12 +68,20 @@ const Reports = () => {
             
             {/* Teacher Upload Result Button */}
             {userRole === 'teacher' && (
-              <Link to="/teacher/upload-result">
-                <Button className="bg-green-600 hover:bg-green-700">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Result
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link to="/teacher/upload-result">
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Result
+                  </Button>
+                </Link>
+                <Link to="/teacher/midterm-report">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Create Midterm Report
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
         </div>

@@ -4,13 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { validateInput, sanitizeInput } from '@/lib/security';
 import { useNotifications } from '@/hooks/useNotifications';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import PrivacyNotice from '@/components/privacy/PrivacyNotice';
 import SignupForm from './SignupForm';
+import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -104,7 +105,7 @@ const LoginForm = () => {
       <div className="max-w-md w-full">
         <div className="text-center mb-8 animate-fade-in">
           <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-            <GraduationCap className="h-16 w-16 text-white" />
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">Priscilla Connect</h1>
           <p className="text-white/90">Sign in to your account</p>

@@ -21,6 +21,7 @@ import ClassManagement from "./pages/teacher/ClassManagement";
 import TeacherProfileSettings from "./pages/teacher/ProfileSettings";
 import UploadResult from "./pages/teacher/UploadResult";
 import ExamBuilder from "./pages/teacher/ExamBuilder";
+import MidtermReportSheet from "./pages/teacher/MidtermReportSheet";
 import ExamInterface from "./pages/student/ExamInterface";
 import ExamResults from "./pages/admin/ExamResults";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
             <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />
+            <Route path="/teacher/midterm-report" element={<MidtermReportSheet />} />
             <Route path="/teacher/report-card" element={<StudentReportCardSystem />} />
             <Route path="/teacher/draft-results" element={<DraftResults />} />
             <Route path="/teacher/exam-overview" element={<ExamOverview />} />

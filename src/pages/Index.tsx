@@ -3,8 +3,9 @@ import Dashboard from "@/components/Dashboard";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap, Users, BookOpen } from "lucide-react";
+import { Users, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 const Index = () => {
   const { user, logout } = useAuth();
@@ -22,7 +23,7 @@ const Index = () => {
         <div className="max-w-4xl mx-auto text-center">
           <div className="mb-8 animate-fade-in">
             <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-              <GraduationCap className="h-16 w-16 text-white" />
+              <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
             </div>
             <h1 className="text-5xl font-bold text-white mb-4">Priscilla Connect</h1>
             <p className="text-xl text-white/90 mb-8">
@@ -74,7 +75,7 @@ const Index = () => {
             >
               <CardHeader className="pb-4">
                 <div className="mx-auto bg-gradient-accent p-4 rounded-full w-16 h-16 flex items-center justify-center mb-4">
-                  <GraduationCap className="h-8 w-8 text-white" />
+                  <img src={priscillaLogo} alt="Admin" className="h-8 w-8 object-contain" />
                 </div>
                 <CardTitle className="text-white text-xl">Admin Panel</CardTitle>
               </CardHeader>
