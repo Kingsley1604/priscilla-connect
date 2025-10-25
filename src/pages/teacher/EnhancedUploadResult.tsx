@@ -121,7 +121,13 @@ const EnhancedUploadResult = () => {
                 toast.error("Please fill in all required fields");
                 return;
               }
-              navigate(`/teacher/report-card?session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`);
+              
+              // Navigate to Midterm Report for Primary MidTerm Results
+              if (formData.resultType === "MidTerm Result" && formData.classLevel === "Primary") {
+                navigate(`/teacher/midterm-report?session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`);
+              } else {
+                navigate(`/teacher/report-card?session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`);
+              }
             }}>
               <Send className="h-4 w-4 mr-2" />
               Create Result
