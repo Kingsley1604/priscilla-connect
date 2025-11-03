@@ -22,6 +22,10 @@ import TeacherProfileSettings from "./pages/teacher/ProfileSettings";
 import UploadResult from "./pages/teacher/UploadResult";
 import ExamBuilder from "./pages/teacher/ExamBuilder";
 import MidtermReportSheet from "./pages/teacher/MidtermReportSheet";
+import NurseryOneExamResult from "./pages/teacher/NurseryOneExamResult";
+import NurseryTwoExamResult from "./pages/teacher/NurseryTwoExamResult";
+import NurseryMidtermReport from "./pages/teacher/NurseryMidtermReport";
+import SecondaryExamResult from "./pages/teacher/SecondaryExamResult";
 import ExamInterface from "./pages/student/ExamInterface";
 import ExamResults from "./pages/admin/ExamResults";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
@@ -78,6 +82,10 @@ const App = () => (
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
             <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />
             <Route path="/teacher/midterm-report" element={<MidtermReportSheet />} />
+            <Route path="/teacher/nursery-one-exam" element={<NurseryOneExamResult />} />
+            <Route path="/teacher/nursery-two-exam" element={<NurseryTwoExamResult />} />
+            <Route path="/teacher/nursery-midterm-report" element={<NurseryMidtermReport />} />
+            <Route path="/teacher/secondary-exam-result" element={<SecondaryExamResult />} />
             <Route path="/teacher/report-card" element={<StudentReportCardSystem />} />
             <Route path="/teacher/draft-results" element={<DraftResults />} />
             <Route path="/teacher/exam-overview" element={<ExamOverview />} />

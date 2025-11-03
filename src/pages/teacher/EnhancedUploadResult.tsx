@@ -24,7 +24,7 @@ const EnhancedUploadResult = () => {
   const getGradeOptions = () => {
     const { classLevel } = formData;
     if (classLevel === "Primary") {
-      return ["Play Group 1", "Play Group 2", "First Grade", "Second Grade", "Third Grade", "Fourth Grade", "Fifth Grade", "Sixth Grade"];
+      return ["Play Group 1", "Play Group 2", "Nursery One", "Nursery Two", "First Grade", "Second Grade", "Third Grade", "Fourth Grade", "Fifth Grade", "Sixth Grade"];
     } else if (classLevel === "Junior Secondary") {
       return ["Seventh Grade", "Eighth Grade", "Nineth Grade"];
     } else if (classLevel === "Senior Secondary") {
@@ -122,11 +122,31 @@ const EnhancedUploadResult = () => {
                 return;
               }
               
-              // Navigate to Midterm Report for Primary MidTerm Results
-              if (formData.resultType === "MidTerm Result" && formData.classLevel === "Primary") {
-                navigate(`/teacher/midterm-report?session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`);
-              } else {
-                navigate(`/teacher/report-card?session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`);
+              const params = `session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`;
+              
+              // Nursery Midterm Reports
+              if (formData.resultType === "MidTerm Result" && formData.classLevel === "Primary" && (formData.grade === "Nursery One" || formData.grade === "Nursery Two")) {
+                navigate(`/teacher/nursery-midterm-report?${params}`);
+              }
+              // Other Primary Midterm Results
+              else if (formData.resultType === "MidTerm Result" && formData.classLevel === "Primary") {
+                navigate(`/teacher/midterm-report?${params}`);
+              }
+              // Nursery One Examination Result
+              else if (formData.resultType === "Examination Result" && formData.classLevel === "Primary" && formData.grade === "Nursery One") {
+                navigate(`/teacher/nursery-one-exam?${params}`);
+              }
+              // Nursery Two Examination Result
+              else if (formData.resultType === "Examination Result" && formData.classLevel === "Primary" && formData.grade === "Nursery Two") {
+                navigate(`/teacher/nursery-two-exam?${params}`);
+              }
+              // Secondary School Examination Results
+              else if (formData.resultType === "Examination Result" && (formData.classLevel === "Junior Secondary" || formData.classLevel === "Senior Secondary")) {
+                navigate(`/teacher/secondary-exam-result?${params}`);
+              }
+              // Default to regular report card
+              else {
+                navigate(`/teacher/report-card?${params}`);
               }
             }}>
               <Send className="h-4 w-4 mr-2" />
