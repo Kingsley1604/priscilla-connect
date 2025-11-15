@@ -20,6 +20,7 @@ import ContentUpload from "./pages/teacher/ContentUpload";
 import ClassManagement from "./pages/teacher/ClassManagement";
 import TeacherProfileSettings from "./pages/teacher/ProfileSettings";
 import UploadResult from "./pages/teacher/UploadResult";
+import LessonPlanner from "./pages/teacher/LessonPlanner";
 import ExamBuilder from "./pages/teacher/ExamBuilder";
 import MidtermReportSheet from "./pages/teacher/MidtermReportSheet";
 import NurseryOneExamResult from "./pages/teacher/NurseryOneExamResult";
@@ -73,11 +74,12 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/store" element={<Store />} />
             <Route path="/profile-settings" element={<ProfileSettings />} />
-        <Route path="/priscilla-brain" element={<ComingSoon title="Priscilla Brain" description="AI-powered homework assistant" />} />
+        <Route path="/priscilla-brain" element={<PriscillaBrain />} />
         <Route path="/priscilla-tube" element={<PriscillaTube />} />
         <Route path="/games-arena" element={<ComingSoon title="Games Arena" description="Educational gaming platform" />} />
             <Route path="/teacher/analytics" element={<ComingSoon title="Analytics" description="Comprehensive student performance analytics and insights" />} />
             <Route path="/teacher/content-upload" element={<ComingSoon title="Content Upload" description="Upload and manage educational content" />} />
+            <Route path="/teacher/lesson-planner" element={<LessonPlanner />} />
             <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
             <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />

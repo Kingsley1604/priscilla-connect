@@ -817,18 +817,9 @@ export type Database = {
       }
     }
     Functions: {
-      auto_submit_expired_attempts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_inventory_levels: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      get_exam_question_count: {
-        Args: { exam_id: string }
-        Returns: number
-      }
+      auto_submit_expired_attempts: { Args: never; Returns: undefined }
+      check_inventory_levels: { Args: never; Returns: undefined }
+      get_exam_question_count: { Args: { exam_id: string }; Returns: number }
       get_exam_questions_for_attempt: {
         Args: { exam_attempt_id: string }
         Returns: {

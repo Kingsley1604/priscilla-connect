@@ -52,6 +52,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
+      { title: "AI Lesson Planner", description: "Generate lesson plans with AI", icon: Brain, color: "bg-gradient-accent", path: "/teacher/lesson-planner" },
       { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management", disabled: true },
       { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics", disabled: true },
       { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload", disabled: true },
