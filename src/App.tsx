@@ -28,6 +28,8 @@ import NurseryTwoExamResult from "./pages/teacher/NurseryTwoExamResult";
 import NurseryMidtermReport from "./pages/teacher/NurseryMidtermReport";
 import SecondaryExamResult from "./pages/teacher/SecondaryExamResult";
 import ExamInterface from "./pages/student/ExamInterface";
+import HomeworkSubmission from "./pages/student/HomeworkSubmission";
+import TeacherAssignment from "./pages/admin/TeacherAssignment";
 import ExamResults from "./pages/admin/ExamResults";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 import SystemSettings from "./pages/admin/SystemSettings";
@@ -96,8 +98,10 @@ const App = () => (
             <Route path="/teacher/results-management" element={<ResultsManagement />} />
             <Route path="/admin/profile-settings" element={<AdminProfileSettings />} />
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
-            <Route path="/student/exam" element={<ExamInterface />} />
-            <Route path="/admin/exam-results" element={<ExamResults />} />
+        <Route path="/student/exam" element={<ExamInterface />} />
+        <Route path="/student/homework" element={<HomeworkSubmission />} />
+        <Route path="/admin/teacher-assignments" element={<TeacherAssignment />} />
+        <Route path="/admin/exam-results" element={<ExamResults />} />
             <Route path="/admin/announcements" element={<AnnouncementManager />} />
             <Route path="/admin/manage-announcements" element={<ManageAnnouncements />} />
             <Route path="/admin/manage-store" element={<ManageStoreEnhanced />} />

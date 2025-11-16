@@ -34,9 +34,27 @@ const AnnouncementBanner = ({ userRole }: AnnouncementBannerProps) => {
         .limit(3);
 
       if (error) throw error;
-      setAnnouncements(data || []);
+      
+      // If no announcements, show demo announcement
+      if (!data || data.length === 0) {
+        setAnnouncements([{
+          id: 'demo-announcement',
+          title: '🎉 Welcome to Priscilla Connect!',
+          content: 'This is a demo announcement. Admins can create real announcements from the "Pass Announcement" feature on their dashboard. These announcements will appear here for students and teachers.',
+          created_at: new Date().toISOString()
+        }]);
+      } else {
+        setAnnouncements(data);
+      }
     } catch (error) {
       console.error('Error fetching announcements:', error);
+      // Show demo on error too
+      setAnnouncements([{
+        id: 'demo-announcement',
+        title: '🎉 Welcome to Priscilla Connect!',
+        content: 'This is a demo announcement. Admins can create real announcements from the "Pass Announcement" feature on their dashboard.',
+        created_at: new Date().toISOString()
+      }]);
     }
   };
 

@@ -43,6 +43,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const studentModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Take Exam", description: "Take entrance or CBT exam", icon: FileText, color: "bg-gradient-primary", path: "/student/exam" },
+      { title: "Homework", description: "View and submit homework", icon: FileText, color: "bg-gradient-secondary", path: "/student/homework" },
       { title: "Store", description: "School supplies & uniforms", icon: ShoppingBag, color: "bg-gradient-accent", path: "/store" },
       { title: "Priscilla Brain", description: "AI homework assistant", icon: Brain, color: "bg-gradient-primary", path: "/priscilla-brain" },
       { title: "Priscilla Tube", description: "Educational videos", icon: PlayCircle, color: "bg-gradient-secondary", path: "/priscilla-tube" },
@@ -61,6 +62,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
+      { title: "Teacher Assignments", description: "Assign teachers to classes", icon: Users, color: "bg-gradient-secondary", path: "/admin/teacher-assignments" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
       { title: "Manage Store", description: "Add and manage store items", icon: ShoppingBag, color: "bg-gradient-secondary", path: "/admin/manage-store" },
       { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-accent", path: "/admin/manage-priscilla-tube" },
