@@ -9,6 +9,7 @@ import { Megaphone, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { DemoInstructions } from "@/components/admin/DemoInstructions";
 
 const PassAnnouncement = () => {
   const navigate = useNavigate();
@@ -96,6 +97,8 @@ const PassAnnouncement = () => {
             Create and publish announcements that will appear on student and teacher dashboards.
           </p>
         </div>
+
+        <DemoInstructions />
 
         <Card className="shadow-medium">
           <CardHeader>
