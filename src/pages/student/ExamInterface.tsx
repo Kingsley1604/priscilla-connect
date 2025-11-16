@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -417,15 +417,26 @@ const ExamInterface = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/dashboard")}
-              className="w-fit"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <CardTitle className="text-center">Enter Exam</CardTitle>
+            <div className="flex justify-between items-center">
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/dashboard")}
+                className="w-fit"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/student/homework")}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Homework
+              </Button>
+            </div>
+            <CardTitle className="text-center mt-4">Enter Exam</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">

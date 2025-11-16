@@ -386,6 +386,98 @@ export type Database = {
         }
         Relationships: []
       }
+      homework: {
+        Row: {
+          class_level: string
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string
+          id: string
+          is_active: boolean
+          subject: string
+          title: string
+          total_marks: number
+          updated_at: string
+        }
+        Insert: {
+          class_level: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_active?: boolean
+          subject: string
+          title: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Update: {
+          class_level?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_active?: boolean
+          subject?: string
+          title?: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      homework_submissions: {
+        Row: {
+          file_url: string | null
+          graded_at: string | null
+          homework_id: string
+          id: string
+          marks_obtained: number | null
+          status: string
+          student_id: string
+          student_name: string
+          submission_text: string | null
+          submitted_at: string
+          teacher_feedback: string | null
+        }
+        Insert: {
+          file_url?: string | null
+          graded_at?: string | null
+          homework_id: string
+          id?: string
+          marks_obtained?: number | null
+          status?: string
+          student_id: string
+          student_name: string
+          submission_text?: string | null
+          submitted_at?: string
+          teacher_feedback?: string | null
+        }
+        Update: {
+          file_url?: string | null
+          graded_at?: string | null
+          homework_id?: string
+          id?: string
+          marks_obtained?: number | null
+          status?: string
+          student_id?: string
+          student_name?: string
+          submission_text?: string | null
+          submitted_at?: string
+          teacher_feedback?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_submissions_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homework"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_alerts: {
         Row: {
           alert_threshold: number
@@ -753,6 +845,42 @@ export type Database = {
           term?: string
           total_score?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      teacher_assignments: {
+        Row: {
+          academic_session: string
+          assigned_at: string
+          assigned_by: string
+          class_level: string
+          id: string
+          is_active: boolean
+          subject: string
+          teacher_id: string
+          teacher_name: string
+        }
+        Insert: {
+          academic_session: string
+          assigned_at?: string
+          assigned_by: string
+          class_level: string
+          id?: string
+          is_active?: boolean
+          subject: string
+          teacher_id: string
+          teacher_name: string
+        }
+        Update: {
+          academic_session?: string
+          assigned_at?: string
+          assigned_by?: string
+          class_level?: string
+          id?: string
+          is_active?: boolean
+          subject?: string
+          teacher_id?: string
+          teacher_name?: string
         }
         Relationships: []
       }
