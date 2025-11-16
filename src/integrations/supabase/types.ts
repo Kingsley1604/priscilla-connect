@@ -977,6 +977,14 @@ export type Database = {
           question_text: string
         }[]
       }
+      search_teachers: {
+        Args: { search_term: string }
+        Returns: {
+          email: string
+          id: string
+          name: string
+        }[]
+      }
     }
     Enums: {
       exam_status: "draft" | "active" | "completed"

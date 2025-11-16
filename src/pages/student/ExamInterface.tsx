@@ -417,25 +417,14 @@ const ExamInterface = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <Button
-                variant="ghost"
-                onClick={() => navigate("/dashboard")}
-                className="w-fit"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/student/homework")}
-                className="gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                Homework
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/dashboard")}
+              className="w-fit"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
             <CardTitle className="text-center mt-4">Enter Exam</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

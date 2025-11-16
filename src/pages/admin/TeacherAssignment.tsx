@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, UserCheck } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, UserCheck, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Assignment {
   id: string;
@@ -23,16 +25,24 @@ interface Assignment {
   is_active: boolean;
 }
 
+interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+}
+
 const TeacherAssignment = () => {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [openTeacherSelect, setOpenTeacherSelect] = useState(false);
   
   const [formData, setFormData] = useState({
-    teacher_name: "",
-    teacher_id: "",
     class_level: "",
     subject: "",
     academic_session: "2024/2025"
@@ -55,7 +65,38 @@ const TeacherAssignment = () => {
 
   useEffect(() => {
     fetchAssignments();
+    fetchTeachers();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm) {
+      searchTeachers(searchTerm);
+    }
+  }, [searchTerm]);
+
+  const fetchTeachers = async () => {
+    try {
+      const { data, error } = await supabase.rpc('search_teachers', { 
+        search_term: '' 
+      });
+      if (error) throw error;
+      setTeachers(data || []);
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+    }
+  };
+
+  const searchTeachers = async (term: string) => {
+    try {
+      const { data, error } = await supabase.rpc('search_teachers', { 
+        search_term: term 
+      });
+      if (error) throw error;
+      setTeachers(data || []);
+    } catch (error) {
+      console.error('Error searching teachers:', error);
+    }
+  };
 
   const fetchAssignments = async () => {
     try {
@@ -78,8 +119,8 @@ const TeacherAssignment = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.teacher_name || !formData.teacher_id || !formData.class_level || !formData.subject) {
-      toast.error("Please fill in all fields");
+    if (!selectedTeacher || !formData.class_level || !formData.subject) {
+      toast.error("Please select a teacher and fill in all fields");
       return;
     }
 
@@ -91,8 +132,8 @@ const TeacherAssignment = () => {
       const { error } = await supabase
         .from('teacher_assignments')
         .insert({
-          teacher_id: formData.teacher_id,
-          teacher_name: formData.teacher_name,
+          teacher_id: selectedTeacher.id,
+          teacher_name: selectedTeacher.name,
           class_level: formData.class_level,
           subject: formData.subject,
           academic_session: formData.academic_session,
@@ -102,9 +143,8 @@ const TeacherAssignment = () => {
       if (error) throw error;
 
       toast.success("Teacher assigned successfully!");
+      setSelectedTeacher(null);
       setFormData({
-        teacher_name: "",
-        teacher_id: "",
         class_level: "",
         subject: "",
         academic_session: "2024/2025"
@@ -181,24 +221,54 @@ const TeacherAssignment = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Teacher Name</Label>
-                    <Input
-                      value={formData.teacher_name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, teacher_name: e.target.value }))}
-                      placeholder="Enter teacher name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Teacher ID</Label>
-                    <Input
-                      value={formData.teacher_id}
-                      onChange={(e) => setFormData(prev => ({ ...prev, teacher_id: e.target.value }))}
-                      placeholder="Enter teacher ID (UUID)"
-                      required
-                    />
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="space-y-2">
+                    <Label>Select Teacher</Label>
+                    <Popover open={openTeacherSelect} onOpenChange={setOpenTeacherSelect}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openTeacherSelect}
+                          className="w-full justify-between"
+                        >
+                          {selectedTeacher ? selectedTeacher.name : "Search and select teacher..."}
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Search teachers..." 
+                            value={searchTerm}
+                            onValueChange={setSearchTerm}
+                          />
+                          <CommandEmpty>No teacher found.</CommandEmpty>
+                          <CommandGroup>
+                            {teachers.map((teacher) => (
+                              <CommandItem
+                                key={teacher.id}
+                                value={teacher.name}
+                                onSelect={() => {
+                                  setSelectedTeacher(teacher);
+                                  setOpenTeacherSelect(false);
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{teacher.name}</span>
+                                  <span className="text-sm text-muted-foreground">{teacher.email}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {selectedTeacher && (
+                      <div className="text-sm text-muted-foreground">
+                        Selected: {selectedTeacher.name} ({selectedTeacher.email})
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label>Class Level</Label>
