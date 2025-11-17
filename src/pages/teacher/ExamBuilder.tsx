@@ -100,9 +100,9 @@ const ExamBuilder = () => {
       if (!user.user) return;
 
       const { data, error } = await supabase
-        .from('exam_statistics')
-        .select('*')
-        .eq('created_by', user.user.id);
+        .rpc('get_exam_statistics', {
+          creator_id: user.user.id
+        });
 
       if (error) throw error;
       setExamStats(data || []);
@@ -188,7 +188,7 @@ const ExamBuilder = () => {
 
       if (error) throw error;
 
-      toast.success("Exam created successfully!");
+      toast.success("Exam created successfully! Redirecting to exam overview...");
       setIsCreateExamOpen(false);
       setNewExam({ 
         title: "", 
@@ -198,11 +198,9 @@ const ExamBuilder = () => {
         class_level: "",
         grade: ""
       });
-      loadExams();
-      loadExamStatistics();
       
-      // Navigate to exam overview page
-      navigate(`/teacher/exam-overview?title=${encodeURIComponent(data.title)}`);
+      // Navigate to exam overview page immediately
+      navigate(`/teacher/exam-overview?examId=${data.id}`);
     } catch (error) {
       console.error("Error creating exam:", error);
       toast.error("Failed to create exam");
