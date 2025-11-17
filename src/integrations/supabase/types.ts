@@ -178,13 +178,6 @@ export type Database = {
             foreignKeyName: "exam_attempts_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
-            referencedRelation: "exam_statistics"
-            referencedColumns: ["exam_id"]
-          },
-          {
-            foreignKeyName: "exam_attempts_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
             referencedRelation: "exams"
             referencedColumns: ["id"]
           },
@@ -228,13 +221,6 @@ export type Database = {
           question_text?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "exam_questions_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exam_statistics"
-            referencedColumns: ["exam_id"]
-          },
           {
             foreignKeyName: "exam_questions_exam_id_fkey"
             columns: ["exam_id"]
@@ -293,13 +279,6 @@ export type Database = {
             foreignKeyName: "exam_results_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
-            referencedRelation: "exam_statistics"
-            referencedColumns: ["exam_id"]
-          },
-          {
-            foreignKeyName: "exam_results_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
             referencedRelation: "exams"
             referencedColumns: ["id"]
           },
@@ -334,13 +313,6 @@ export type Database = {
           used_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "exam_tokens_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exam_statistics"
-            referencedColumns: ["exam_id"]
-          },
           {
             foreignKeyName: "exam_tokens_exam_id_fkey"
             columns: ["exam_id"]
@@ -931,18 +903,7 @@ export type Database = {
       }
     }
     Views: {
-      exam_statistics: {
-        Row: {
-          created_by: string | null
-          exam_id: string | null
-          students_completed: number | null
-          students_not_started: number | null
-          students_taking: number | null
-          title: string | null
-          total_students: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       auto_submit_expired_attempts: { Args: never; Returns: undefined }
@@ -975,6 +936,18 @@ export type Database = {
           option_d: string
           question_order: number
           question_text: string
+        }[]
+      }
+      get_exam_statistics: {
+        Args: { creator_id?: string }
+        Returns: {
+          created_by: string
+          exam_id: string
+          students_completed: number
+          students_not_started: number
+          students_taking: number
+          title: string
+          total_students: number
         }[]
       }
       search_teachers: {
