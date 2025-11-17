@@ -189,8 +189,9 @@ const ExamBuilder = () => {
       if (error) throw error;
 
       toast.success("Exam created successfully! Redirecting to exam overview...");
+      const examTitle = newExam.title;
       setIsCreateExamOpen(false);
-      setNewExam({ 
+      setNewExam({
         title: "", 
         exam_type: "entrance", 
         duration_minutes: 60, 
@@ -199,8 +200,8 @@ const ExamBuilder = () => {
         grade: ""
       });
       
-      // Navigate to exam overview page immediately
-      navigate(`/teacher/exam-overview?examId=${data.id}`);
+      // Navigate to exam overview page with title
+      navigate(`/teacher/exam-overview?title=${encodeURIComponent(examTitle)}`);
     } catch (error) {
       console.error("Error creating exam:", error);
       toast.error("Failed to create exam");

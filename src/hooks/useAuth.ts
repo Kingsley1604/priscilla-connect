@@ -187,6 +187,9 @@ export const useAuth = () => {
         isLoading: false
       });
       
+      // Navigate to home page
+      window.location.href = '/';
+      
     } catch (error) {
       console.error('Logout error:', error);
       auditLog.log('LOGOUT_ERROR', authState.user?.id || 'unknown', { error: error.message });

@@ -1,13 +1,21 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
 import DashboardComponent from "@/components/Dashboard";
 import { ExamDemoSetup } from "@/components/admin/ExamDemoSetup";
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
+  const navigate = useNavigate();
   
-  if (!user) {
-    return <div>Loading...</div>;
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/');
+    }
+  }, [user, isLoading, navigate]);
+  
+  if (isLoading || !user) {
+    return null;
   }
 
   return (
