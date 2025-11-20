@@ -13,6 +13,7 @@ import { ShoppingCart as CartIcon, Plus, Minus, X, CreditCard, Truck, MapPin } f
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { storeOrderSchema } from "@/lib/validation";
 
 interface CartItem {
   id: string;
@@ -66,13 +67,19 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
       return;
     }
 
-    if (deliveryOption === 'delivery' && !deliveryAddress.trim()) {
-      toast.error("Please enter delivery address");
-      return;
-    }
+    // Validate order data
+    try {
+      const orderDataToValidate = {
+        items: cartItems,
+        total_amount: total,
+        delivery_address: deliveryOption === 'delivery' ? deliveryAddress.trim() : null,
+        phone_number: phoneNumber.trim(),
+        notes: notes.trim() || null,
+      };
 
-    if (!phoneNumber.trim()) {
-      toast.error("Please enter phone number");
+      storeOrderSchema.parse(orderDataToValidate);
+    } catch (validationError: any) {
+      toast.error(validationError.errors?.[0]?.message || "Invalid order data");
       return;
     }
 
@@ -83,9 +90,9 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
         items: JSON.stringify(cartItems),
         total_amount: total,
         status: 'pending',
-        delivery_address: deliveryOption === 'delivery' ? deliveryAddress : null,
-        phone_number: phoneNumber,
-        notes: notes || null
+        delivery_address: deliveryOption === 'delivery' ? deliveryAddress.trim() : null,
+        phone_number: phoneNumber.trim(),
+        notes: notes.trim() || null
       };
 
       const { error } = await supabase
@@ -100,7 +107,9 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
       cartItems.forEach(item => onRemoveItem(item.id));
       onClose();
     } catch (error) {
-      console.error('Error placing order:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error placing order:', error);
+      }
       toast.error("Failed to place order. Please try again.");
     } finally {
       setIsCheckingOut(false);

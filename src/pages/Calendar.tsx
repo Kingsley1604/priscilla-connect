@@ -14,6 +14,7 @@ import Calendar from 'react-calendar';
 import { supabase } from "@/integrations/supabase/client";
 import { format } from 'date-fns';
 import 'react-calendar/dist/Calendar.css';
+import { eventSchema } from "@/lib/validation";
 
 interface Event {
   id: string;
@@ -102,13 +103,16 @@ const CalendarPage = () => {
   };
 
   const handleAddEvent = async () => {
-    if (!newEvent.title || !newEvent.date) {
-      toast.error("Please fill in title and date");
+    if (!user) {
+      toast.error("You must be logged in to create events");
       return;
     }
     
-    if (!user) {
-      toast.error("You must be logged in to create events");
+    // Validate event data
+    try {
+      eventSchema.parse(newEvent);
+    } catch (validationError: any) {
+      toast.error(validationError.errors?.[0]?.message || "Invalid event data");
       return;
     }
     

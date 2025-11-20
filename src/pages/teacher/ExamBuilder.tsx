@@ -12,6 +12,7 @@ import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause, Users, CheckCircle, C
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { examSchema, questionSchema } from "@/lib/validation";
 
 interface Question {
   id?: string;
@@ -107,7 +108,9 @@ const ExamBuilder = () => {
       if (error) throw error;
       setExamStats(data || []);
     } catch (error) {
-      console.error("Error loading exam statistics:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error loading exam statistics:", error);
+      }
     }
   };
 
@@ -134,7 +137,9 @@ const ExamBuilder = () => {
 
       setExams(examsWithCounts);
     } catch (error) {
-      console.error("Error loading exams:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error loading exams:", error);
+      }
       toast.error("Failed to load exams");
     }
   };
@@ -159,13 +164,11 @@ const ExamBuilder = () => {
   };
 
   const createExam = async () => {
-    if (!newExam.title.trim()) {
-      toast.error("Please enter exam title");
-      return;
-    }
-    
-    if (!newExam.class_level || !newExam.grade) {
-      toast.error("Please select class level and grade");
+    // Validate exam data
+    try {
+      examSchema.parse(newExam);
+    } catch (validationError: any) {
+      toast.error(validationError.errors?.[0]?.message || "Invalid exam data");
       return;
     }
 
@@ -203,7 +206,9 @@ const ExamBuilder = () => {
       // Navigate to exam overview page with title
       navigate(`/teacher/exam-overview?title=${encodeURIComponent(examTitle)}`);
     } catch (error) {
-      console.error("Error creating exam:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error creating exam:", error);
+      }
       toast.error("Failed to create exam");
     } finally {
       setIsLoading(false);
@@ -213,10 +218,11 @@ const ExamBuilder = () => {
   const createQuestion = async () => {
     if (!selectedExam) return;
 
-    if (!newQuestion.question_text.trim() || !newQuestion.option_a.trim() || 
-        !newQuestion.option_b.trim() || !newQuestion.option_c.trim() || 
-        !newQuestion.option_d.trim()) {
-      toast.error("Please fill in all fields");
+    // Validate question data
+    try {
+      questionSchema.parse(newQuestion);
+    } catch (validationError: any) {
+      toast.error(validationError.errors?.[0]?.message || "Invalid question data");
       return;
     }
 
@@ -269,7 +275,9 @@ const ExamBuilder = () => {
       loadQuestions(selectedExam.id);
       loadExams();
     } catch (error) {
-      console.error("Error saving question:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error saving question:", error);
+      }
       toast.error("Failed to save question");
     } finally {
       setIsLoading(false);
