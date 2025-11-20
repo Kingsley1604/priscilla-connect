@@ -149,7 +149,12 @@ export const auditLog = {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
     };
     
-    // In production, send to secure logging service
-    console.log('[AUDIT]', logEntry);
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      console.log('[AUDIT]', logEntry);
+    }
+    
+    // In production, send to secure backend logging service
+    // TODO: Implement server-side audit logging via Supabase edge function
   }
 };

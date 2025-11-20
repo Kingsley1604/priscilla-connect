@@ -113,8 +113,7 @@ const SecurityProvider = ({ children }: SecurityProviderProps) => {
 
   // Console warning for production
   useEffect(() => {
-    if (import.meta.env.PROD) {
-      console.clear();
+    if (import.meta.env.DEV) {
       console.log(
         '%cPriscilla Connect - Secure School Management System',
         'color: #1e40af; font-size: 24px; font-weight: bold;'
