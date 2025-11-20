@@ -156,7 +156,7 @@ const ExamInterface = () => {
         await examContainerRef.current.requestFullscreen();
         setIsFullscreen(true);
       } catch (error) {
-        console.error("Error entering fullscreen:", error);
+        // Fullscreen may be blocked by browser
       }
     }
   };
@@ -412,7 +412,6 @@ const ExamInterface = () => {
   };
 
   const handleAutoSubmit = async (reason: string) => {
-    console.log(`Auto-submitting exam: ${reason}`);
     await submitExam(true);
   };
 
@@ -458,7 +457,9 @@ const ExamInterface = () => {
         });
 
       if (resultError) {
-        console.error("Failed to create result record:", resultError);
+        if (import.meta.env.DEV) {
+          console.error("Failed to create result record:", resultError);
+        }
       }
 
       setExamCompleted(true);
@@ -467,7 +468,9 @@ const ExamInterface = () => {
         toast.success("Exam submitted successfully!");
       }
     } catch (error) {
-      console.error("Error submitting exam:", error);
+      if (import.meta.env.DEV) {
+        console.error("Error submitting exam:", error);
+      }
       toast.error("Failed to submit exam");
     }
   };

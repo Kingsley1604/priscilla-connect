@@ -63,7 +63,9 @@ const CalendarPage = () => {
         .order('date', { ascending: true });
         
       if (error) {
-        console.error('Error loading events:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error loading events:', error);
+        }
         toast.error("Failed to load events");
         return;
       }
@@ -76,13 +78,14 @@ const CalendarPage = () => {
       
       setEvents(typedEvents);
     } catch (error) {
-      console.error('Error loading events:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error loading events:', error);
+      }
       toast.error("Failed to load events");
     }
   };
 
   const handleDateClick = (date: Date) => {
-    console.log('Date clicked:', date, 'User role:', userRole, 'Can manage events:', canManageEvents);
     if (canManageEvents) {
       setSelectedDate(date);
       setNewEvent({
@@ -128,7 +131,9 @@ const CalendarPage = () => {
         .maybeSingle();
         
       if (error) {
-        console.error('Error creating event:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error creating event:', error);
+        }
         toast.error("Failed to create event");
         return;
       }
@@ -153,7 +158,9 @@ const CalendarPage = () => {
       
       toast.success(userRole === 'admin' ? "Event created and approved!" : "Event created, pending approval");
     } catch (error) {
-      console.error('Error creating event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error creating event:', error);
+      }
       toast.error("Failed to create event");
     }
   };
@@ -166,7 +173,9 @@ const CalendarPage = () => {
         .eq('id', eventId);
         
       if (error) {
-        console.error('Error deleting event:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error deleting event:', error);
+        }
         toast.error("Failed to delete event");
         return;
       }
@@ -174,7 +183,9 @@ const CalendarPage = () => {
       setEvents(events.filter(event => event.id !== eventId));
       toast.success("Event deleted successfully!");
     } catch (error) {
-      console.error('Error deleting event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting event:', error);
+      }
       toast.error("Failed to delete event");
     }
   };
@@ -193,7 +204,9 @@ const CalendarPage = () => {
         .eq('id', eventId);
         
       if (error) {
-        console.error('Error approving event:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error approving event:', error);
+        }
         toast.error("Failed to approve event");
         return;
       }
@@ -205,7 +218,9 @@ const CalendarPage = () => {
       ));
       toast.success("Event approved!");
     } catch (error) {
-      console.error('Error approving event:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error approving event:', error);
+      }
       toast.error("Failed to approve event");
     }
   };
