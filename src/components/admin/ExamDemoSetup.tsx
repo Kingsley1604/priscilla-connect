@@ -151,11 +151,11 @@ export const ExamDemoSetup = () => {
 
       await supabase.from('exam_tokens').insert(tokens);
 
-      console.log('Demo exams created successfully!');
-      console.log('CBT Exam Token: CBT2025001');
-      console.log('Entrance Exam Token: ENT2025001');
+      // Demo exams created successfully
     } catch (error) {
-      console.error('Error setting up demo exams:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error setting up demo exams:', error);
+      }
     }
   };
 
