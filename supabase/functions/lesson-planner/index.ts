@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,68 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { subject, grade, topic, duration, objectives } = await req.json();
+    // Authentication check
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Input validation
+    const body = await req.json();
+
+    if (!body.subject || typeof body.subject !== 'string' || body.subject.trim().length < 2 || body.subject.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Subject is required and must be between 2-100 characters' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!body.grade || typeof body.grade !== 'string' || body.grade.trim().length < 2 || body.grade.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Grade is required and must be between 2-50 characters' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!body.topic || typeof body.topic !== 'string' || body.topic.trim().length < 5 || body.topic.length > 200) {
+      return new Response(
+        JSON.stringify({ error: 'Topic is required and must be between 5-200 characters' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!body.duration || typeof body.duration !== 'number' || body.duration < 10 || body.duration > 300) {
+      return new Response(
+        JSON.stringify({ error: 'Duration must be a number between 10-300 minutes' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!body.objectives || typeof body.objectives !== 'string' || body.objectives.trim().length < 10 || body.objectives.length > 1000) {
+      return new Response(
+        JSON.stringify({ error: 'Objectives are required and must be between 10-1000 characters' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { subject, grade, topic, duration, objectives } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
