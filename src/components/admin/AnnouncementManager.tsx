@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Megaphone, Edit, Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { announcementSchema } from "@/lib/validation";
 
 interface Announcement {
   id: string;
@@ -43,13 +44,23 @@ const AnnouncementManager = () => {
       if (error) throw error;
       setAnnouncements(data || []);
     } catch (error) {
-      console.error('Error fetching announcements:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching announcements:', error);
+      }
       toast.error('Failed to load announcements');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate announcement data
+    try {
+      announcementSchema.parse(formData);
+    } catch (validationError: any) {
+      toast.error(validationError.errors?.[0]?.message || "Invalid announcement data");
+      return;
+    }
     
     try {
       if (editingId) {
@@ -83,7 +94,9 @@ const AnnouncementManager = () => {
       setFormData({ title: "", content: "", target_roles: ["student", "teacher"] });
       fetchAnnouncements();
     } catch (error) {
-      console.error('Error saving announcement:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error saving announcement:', error);
+      }
       toast.error('Failed to save announcement');
     }
   };
@@ -111,7 +124,9 @@ const AnnouncementManager = () => {
       toast.success('Announcement deleted successfully');
       fetchAnnouncements();
     } catch (error) {
-      console.error('Error deleting announcement:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error deleting announcement:', error);
+      }
       toast.error('Failed to delete announcement');
     }
   };
@@ -127,7 +142,9 @@ const AnnouncementManager = () => {
       toast.success('Announcement status updated');
       fetchAnnouncements();
     } catch (error) {
-      console.error('Error updating announcement status:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error updating announcement status:', error);
+      }
       toast.error('Failed to update status');
     }
   };
