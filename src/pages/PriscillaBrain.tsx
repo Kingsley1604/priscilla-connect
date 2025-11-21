@@ -45,6 +45,11 @@ const PriscillaBrain = () => {
     e.preventDefault();
     if (!question.trim() || isSubmitting) return;
 
+    if (question.trim().length < 10) {
+      toast.error("Please enter at least 10 characters for your question");
+      return;
+    }
+
     const userMessage: Message = { role: "user", content: question };
     setMessages((prev) => [...prev, userMessage]);
     setIsSubmitting(true);
@@ -63,7 +68,6 @@ const PriscillaBrain = () => {
       setMessages((prev) => [...prev, assistantMessage]);
       setQuestion("");
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Failed to get response. Please try again.");
     } finally {
       setIsSubmitting(false);
