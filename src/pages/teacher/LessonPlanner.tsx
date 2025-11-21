@@ -44,7 +44,7 @@ const LessonPlanner = () => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("lesson-planner", {
-        body: { subject, grade, topic, duration, objectives },
+        body: { subject, grade, topic, duration: parseInt(duration), objectives },
       });
 
       if (error) throw error;
