@@ -496,24 +496,120 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admission_no: string | null
           avatar: string | null
+          class_grade: string | null
+          consent_info_usage: boolean | null
+          consent_terms: boolean | null
           created_at: string
+          current_academic_session: string | null
+          date_of_birth: string | null
+          default_password: string | null
+          department: string | null
+          doctor_contact: string | null
+          emergency_alt_phone: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
+          gender: string | null
+          has_medical_conditions: boolean | null
+          home_address: string | null
           id: string
+          is_profile_complete: boolean | null
+          medical_details: string | null
+          must_change_password: boolean | null
           name: string | null
+          nationality: string | null
+          parent_address: string | null
+          parent_email: string | null
+          parent_guardian_name: string | null
+          parent_occupation: string | null
+          parent_phone: string | null
+          parent_relationship: string | null
+          phone: string | null
+          preferred_hospital: string | null
+          preferred_language: string | null
+          previous_class: string | null
+          previous_school: string | null
+          teacher_id: string | null
           updated_at: string
         }
         Insert: {
+          admission_no?: string | null
           avatar?: string | null
+          class_grade?: string | null
+          consent_info_usage?: boolean | null
+          consent_terms?: boolean | null
           created_at?: string
+          current_academic_session?: string | null
+          date_of_birth?: string | null
+          default_password?: string | null
+          department?: string | null
+          doctor_contact?: string | null
+          emergency_alt_phone?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          gender?: string | null
+          has_medical_conditions?: boolean | null
+          home_address?: string | null
           id: string
+          is_profile_complete?: boolean | null
+          medical_details?: string | null
+          must_change_password?: boolean | null
           name?: string | null
+          nationality?: string | null
+          parent_address?: string | null
+          parent_email?: string | null
+          parent_guardian_name?: string | null
+          parent_occupation?: string | null
+          parent_phone?: string | null
+          parent_relationship?: string | null
+          phone?: string | null
+          preferred_hospital?: string | null
+          preferred_language?: string | null
+          previous_class?: string | null
+          previous_school?: string | null
+          teacher_id?: string | null
           updated_at?: string
         }
         Update: {
+          admission_no?: string | null
           avatar?: string | null
+          class_grade?: string | null
+          consent_info_usage?: boolean | null
+          consent_terms?: boolean | null
           created_at?: string
+          current_academic_session?: string | null
+          date_of_birth?: string | null
+          default_password?: string | null
+          department?: string | null
+          doctor_contact?: string | null
+          emergency_alt_phone?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          gender?: string | null
+          has_medical_conditions?: boolean | null
+          home_address?: string | null
           id?: string
+          is_profile_complete?: boolean | null
+          medical_details?: string | null
+          must_change_password?: boolean | null
           name?: string | null
+          nationality?: string | null
+          parent_address?: string | null
+          parent_email?: string | null
+          parent_guardian_name?: string | null
+          parent_occupation?: string | null
+          parent_phone?: string | null
+          parent_relationship?: string | null
+          phone?: string | null
+          preferred_hospital?: string | null
+          preferred_language?: string | null
+          previous_class?: string | null
+          previous_school?: string | null
+          teacher_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -953,6 +1049,8 @@ export type Database = {
     Functions: {
       auto_submit_expired_attempts: { Args: never; Returns: undefined }
       check_inventory_levels: { Args: never; Returns: undefined }
+      generate_default_password: { Args: never; Returns: string }
+      generate_teacher_id: { Args: never; Returns: string }
       get_exam_question_count: { Args: { exam_id: string }; Returns: number }
       get_exam_questions_for_attempt: {
         Args: { exam_attempt_id: string }

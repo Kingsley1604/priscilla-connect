@@ -3,35 +3,38 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, User, Mail, Lock, UserCheck } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, User, Mail, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 interface SignupFormProps {
   onSwitchToLogin?: () => void;
 }
 
 const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: '',
+    fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' as 'student' | 'teacher' | 'admin' | '',
-    fullName: ''
+    agreeToTerms: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    if (!formData.username || !formData.email || !formData.password || !formData.role || !formData.fullName) {
+    // Validation
+    if (!formData.fullName || !formData.email || !formData.password) {
       setError('All fields are required');
       setIsLoading(false);
       return;
@@ -49,55 +52,60 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
       return;
     }
 
+    if (!formData.agreeToTerms) {
+      setError('You must agree to the Terms and Conditions and Privacy Policy');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // For demo purposes, we'll simulate signup by storing in localStorage
-      // and then logging in with existing mock users
-      const existingUsers = JSON.parse(localStorage.getItem('priscilla_registered_users') || '[]');
-      
-      // Check if user already exists
-      const userExists = existingUsers.some((user: any) => 
-        user.username === formData.username || user.email === formData.email
-      );
-
-      if (userExists) {
-        setError('Username or email already exists');
-        setIsLoading(false);
-        return;
-      }
-
-      // Add new user to registered users
-      const newUser = {
-        username: formData.username,
+      // Sign up the student using Supabase Auth
+      const { data, error: signupError } = await supabase.auth.signUp({
         email: formData.email,
-        role: formData.role,
-        fullName: formData.fullName,
-        registeredAt: new Date().toISOString()
-      };
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.fullName,
+            role: 'student'
+          },
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
 
-      existingUsers.push(newUser);
-      localStorage.setItem('priscilla_registered_users', JSON.stringify(existingUsers));
+      if (signupError) throw signupError;
+      if (!data.user) throw new Error("Failed to create account");
 
-      // For demo, auto-login with a predefined user based on role
-      let demoUsername = '';
-      switch (formData.role) {
-        case 'student':
-          demoUsername = 'student1';
-          break;
-        case 'teacher':
-          demoUsername = 'teacher1';
-          break;
-        case 'admin':
-          demoUsername = 'admin1';
-          break;
-      }
+      // Create profile entry
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user.id,
+          name: formData.fullName,
+          is_profile_complete: false
+        });
 
-      const loginResult = await login(demoUsername, 'demo123');
+      if (profileError) throw profileError;
+
+      // Create user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: data.user.id,
+          role: 'student'
+        });
+
+      if (roleError) throw roleError;
+
+      toast.success("Account created successfully! Please check your email to verify your account.");
       
-      if (!loginResult.success) {
-        setError(loginResult.error || 'Signup failed');
-      }
-    } catch (error) {
-      setError('An error occurred during signup');
+      // Redirect to profile completion after successful signup
+      setTimeout(() => {
+        navigate('/student/profile-completion');
+      }, 2000);
+      
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      setError(error.message || 'An error occurred during signup');
     } finally {
       setIsLoading(false);
     }
@@ -109,148 +117,139 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
         <ThemeToggle />
       </div>
       
-      <Card className="max-w-md w-full backdrop-blur-sm bg-white/95 dark:bg-card/95 border-white/20">
-        <CardHeader className="text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-gradient-primary rounded-full mb-4 mx-auto">
-            <UserCheck className="h-8 w-8 text-white" />
+      <div className="max-w-md w-full">
+        <div className="text-center mb-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold text-primary">Create Account</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Join Priscilla Connect School Management System
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-sm font-medium">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="fullName"
-                  type="text"
-                  placeholder="Enter your full name"
-                  className="pl-10"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                  required
-                />
+          <h1 className="text-4xl font-bold text-white mb-2">Priscilla Connect</h1>
+          <p className="text-white/90">Create your student account</p>
+        </div>
+
+        <Card className="shadow-glow border-white/20 bg-white/10 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-white">Student Registration</CardTitle>
+            <CardDescription className="text-white/80">
+              Fill in your details to get started
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-white">Full Name *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="username" className="text-sm font-medium">Username</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="username"
-                  type="text"
-                  placeholder="Choose a username"
-                  className="pl-10"
-                  value={formData.username}
-                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                  required
-                />
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-white">Email Address *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  className="pl-10"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-white">Password *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Create a password"
+                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-sm font-medium">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData(prev => ({ ...prev, role: value as 'student' | 'teacher' | 'admin' }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="teacher">Teacher</SelectItem>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a password"
-                  className="pl-10"
-                  value={formData.password}
-                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                  required
-                />
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-white">Confirm Password *</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your password"
-                  className="pl-10"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  required
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={formData.agreeToTerms}
+                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToTerms: checked as boolean }))}
+                  className="mt-1 border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-primary"
                 />
+                <Label htmlFor="terms" className="text-sm text-white/90 leading-normal cursor-pointer">
+                  I agree to the Terms and Conditions and Privacy Policy *
+                </Label>
               </div>
-            </div>
 
-            {error && (
-              <Alert className="border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-primary hover:opacity-90 text-white"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
+              {error && (
+                <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
+                  <AlertDescription className="text-white">
+                    {error}
+                  </AlertDescription>
+                </Alert>
               )}
-            </Button>
 
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={onSwitchToLogin}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Sign in here
-                </button>
-              </p>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              <Button 
+                type="submit" 
+                className="w-full bg-white text-primary hover:bg-white/90 font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Submit'
+                )}
+              </Button>
+
+              <div className="text-center pt-4 border-t border-white/20">
+                <p className="text-sm text-white/80">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={onSwitchToLogin}
+                    className="text-white hover:underline font-medium"
+                  >
+                    Sign in here
+                  </button>
+                </p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
