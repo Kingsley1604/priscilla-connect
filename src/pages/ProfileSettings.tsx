@@ -1,11 +1,72 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, User, Mail, Phone, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const ProfileSettings = () => {
+  const { user, isLoading } = useAuth();
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    department: "",
+    role: "",
+    classSubject: ""
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      const [firstName = "", lastName = ""] = (user.name || "").split(" ");
+      setFormData({
+        firstName,
+        lastName,
+        email: user.email || "",
+        phone: "",
+        department: "",
+        role: user.role || "",
+        classSubject: ""
+      });
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          phone: formData.phone,
+          department: user.role === 'admin' ? formData.department : null
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-gradient-hero text-white py-6 px-6 shadow-medium">
@@ -56,38 +117,93 @@ const ProfileSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" placeholder="Enter first name" />
+                    <Input 
+                      id="firstName" 
+                      value={formData.firstName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                      placeholder="Enter first name" 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" placeholder="Enter last name" />
+                    <Input 
+                      id="lastName" 
+                      value={formData.lastName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                      placeholder="Enter last name" 
+                    />
                   </div>
                 </div>
                 
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="Enter email address" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="Enter email address" 
+                    disabled
+                  />
                 </div>
                 
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="Enter phone number" />
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Enter phone number" 
+                  />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="role">Role</Label>
-                    <Input id="role" placeholder="Student/Teacher/Admin" disabled />
+                    <Input 
+                      id="role" 
+                      value={formData.role} 
+                      placeholder="Student/Teacher/Admin" 
+                      disabled 
+                    />
                   </div>
-                  <div>
-                    <Label htmlFor="class">Class/Subject</Label>
-                    <Input id="class" placeholder="Your class or subject" />
-                  </div>
+                  {user?.role === 'admin' && (
+                    <div>
+                      <Label htmlFor="department">Department</Label>
+                      <Select
+                        value={formData.department}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                      >
+                        <SelectTrigger id="department">
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Academic & Student Affairs">Academic & Student Affairs</SelectItem>
+                          <SelectItem value="Administration & Operations">Administration & Operations</SelectItem>
+                          <SelectItem value="Information Technology Department">Information Technology Department</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {user?.role !== 'admin' && (
+                    <div>
+                      <Label htmlFor="class">Class/Subject</Label>
+                      <Input 
+                        id="class" 
+                        value={formData.classSubject}
+                        onChange={(e) => setFormData(prev => ({ ...prev, classSubject: e.target.value }))}
+                        placeholder="Your class or subject" 
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4">
-                  <Button>Save Changes</Button>
-                  <Button variant="outline">Cancel</Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                  <Button variant="outline" onClick={() => window.history.back()}>Cancel</Button>
                 </div>
               </CardContent>
             </Card>

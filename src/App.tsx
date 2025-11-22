@@ -29,7 +29,9 @@ import NurseryMidtermReport from "./pages/teacher/NurseryMidtermReport";
 import SecondaryExamResult from "./pages/teacher/SecondaryExamResult";
 import ExamInterface from "./pages/student/ExamInterface";
 import HomeworkSubmission from "./pages/student/HomeworkSubmission";
+import ProfileCompletion from "./pages/student/ProfileCompletion";
 import TeacherAssignment from "./pages/admin/TeacherAssignment";
+import TeacherCreation from "./pages/admin/TeacherCreation";
 import ExamResults from "./pages/admin/ExamResults";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 import SystemSettings from "./pages/admin/SystemSettings";
@@ -100,7 +102,9 @@ const App = () => (
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
         <Route path="/student/exam" element={<ExamInterface />} />
         <Route path="/student/homework" element={<HomeworkSubmission />} />
+        <Route path="/student/profile-completion" element={<ProfileCompletion />} />
         <Route path="/admin/teacher-assignments" element={<TeacherAssignment />} />
+        <Route path="/admin/teacher-creation" element={<TeacherCreation />} />
         <Route path="/admin/exam-results" element={<ExamResults />} />
             <Route path="/admin/announcements" element={<AnnouncementManager />} />
             <Route path="/admin/manage-announcements" element={<ManageAnnouncements />} />

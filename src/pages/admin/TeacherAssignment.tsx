@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import LoadingScreen from "@/components/LoadingScreen";
 
 interface Assignment {
   id: string;
@@ -183,7 +184,7 @@ const TeacherAssignment = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <LoadingScreen />;
   }
 
   return (
