@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const ExamOverview = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const examId = new URLSearchParams(location.search).get('examId');
   const examTitle = new URLSearchParams(location.search).get('title') || "Exam";
 
   const sections = [
@@ -67,7 +68,11 @@ const ExamOverview = () => {
                 if (section.comingSoon) {
                   toast.info(`${section.title} - Coming Soon Feature!`);
                 } else if (section.path) {
-                  navigate(section.path);
+                  if (section.path === "/teacher/create-questions" && examId) {
+                    navigate(`${section.path}?examId=${examId}`);
+                  } else {
+                    navigate(section.path);
+                  }
                 }
               }}
             >

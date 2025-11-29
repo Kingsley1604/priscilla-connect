@@ -1,21 +1,49 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Upload, User, Mail, Phone, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const AdminProfileSettings = () => {
+  const { user, isLoading } = useAuth();
   const [formData, setFormData] = useState({
-    firstName: "Admin",
-    lastName: "User",
-    email: "admin@priscillaschool.com",
-    phone: "+234 123 456 7890",
-    adminId: "ADM001",
-    department: "Administration"
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    department: ""
   });
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone, department')
+          .eq('id', user.id)
+          .single();
+
+        const [firstName = "", lastName = ""] = (user.name || "").split(" ");
+        setFormData({
+          firstName,
+          lastName,
+          email: user.email || "",
+          phone: profile?.phone || "",
+          department: profile?.department || ""
+        });
+      }
+    };
+
+    loadProfile();
+  }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -24,9 +52,32 @@ const AdminProfileSettings = () => {
     });
   };
 
-  const handleSave = () => {
-    toast.success("Profile updated successfully!");
+  const handleSave = async () => {
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          phone: formData.phone,
+          department: formData.department
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,23 +183,20 @@ const AdminProfileSettings = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="adminId">Admin ID</Label>
-                  <Input
-                    id="adminId"
-                    name="adminId"
-                    value={formData.adminId}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    name="department"
+                  <Select
                     value={formData.department}
-                    onChange={handleInputChange}
-                  />
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                  >
+                    <SelectTrigger id="department">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Academic & Student Affairs">Academic & Student Affairs</SelectItem>
+                      <SelectItem value="Administration & Operations">Administration & Operations</SelectItem>
+                      <SelectItem value="Information Technology Department">Information Technology Department</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardContent>
@@ -159,7 +207,9 @@ const AdminProfileSettings = () => {
             <Link to="/dashboard">
               <Button variant="outline">Cancel</Button>
             </Link>
-            <Button onClick={handleSave}>Save Changes</Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
         </div>
       </section>

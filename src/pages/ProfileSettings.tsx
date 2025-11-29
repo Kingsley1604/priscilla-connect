@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, User, Mail, Phone, Camera } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 
 const ProfileSettings = () => {
   const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -25,19 +26,42 @@ const ProfileSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const [firstName = "", lastName = ""] = (user.name || "").split(" ");
-      setFormData({
-        firstName,
-        lastName,
-        email: user.email || "",
-        phone: "",
-        department: "",
-        role: user.role || "",
-        classSubject: ""
-      });
-    }
-  }, [user]);
+    const checkProfileCompletion = async () => {
+      if (user && user.role === 'student') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_profile_complete')
+          .eq('id', user.id)
+          .single();
+        
+        if (!profile?.is_profile_complete) {
+          navigate('/student/profile-completion');
+          return;
+        }
+      }
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('phone, department')
+          .eq('id', user.id)
+          .single();
+
+        const [firstName = "", lastName = ""] = (user.name || "").split(" ");
+        setFormData({
+          firstName,
+          lastName,
+          email: user.email || "",
+          phone: profile?.phone || "",
+          department: profile?.department || "",
+          role: user.role || "",
+          classSubject: ""
+        });
+      }
+    };
+
+    checkProfileCompletion();
+  }, [user, navigate]);
 
   const handleSave = async () => {
     if (!user) return;
