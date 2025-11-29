@@ -192,6 +192,7 @@ const ExamBuilder = () => {
       if (error) throw error;
 
       toast.success("Exam created successfully! Redirecting to exam overview...");
+      const examId = data.id;
       const examTitle = newExam.title;
       setIsCreateExamOpen(false);
       setNewExam({
@@ -203,8 +204,8 @@ const ExamBuilder = () => {
         grade: ""
       });
       
-      // Navigate to exam overview page with title
-      navigate(`/teacher/exam-overview?title=${encodeURIComponent(examTitle)}`);
+      // Navigate to exam overview page with examId and title
+      navigate(`/teacher/exam-overview?examId=${examId}&title=${encodeURIComponent(examTitle)}`);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error("Error creating exam:", error);

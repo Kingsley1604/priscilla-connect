@@ -32,7 +32,9 @@ import HomeworkSubmission from "./pages/student/HomeworkSubmission";
 import ProfileCompletion from "./pages/student/ProfileCompletion";
 import TeacherAssignment from "./pages/admin/TeacherAssignment";
 import TeacherCreation from "./pages/admin/TeacherCreation";
+import TeacherManagement from "./pages/admin/TeacherManagement";
 import ExamResults from "./pages/admin/ExamResults";
+import PasswordChange from "./pages/teacher/PasswordChange";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 import SystemSettings from "./pages/admin/SystemSettings";
 import ManageStore from "./pages/admin/ManageStore";
@@ -105,7 +107,9 @@ const App = () => (
         <Route path="/student/profile-completion" element={<ProfileCompletion />} />
         <Route path="/admin/teacher-assignments" element={<TeacherAssignment />} />
         <Route path="/admin/teacher-creation" element={<TeacherCreation />} />
+        <Route path="/admin/teacher-management" element={<TeacherManagement />} />
         <Route path="/admin/exam-results" element={<ExamResults />} />
+        <Route path="/teacher/password-change" element={<PasswordChange />} />
             <Route path="/admin/announcements" element={<AnnouncementManager />} />
             <Route path="/admin/manage-announcements" element={<ManageAnnouncements />} />
             <Route path="/admin/manage-store" element={<ManageStoreEnhanced />} />
