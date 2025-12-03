@@ -4,8 +4,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import AdminNotificationSystem from "@/components/notifications/AdminNotificationSystem";
+import TeacherExamNotifications from "@/components/notifications/TeacherExamNotifications";
 import MessageInput from "@/components/messaging/MessageInput";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import StudentDashboardWidget from "@/components/student/StudentDashboardWidget";
 import { 
   BookOpen, 
   Users, 
@@ -96,6 +98,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
           
             <div className="flex items-center space-x-4">
               <ThemeToggle />
+              {userRole === 'teacher' && <TeacherExamNotifications />}
               <AdminNotificationSystem />
               {onLogout && (
                 <Button 
@@ -164,57 +167,66 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
             <AnnouncementBanner userRole={userRole} />
           )}
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="shadow-soft hover:shadow-medium transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                  {userRole === 'student' ? 'Subjects' : userRole === 'teacher' ? 'Classes' : 'Schools'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-primary mb-1">
-                  {userRole === 'student' ? '8' : userRole === 'teacher' ? '5' : '12'}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {userRole === 'student' ? 'Active subjects' : userRole === 'teacher' ? 'Teaching classes' : 'Managed schools'}
-                </p>
-              </CardContent>
-            </Card>
+      {/* Student Dashboard Widget */}
+          {userRole === 'student' && (
+            <div className="mb-8">
+              <StudentDashboardWidget />
+            </div>
+          )}
 
-            <Card className="shadow-soft hover:shadow-medium transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Trophy className="h-5 w-5 mr-2 text-accent" />
-                  Achievements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-accent mb-1">
-                  {userRole === 'student' ? '15' : userRole === 'teacher' ? '23' : '47'}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {userRole === 'student' ? 'Badges earned' : userRole === 'teacher' ? 'Student milestones' : 'System achievements'}
-                </p>
-              </CardContent>
-            </Card>
+          {/* Quick Stats for non-students */}
+          {userRole !== 'student' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="shadow-soft hover:shadow-medium transition-shadow">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <BookOpen className="h-5 w-5 mr-2 text-primary" />
+                    {userRole === 'teacher' ? 'Classes' : 'Schools'}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-primary mb-1">
+                    {userRole === 'teacher' ? '5' : '12'}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {userRole === 'teacher' ? 'Teaching classes' : 'Managed schools'}
+                  </p>
+                </CardContent>
+              </Card>
 
-            <Card className="shadow-soft hover:shadow-medium transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <BarChart3 className="h-5 w-5 mr-2 text-secondary" />
-                  Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-secondary mb-1">87%</div>
-                <p className="text-sm text-muted-foreground">
-                  {userRole === 'student' ? 'Overall performance' : userRole === 'teacher' ? 'Class average' : 'System health'}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+              <Card className="shadow-soft hover:shadow-medium transition-shadow">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <Trophy className="h-5 w-5 mr-2 text-accent" />
+                    Achievements
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-accent mb-1">
+                    {userRole === 'teacher' ? '23' : '47'}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {userRole === 'teacher' ? 'Student milestones' : 'System achievements'}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-soft hover:shadow-medium transition-shadow">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center">
+                    <BarChart3 className="h-5 w-5 mr-2 text-secondary" />
+                    Progress
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-secondary mb-1">87%</div>
+                  <p className="text-sm text-muted-foreground">
+                    {userRole === 'teacher' ? 'Class average' : 'System health'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </section>
 
