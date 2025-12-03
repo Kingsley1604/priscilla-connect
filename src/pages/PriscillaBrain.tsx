@@ -59,16 +59,37 @@ const PriscillaBrain = () => {
         body: { question, type: queryType },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error cases
+        if (error.message?.includes("402") || error.message?.includes("credits")) {
+          toast.error("AI credits depleted. Please contact administrator.");
+        } else if (error.message?.includes("429") || error.message?.includes("rate")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else {
+          toast.error("Unable to process your question. Please try again later.");
+        }
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.answer,
+        content: data?.answer || "I couldn't generate a response. Please try again.",
       };
       setMessages((prev) => [...prev, assistantMessage]);
       setQuestion("");
     } catch (error: any) {
-      toast.error(error.message || "Failed to get response. Please try again.");
+      // Handle network or unexpected errors gracefully
+      const errorMessage = error?.message || "";
+      if (errorMessage.includes("non-2xx") || errorMessage.includes("Edge Function")) {
+        toast.error("The AI service is temporarily unavailable. Please try again in a few moments.");
+      } else {
+        toast.error("Something went wrong. Please check your connection and try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, UserCheck, Search } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -208,10 +208,27 @@ const TeacherAssignment = () => {
                 Assign teachers to classes and subjects
               </p>
             </div>
-            <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Assignment
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate('/admin/teacher-creation')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Teacher
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/admin/teacher-management')}>
+                <Users className="h-4 w-4 mr-2" />
+                Manage Teachers
+              </Button>
+              <Button onClick={() => {
+                if (teachers.length === 0) {
+                  toast.error("Please create a teacher first before making assignments");
+                  navigate('/admin/teacher-creation');
+                  return;
+                }
+                setShowForm(!showForm);
+              }} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Assignment
+              </Button>
+            </div>
           </div>
         </div>
 

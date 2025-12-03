@@ -41,19 +41,55 @@ const LessonPlanner = () => {
       return;
     }
 
+    const durationNum = parseInt(duration);
+    if (isNaN(durationNum) || durationNum < 10 || durationNum > 300) {
+      toast.error("Duration must be between 10-300 minutes");
+      return;
+    }
+
+    if (topic.trim().length < 5) {
+      toast.error("Topic must be at least 5 characters");
+      return;
+    }
+
+    if (objectives.trim().length < 10) {
+      toast.error("Objectives must be at least 10 characters");
+      return;
+    }
+
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("lesson-planner", {
-        body: { subject, grade, topic, duration: parseInt(duration), objectives },
+        body: { subject, grade, topic: topic.trim(), duration: durationNum, objectives: objectives.trim() },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error cases
+        if (error.message?.includes("402") || error.message?.includes("credits")) {
+          toast.error("AI credits depleted. Please contact administrator.");
+        } else if (error.message?.includes("429") || error.message?.includes("rate")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else {
+          toast.error("Unable to generate lesson plan. Please try again later.");
+        }
+        return;
+      }
 
-      setLessonPlan(data.lessonPlan);
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setLessonPlan(data?.lessonPlan || "");
       toast.success("Lesson plan generated successfully!");
     } catch (error: any) {
-      console.error("Error:", error);
-      toast.error(error.message || "Failed to generate lesson plan. Please try again.");
+      // Handle network or unexpected errors gracefully
+      const errorMessage = error?.message || "";
+      if (errorMessage.includes("non-2xx") || errorMessage.includes("Edge Function")) {
+        toast.error("The AI service is temporarily unavailable. Please try again in a few moments.");
+      } else {
+        toast.error("Something went wrong. Please check your connection and try again.");
+      }
     } finally {
       setIsGenerating(false);
     }
