@@ -83,7 +83,68 @@ const StudentReportSheet = ({ onNavigate }: StudentReportSheetProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 print-container">
+      {/* Print-only compact version */}
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 8mm;
+          }
+          body * {
+            visibility: hidden;
+          }
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print, .no-print * {
+            display: none !important;
+          }
+          .print-container .space-y-4, .print-container .space-y-6 {
+            gap: 4px !important;
+          }
+          .print-container [class*="Card"] {
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+            margin-bottom: 4px !important;
+            page-break-inside: avoid;
+          }
+          .print-container [class*="CardHeader"] {
+            padding: 4px 8px !important;
+          }
+          .print-container [class*="CardContent"] {
+            padding: 4px 8px !important;
+          }
+          .print-container table {
+            font-size: 8pt !important;
+          }
+          .print-container th, .print-container td {
+            padding: 2px 4px !important;
+          }
+          .print-container h1, .print-container h2, .print-container h3 {
+            font-size: 10pt !important;
+            margin: 2px 0 !important;
+          }
+          .print-container p, .print-container span {
+            font-size: 8pt !important;
+          }
+          .print-container .text-2xl, .print-container .text-xl {
+            font-size: 10pt !important;
+          }
+          .print-container .h-64 {
+            height: 80px !important;
+          }
+          .print-container .grid {
+            gap: 4px !important;
+          }
+        }
+      `}</style>
       {/* Header */}
       <Card>
         <CardHeader>
