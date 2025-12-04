@@ -1,48 +1,147 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Camera, Save, User, Mail, Phone, MapPin, Calendar } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Camera, Save, Mail, Phone, MapPin, Calendar, Lock, Eye, EyeOff } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const ProfileSettings = () => {
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   
   const [profile, setProfile] = useState({
-    firstName: "David",
-    lastName: "Thompson", 
-    email: "david.thompson@priscillaconnect.edu",
-    phone: "+1 (555) 123-4567",
-    address: "123 Education St, Learning City, LC 12345",
-    bio: "Passionate educator with 10+ years of experience in mathematics and physics. Dedicated to inspiring students and fostering a love for learning.",
-    subjects: "Mathematics, Physics",
-    experience: "12 years",
-    qualification: "M.Sc. Mathematics, B.Ed.",
-    joinDate: "September 2012"
+    name: "",
+    email: "",
+    phone: "",
+    department: "",
+    teacher_id: "",
   });
 
-  const [avatar, setAvatar] = useState("https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face");
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
 
-  const handleSave = () => {
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated.",
-    });
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/');
+        return;
+      }
+
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      setProfile({
+        name: profileData?.name || '',
+        email: user.email || '',
+        phone: profileData?.phone || '',
+        department: profileData?.department || '',
+        teacher_id: profileData?.teacher_id || '',
+      });
+    } catch (error) {
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: profile.name,
+          phone: profile.phone,
+          department: profile.department,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      toast.error("Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword
+      });
+
+      if (error) throw error;
+
+      // Update must_change_password flag
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('profiles')
+          .update({ must_change_password: false })
+          .eq('id', user.id);
+      }
+
+      toast.success("Password changed successfully");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setShowPasswordSection(false);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to change password");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
+  if (isLoading) return <LoadingScreen />;
+
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-responsive">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center space-x-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 sm:mb-8">
           <Link to="/">
             <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -50,24 +149,24 @@ const ProfileSettings = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
-            <p className="text-muted-foreground">Manage your personal information</p>
+            <h1 className="text-responsive-2xl font-bold text-foreground">Profile Settings</h1>
+            <p className="text-muted-foreground text-responsive-sm">Manage your personal information</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-responsive">
           {/* Profile Picture & Basic Info */}
           <div className="lg:col-span-1">
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Profile Picture</CardTitle>
-                <CardDescription>Update your profile photo</CardDescription>
+                <CardTitle className="text-responsive-lg">Profile Picture</CardTitle>
+                <CardDescription className="text-responsive-sm">Update your profile photo</CardDescription>
               </CardHeader>
               <CardContent className="text-center space-y-4">
-                <Avatar className="w-32 h-32 mx-auto">
-                  <AvatarImage src={avatar} />
-                  <AvatarFallback className="text-2xl">
-                    {profile.firstName[0]}{profile.lastName[0]}
+                <Avatar className="w-24 h-24 sm:w-32 sm:h-32 mx-auto">
+                  <AvatarImage src="" />
+                  <AvatarFallback className="text-xl sm:text-2xl bg-primary/10 text-primary">
+                    {profile.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
                 
@@ -77,13 +176,90 @@ const ProfileSettings = () => {
                 </Button>
                 
                 <div className="text-center pt-4 border-t">
-                  <h3 className="font-semibold text-lg">{profile.firstName} {profile.lastName}</h3>
-                  <p className="text-muted-foreground">{profile.subjects} Teacher</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    <Calendar className="h-4 w-4 inline mr-1" />
-                    Joined {profile.joinDate}
-                  </p>
+                  <h3 className="font-semibold text-responsive-base">{profile.name}</h3>
+                  <p className="text-muted-foreground text-responsive-sm">Teacher</p>
+                  {profile.teacher_id && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      ID: {profile.teacher_id}
+                    </p>
+                  )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Password Change Card */}
+            <Card className="shadow-soft mt-4 sm:mt-6">
+              <CardHeader>
+                <CardTitle className="text-responsive-lg flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Security
+                </CardTitle>
+                <CardDescription className="text-responsive-sm">Change your password</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!showPasswordSection ? (
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setShowPasswordSection(true)}
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    Change Password
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword" className="text-responsive-sm">New Password</Label>
+                      <div className="relative">
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                          placeholder="Enter new password"
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                        >
+                          {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword" className="text-responsive-sm">Confirm New Password</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder="Confirm new password"
+                      />
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handlePasswordChange} 
+                        disabled={isSaving}
+                        className="flex-1"
+                      >
+                        {isSaving ? "Saving..." : "Update Password"}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setShowPasswordSection(false);
+                          setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -92,48 +268,39 @@ const ProfileSettings = () => {
           <div className="lg:col-span-2">
             <Card className="shadow-soft">
               <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Update your personal details and contact information</CardDescription>
+                <CardTitle className="text-responsive-lg">Personal Information</CardTitle>
+                <CardDescription className="text-responsive-sm">Update your personal details and contact information</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Name Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      value={profile.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={profile.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    />
-                  </div>
+              <CardContent className="space-responsive">
+                {/* Name Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-responsive-sm">Full Name</Label>
+                  <Input
+                    id="name"
+                    value={profile.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                  />
                 </div>
 
                 {/* Contact Information */}
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="text-responsive-sm">Email Address</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input
                         id="email"
                         type="email"
                         value={profile.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="pl-10"
+                        disabled
+                        className="pl-10 bg-muted"
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">Email cannot be changed</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-responsive-sm">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                       <Input
@@ -142,75 +309,27 @@ const ProfileSettings = () => {
                         value={profile.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
                         className="pl-10"
+                        placeholder="Enter your phone number"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 text-muted-foreground h-4 w-4" />
-                      <Textarea
-                        id="address"
-                        value={profile.address}
-                        onChange={(e) => handleInputChange('address', e.target.value)}
-                        className="pl-10"
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Professional Information */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="subjects">Subjects Teaching</Label>
-                      <Input
-                        id="subjects"
-                        value={profile.subjects}
-                        onChange={(e) => handleInputChange('subjects', e.target.value)}
-                        placeholder="e.g., Mathematics, Physics"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="experience">Years of Experience</Label>
-                      <Input
-                        id="experience"
-                        value={profile.experience}
-                        onChange={(e) => handleInputChange('experience', e.target.value)}
-                        placeholder="e.g., 10 years"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="qualification">Qualifications</Label>
+                    <Label htmlFor="department" className="text-responsive-sm">Department</Label>
                     <Input
-                      id="qualification"
-                      value={profile.qualification}
-                      onChange={(e) => handleInputChange('qualification', e.target.value)}
-                      placeholder="e.g., M.Sc. Mathematics, B.Ed."
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea
-                      id="bio"
-                      value={profile.bio}
-                      onChange={(e) => handleInputChange('bio', e.target.value)}
-                      rows={4}
-                      placeholder="Tell us about yourself..."
+                      id="department"
+                      value={profile.department}
+                      onChange={(e) => handleInputChange('department', e.target.value)}
+                      placeholder="E.g., Science Department"
                     />
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-4 pt-6 border-t">
-                  <Button variant="outline">Cancel</Button>
-                  <Button onClick={handleSave}>
+                <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t">
+                  <Button variant="outline" onClick={() => navigate('/')}>Cancel</Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
                     <Save className="h-4 w-4 mr-2" />
-                    Save Changes
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </Button>
                 </div>
               </CardContent>

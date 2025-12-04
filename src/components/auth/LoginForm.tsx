@@ -97,29 +97,29 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-6">
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4 sm:px-6">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
       <PrivacyNotice />
       <div className="max-w-md w-full">
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
+        <div className="text-center mb-6 sm:mb-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center p-3 sm:p-4 bg-white/20 rounded-full mb-4 sm:mb-6 backdrop-blur-sm">
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Priscilla Connect</h1>
-          <p className="text-white/90">Sign in to your account</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">Priscilla Connect</h1>
+          <p className="text-white/90 text-sm sm:text-base">Sign in to your account</p>
         </div>
 
         <Card className="shadow-glow border-white/20 bg-white/10 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-white">Welcome Back</CardTitle>
-            <CardDescription className="text-white/80">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-white text-lg sm:text-xl">Welcome Back</CardTitle>
+            <CardDescription className="text-white/80 text-sm">
               Enter your credentials to access your dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {errors.general && (
                 <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
                   <AlertCircle className="h-4 w-4" />

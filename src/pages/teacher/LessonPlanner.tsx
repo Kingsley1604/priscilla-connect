@@ -95,15 +95,82 @@ const LessonPlanner = () => {
     }
   };
 
-  const handleDownload = () => {
-    const element = document.createElement("a");
-    const file = new Blob([lessonPlan], { type: "text/markdown" });
-    element.href = URL.createObjectURL(file);
-    element.download = `${subject}_${grade}_${topic.replace(/\s+/g, "_")}_LessonPlan.md`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success("Lesson plan downloaded!");
+  const handleDownload = async () => {
+    try {
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+      
+      // Parse the lesson plan into paragraphs
+      const lines = lessonPlan.split('\n');
+      const children: any[] = [];
+      
+      lines.forEach(line => {
+        if (line.startsWith('# ')) {
+          children.push(new Paragraph({
+            text: line.replace('# ', ''),
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 }
+          }));
+        } else if (line.startsWith('## ')) {
+          children.push(new Paragraph({
+            text: line.replace('## ', ''),
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 150 }
+          }));
+        } else if (line.startsWith('### ')) {
+          children.push(new Paragraph({
+            text: line.replace('### ', ''),
+            heading: HeadingLevel.HEADING_3,
+            spacing: { after: 100 }
+          }));
+        } else if (line.startsWith('- ') || line.startsWith('* ')) {
+          children.push(new Paragraph({
+            text: line.replace(/^[-*] /, ''),
+            bullet: { level: 0 },
+            spacing: { after: 50 }
+          }));
+        } else if (line.trim()) {
+          children.push(new Paragraph({
+            children: [new TextRun(line)],
+            spacing: { after: 100 }
+          }));
+        }
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: `${subject} - ${grade}`,
+              heading: HeadingLevel.TITLE,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              text: `Topic: ${topic}`,
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 300 }
+            }),
+            ...children
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const { saveAs } = await import('file-saver');
+      saveAs(blob, `${subject}_${grade}_${topic.replace(/\s+/g, "_")}_LessonPlan.docx`);
+      toast.success("Lesson plan downloaded as Word document!");
+    } catch (error) {
+      console.error('Download error:', error);
+      // Fallback to text download
+      const element = document.createElement("a");
+      const file = new Blob([lessonPlan], { type: "text/plain" });
+      element.href = URL.createObjectURL(file);
+      element.download = `${subject}_${grade}_${topic.replace(/\s+/g, "_")}_LessonPlan.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      toast.success("Lesson plan downloaded!");
+    }
   };
 
   return (
