@@ -33,20 +33,14 @@ const ExamOverview = () => {
   const examTitle = new URLSearchParams(location.search).get('title') || "Exam";
   const [showQuestionTypes, setShowQuestionTypes] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [selectedQuestionType, setSelectedQuestionType] = useState<string | null>(null);
 
   const handleQuestionTypeSelect = (typeId: string) => {
-    // Currently only multiple-choice is fully implemented
-    if (typeId !== "multiple-choice") {
-      toast.info(`${questionTypes.find(t => t.id === typeId)?.name} - Coming Soon!`);
-      return;
-    }
-    
-    setSelectedQuestionType(typeId);
     setShowQuestionTypes(false);
     
     if (examId) {
       navigate(`/teacher/create-questions?examId=${examId}&type=${typeId}`);
+    } else {
+      toast.error("No exam selected. Please create an exam first.");
     }
   };
 
@@ -89,23 +83,23 @@ const ExamOverview = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/teacher/exam-builder')}>
+    <div className="min-h-screen bg-background p-responsive">
+      <div className="max-w-5xl mx-auto space-responsive">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Button variant="outline" size="sm" onClick={() => navigate('/teacher/exam-builder')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Exam Overview</h1>
-            <h2 className="text-2xl font-semibold mt-2">{examTitle}</h2>
-            <p className="text-muted-foreground mt-1">
-              This is where you can set up your test, add questions, share it with students, and check their scores.
+          <div className="flex-1">
+            <h1 className="text-responsive-2xl font-bold">Exam Overview</h1>
+            <h2 className="text-responsive-lg font-semibold mt-1">{examTitle}</h2>
+            <p className="text-muted-foreground text-responsive-sm mt-1">
+              Set up your test, add questions, share with students, and check scores.
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-responsive">
           {sections.map((section, index) => (
             <Card 
               key={index}
@@ -120,18 +114,18 @@ const ExamOverview = () => {
                 }
               }}
             >
-              <CardHeader>
+              <CardHeader className="p-4 sm:p-6">
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-lg bg-muted ${section.color}`}>
-                    <section.icon className="h-6 w-6" />
+                    <section.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
                   <div className="flex-1">
-                    <CardTitle className="text-lg">{section.title}</CardTitle>
+                    <CardTitle className="text-responsive-base">{section.title}</CardTitle>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm">
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <CardDescription className="text-responsive-sm">
                   {section.description}
                 </CardDescription>
               </CardContent>
@@ -141,34 +135,27 @@ const ExamOverview = () => {
 
         {/* Question Type Selection Dialog */}
         <Dialog open={showQuestionTypes} onOpenChange={setShowQuestionTypes}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Select Question Type</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-responsive-lg">Select Question Type</DialogTitle>
+              <DialogDescription className="text-responsive-sm">
                 Choose the type of question you want to create for your exam
               </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mt-4">
               {questionTypes.map((type) => (
                 <Card
                   key={type.id}
-                  className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 ${
-                    type.id === "multiple-choice" ? "ring-2 ring-primary" : ""
-                  }`}
+                  className="cursor-pointer transition-all hover:shadow-md hover:-translate-y-1 hover:ring-2 hover:ring-primary"
                   onClick={() => handleQuestionTypeSelect(type.id)}
                 >
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="flex flex-col items-center text-center">
-                      <div className="p-3 rounded-lg bg-muted mb-3">
-                        <type.icon className="h-6 w-6 text-primary" />
+                      <div className="p-2 sm:p-3 rounded-lg bg-muted mb-2 sm:mb-3">
+                        <type.icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                       </div>
-                      <h4 className="font-semibold text-sm">{type.name}</h4>
+                      <h4 className="font-semibold text-responsive-sm">{type.name}</h4>
                       <p className="text-xs text-muted-foreground mt-1">{type.description}</p>
-                      {type.id !== "multiple-choice" && (
-                        <Badge variant="secondary" className="mt-2 text-xs">
-                          Coming Soon
-                        </Badge>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -179,7 +166,7 @@ const ExamOverview = () => {
 
         {/* Bulk Import Dialog */}
         <Dialog open={showBulkImport} onOpenChange={setShowBulkImport}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-[95vw] sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Bulk Question Import</DialogTitle>
               <DialogDescription>

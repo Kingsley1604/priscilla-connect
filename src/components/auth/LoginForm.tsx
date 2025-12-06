@@ -4,24 +4,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { validateInput, sanitizeInput } from '@/lib/security';
-import { useNotifications } from '@/hooks/useNotifications';
+import { Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import PrivacyNotice from '@/components/privacy/PrivacyNotice';
 import SignupForm from './SignupForm';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 const LoginForm = () => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const navigate = useNavigate();
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ username?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
-  
-  const { login } = useAuth();
-  const { sendAdminNotification, detectDevice, detectLocation } = useNotifications();
 
   if (showSignup) {
     return <SignupForm onSwitchToLogin={() => setShowSignup(false)} />;
@@ -30,18 +28,16 @@ const LoginForm = () => {
   const validateForm = () => {
     const newErrors: typeof errors = {};
     
-    if (!credentials.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (credentials.username.length > 50) {
-      newErrors.username = 'Username is too long';
+    if (!credentials.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credentials.email)) {
+      newErrors.email = 'Please enter a valid email';
     }
     
     if (!credentials.password) {
       newErrors.password = 'Password is required';
     } else if (credentials.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
-    } else if (credentials.password.length > 100) {
-      newErrors.password = 'Password is too long';
     }
     
     setErrors(newErrors);
@@ -57,40 +53,38 @@ const LoginForm = () => {
     setErrors({});
     
     try {
-      // Sanitize inputs
-      const sanitizedUsername = sanitizeInput.username(credentials.username);
-      const sanitizedPassword = credentials.password; // Don't sanitize password, just validate length
-      
-      const result = await login(sanitizedUsername, sanitizedPassword);
-      
-      if (result.success) {
-        // Send admin notification about login
-        const device = detectDevice();
-        const location = await detectLocation();
-        
-        sendAdminNotification({
-          type: 'login',
-          message: `User ${sanitizedUsername} logged in successfully`,
-          username: sanitizedUsername,
-          device,
-          location,
-          severity: 'low'
-        });
-      } else {
-        setErrors({ general: result.error || 'Login failed' });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email.trim(),
+        password: credentials.password,
+      });
+
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setErrors({ general: 'Invalid email or password. Please try again.' });
+        } else if (error.message.includes('Email not confirmed')) {
+          setErrors({ general: 'Please verify your email before logging in.' });
+        } else {
+          setErrors({ general: error.message });
+        }
+        return;
       }
-    } catch (error) {
-      setErrors({ general: 'An unexpected error occurred' });
+
+      if (data.user && data.session) {
+        toast.success('Login successful!');
+        // Navigate immediately without waiting
+        navigate('/');
+      }
+    } catch (error: any) {
+      setErrors({ general: 'An unexpected error occurred. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleInputChange = (field: 'username' | 'password') => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (field: 'email' | 'password') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCredentials(prev => ({ ...prev, [field]: value }));
     
-    // Clear field-specific error on change
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
@@ -130,21 +124,20 @@ const LoginForm = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-white">Username</Label>
+                <Label htmlFor="email" className="text-white">Email</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  value={credentials.username}
-                  onChange={handleInputChange('username')}
+                  id="email"
+                  type="email"
+                  value={credentials.email}
+                  onChange={handleInputChange('email')}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
-                  placeholder="Enter your username"
-                  maxLength={50}
-                  autoComplete="username"
-                  aria-describedby={errors.username ? "username-error" : undefined}
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                  aria-describedby={errors.email ? "email-error" : undefined}
                 />
-                {errors.username && (
-                  <p id="username-error" className="text-sm text-red-300">
-                    {errors.username}
+                {errors.email && (
+                  <p id="email-error" className="text-sm text-red-300">
+                    {errors.email}
                   </p>
                 )}
               </div>
@@ -159,7 +152,6 @@ const LoginForm = () => {
                     onChange={handleInputChange('password')}
                     className="bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30 pr-10"
                     placeholder="Enter your password"
-                    maxLength={100}
                     autoComplete="current-password"
                     aria-describedby={errors.password ? "password-error" : undefined}
                   />
@@ -186,7 +178,14 @@ const LoginForm = () => {
                 className="w-full bg-white text-primary hover:bg-white/90 font-medium"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Signing in...' : 'Sign In'}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </form>
 
@@ -202,15 +201,6 @@ const LoginForm = () => {
                     Sign up here
                   </button>
                 </p>
-                
-                <div className="text-sm text-white/80">
-                  <p className="mb-2">Demo Accounts:</p>
-                  <div className="space-y-1 text-xs">
-                    <p><strong>Student:</strong> student1 / demo123</p>
-                    <p><strong>Teacher:</strong> teacher1 / demo123</p>
-                    <p><strong>Admin:</strong> admin1 / demo123</p>
-                  </div>
-                </div>
               </div>
             </div>
           </CardContent>
