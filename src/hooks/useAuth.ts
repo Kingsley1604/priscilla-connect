@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { validateInput, sessionSecurity, auditLog, rateLimiting } from '@/lib/security';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
   id: string;
@@ -7,232 +8,167 @@ export interface User {
   email: string;
   role: 'student' | 'teacher' | 'admin';
   avatar?: string;
-  lastLogin: number;
+  lastLogin?: number;
 }
 
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
+  session: Session | null;
   sessionId: string | null;
   isLoading: boolean;
 }
-
-// Mock user database for demo purposes
-const mockUsers: Record<string, User & { password: string }> = {
-  'student1': {
-    id: 'STU001',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@school.edu',
-    role: 'student',
-    password: 'demo123',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616c4bb2108?w=150&h=150&fit=crop&crop=face',
-    lastLogin: Date.now()
-  },
-  'teacher1': {
-    id: 'TCH001', 
-    name: 'Mr. David Thompson',
-    email: 'david.thompson@school.edu',
-    role: 'teacher',
-    password: 'demo123',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-    lastLogin: Date.now()
-  },
-  'admin1': {
-    id: 'ADM001',
-    name: 'Dr. Emily Rodriguez',
-    email: 'emily.rodriguez@school.edu', 
-    role: 'admin',
-    password: 'demo123',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=face',
-    lastLogin: Date.now()
-  }
-};
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     user: null,
+    session: null,
     sessionId: null,
     isLoading: true
   });
 
-  // Initialize auth state from localStorage
-  useEffect(() => {
-    const initAuth = () => {
-      try {
-        const storedSession = localStorage.getItem('priscilla_session');
-        if (storedSession) {
-          const session = JSON.parse(storedSession);
-          
-          // Validate session
-          if (session.sessionId && session.userId && sessionSecurity.isSessionValid(session.lastActivity)) {
-            const user = Object.values(mockUsers).find(u => u.id === session.userId);
-            if (user && validateInput.role(session.role)) {
-              setAuthState({
-                isAuthenticated: true,
-                user: {
-                  id: user.id,
-                  name: user.name,
-                  email: user.email,
-                  role: user.role,
-                  avatar: user.avatar,
-                  lastLogin: user.lastLogin
-                },
-                sessionId: session.sessionId,
-                isLoading: false
-              });
-              
-              // Update last activity
-              session.lastActivity = Date.now();
-              localStorage.setItem('priscilla_session', JSON.stringify(session));
-              return;
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        auditLog.log('AUTH_INIT_ERROR', 'system', { error: error.message });
+  const fetchUserProfile = useCallback(async (userId: string, session: Session) => {
+    try {
+      // Fetch profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, avatar')
+        .eq('id', userId)
+        .single();
+
+      // Fetch user role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (roleData) {
+        setAuthState({
+          isAuthenticated: true,
+          user: {
+            id: userId,
+            name: profile?.name || session.user.email || 'User',
+            email: session.user.email || '',
+            role: roleData.role as 'student' | 'teacher' | 'admin',
+            avatar: profile?.avatar,
+            lastLogin: Date.now()
+          },
+          session,
+          sessionId: session.access_token,
+          isLoading: false
+        });
+      } else {
+        // User exists but no role - might be during signup
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          session: null,
+          sessionId: null,
+          isLoading: false
+        });
       }
-      
-      // Clear invalid session
-      localStorage.removeItem('priscilla_session');
+    } catch (error) {
       setAuthState({
         isAuthenticated: false,
         user: null,
+        session: null,
         sessionId: null,
         isLoading: false
       });
-    };
-
-    initAuth();
+    }
   }, []);
 
-  const login = useCallback(async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        // Defer profile fetch to avoid blocking/deadlock
+        setTimeout(() => {
+          fetchUserProfile(session.user.id, session);
+        }, 0);
+      } else {
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          session: null,
+          sessionId: null,
+          isLoading: false
+        });
+      }
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user.id, session);
+      } else {
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          session: null,
+          sessionId: null,
+          isLoading: false
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchUserProfile]);
+
+  const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Rate limiting check
-      if (rateLimiting.isRateLimited(username)) {
-        auditLog.log('LOGIN_RATE_LIMITED', username);
-        return { success: false, error: 'Too many login attempts. Please try again later.' };
-      }
-
-      // Input validation
-      if (!username || !password) {
-        return { success: false, error: 'Username and password are required' };
-      }
-
-      if (username.length > 50 || password.length > 100) {
-        return { success: false, error: 'Invalid credentials' };
-      }
-
-      // Simulate authentication delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Find user
-      const user = mockUsers[username];
-      if (!user || user.password !== password) {
-        rateLimiting.recordAttempt(username);
-        auditLog.log('LOGIN_FAILED', username, { reason: 'invalid_credentials' });
-        return { success: false, error: 'Invalid username or password' };
-      }
-
-      // Create secure session
-      const session = sessionSecurity.createSession(user.id, user.role);
-      
-      // Store session securely
-      localStorage.setItem('priscilla_session', JSON.stringify(session));
-
-      // Update auth state
-      setAuthState({
-        isAuthenticated: true,
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatar,
-          lastLogin: Date.now()
-        },
-        sessionId: session.sessionId,
-        isLoading: false
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
 
-      // Clear rate limiting on successful login
-      rateLimiting.loginAttempts.delete(username);
-      
-      auditLog.log('LOGIN_SUCCESS', user.id, { role: user.role });
-      
-      return { success: true };
-      
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          return { success: false, error: 'Invalid email or password' };
+        } else if (error.message.includes('Email not confirmed')) {
+          return { success: false, error: 'Please verify your email before logging in' };
+        }
+        return { success: false, error: error.message };
+      }
+
+      if (data.user && data.session) {
+        await fetchUserProfile(data.user.id, data.session);
+        return { success: true };
+      }
+
+      return { success: false, error: 'Login failed' };
     } catch (error) {
-      console.error('Login error:', error);
-      auditLog.log('LOGIN_ERROR', username, { error: error.message });
       return { success: false, error: 'An error occurred during login' };
     }
-  }, []);
+  }, [fetchUserProfile]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     try {
-      if (authState.user) {
-        auditLog.log('LOGOUT', authState.user.id);
-      }
-      
-      // Clear session
-      localStorage.removeItem('priscilla_session');
-      
-      // Reset auth state
+      await supabase.auth.signOut();
+    } catch (error) {
+      // Force reset even on error
+    } finally {
       setAuthState({
         isAuthenticated: false,
         user: null,
+        session: null,
         sessionId: null,
         isLoading: false
       });
-      
-      // Navigate to home page
-      window.location.href = '/';
-      
-    } catch (error) {
-      console.error('Logout error:', error);
-      auditLog.log('LOGOUT_ERROR', authState.user?.id || 'unknown', { error: error.message });
     }
-  }, [authState.user]);
+  }, []);
 
   const updateActivity = useCallback(() => {
-    if (authState.isAuthenticated && authState.sessionId) {
-      try {
-        const storedSession = localStorage.getItem('priscilla_session');
-        if (storedSession) {
-          const session = JSON.parse(storedSession);
-          session.lastActivity = Date.now();
-          localStorage.setItem('priscilla_session', JSON.stringify(session));
-        }
-      } catch (error) {
-        console.error('Activity update error:', error);
-      }
+    // Activity tracking
+    if (authState.user) {
+      setAuthState(prev => ({
+        ...prev,
+        user: prev.user ? { ...prev.user, lastLogin: Date.now() } : null
+      }));
     }
-  }, [authState.isAuthenticated, authState.sessionId]);
-
-  // Session timeout check
-  useEffect(() => {
-    if (authState.isAuthenticated) {
-      const interval = setInterval(() => {
-        const storedSession = localStorage.getItem('priscilla_session');
-        if (storedSession) {
-          try {
-            const session = JSON.parse(storedSession);
-            if (!sessionSecurity.isSessionValid(session.lastActivity)) {
-              auditLog.log('SESSION_TIMEOUT', authState.user?.id || 'unknown');
-              logout();
-            }
-          } catch (error) {
-            console.error('Session check error:', error);
-            logout();
-          }
-        }
-      }, 60000); // Check every minute
-
-      return () => clearInterval(interval);
-    }
-  }, [authState.isAuthenticated, authState.user?.id, logout]);
+  }, [authState.user]);
 
   return {
     ...authState,

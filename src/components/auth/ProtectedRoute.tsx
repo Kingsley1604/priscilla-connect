@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoginForm from './LoginForm';
 import { Skeleton } from '@/components/ui/skeleton';
+import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -33,21 +34,16 @@ const ProtectedRoute = ({ children, requiredRole, fallback }: ProtectedRouteProp
     };
   }, [isAuthenticated, updateActivity]);
 
-  // Show loading skeleton while checking authentication
+  // Show loading with logo
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-6">
-        <div className="max-w-md w-full space-y-4">
-          <div className="text-center mb-8">
-            <Skeleton className="h-16 w-16 rounded-full mx-auto mb-4 bg-white/20" />
-            <Skeleton className="h-8 w-48 mx-auto mb-2 bg-white/20" />
-            <Skeleton className="h-4 w-32 mx-auto bg-white/20" />
+        <div className="max-w-md w-full space-y-4 text-center">
+          <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm animate-pulse">
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
           </div>
-          <div className="space-y-3">
-            <Skeleton className="h-12 w-full bg-white/20" />
-            <Skeleton className="h-12 w-full bg-white/20" />
-            <Skeleton className="h-10 w-full bg-white/20" />
-          </div>
+          <Skeleton className="h-8 w-48 mx-auto bg-white/20" />
+          <Skeleton className="h-4 w-32 mx-auto bg-white/20" />
         </div>
       </div>
     );
