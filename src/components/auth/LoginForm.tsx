@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,16 +10,26 @@ import PrivacyNotice from '@/components/privacy/PrivacyNotice';
 import SignupForm from './SignupForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 const LoginForm = () => {
-  const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+
+  // Listen for auth changes to trigger re-render when logged in
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Force page reload to update auth state everywhere
+        window.location.reload();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (showSignup) {
     return <SignupForm onSwitchToLogin={() => setShowSignup(false)} />;
@@ -66,17 +76,16 @@ const LoginForm = () => {
         } else {
           setErrors({ general: error.message });
         }
+        setIsSubmitting(false);
         return;
       }
 
       if (data.user && data.session) {
         toast.success('Login successful!');
-        // Navigate immediately without waiting
-        navigate('/');
+        // The onAuthStateChange listener will handle the redirect
       }
     } catch (error: any) {
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
-    } finally {
       setIsSubmitting(false);
     }
   };

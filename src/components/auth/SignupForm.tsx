@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,6 @@ import { Loader2, User, Mail, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 interface SignupFormProps {
@@ -17,7 +16,6 @@ interface SignupFormProps {
 }
 
 const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -27,10 +25,23 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Listen for auth changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        window.location.href = '/student/profile-completion';
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setIsLoading(true);
 
     // Validation
@@ -60,8 +71,9 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
 
     try {
       // Sign up the student using Supabase Auth
+      // The database trigger will automatically create profile and role
       const { data, error: signupError } = await supabase.auth.signUp({
-        email: formData.email,
+        email: formData.email.trim(),
         password: formData.password,
         options: {
           data: {
@@ -72,39 +84,34 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
         }
       });
 
-      if (signupError) throw signupError;
-      if (!data.user) throw new Error("Failed to create account");
-
-      // Create profile entry
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          name: formData.fullName,
-          is_profile_complete: false
-        });
-
-      if (profileError) throw profileError;
-
-      // Create user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: data.user.id,
-          role: 'student'
-        });
-
-      if (roleError) throw roleError;
-
-      toast.success("Account created successfully! Please check your email to verify your account.");
+      if (signupError) {
+        if (signupError.message.includes('already registered')) {
+          setError('This email is already registered. Please sign in instead.');
+        } else {
+          setError(signupError.message);
+        }
+        setIsLoading(false);
+        return;
+      }
       
-      // Redirect to profile completion after successful signup
-      setTimeout(() => {
-        navigate('/student/profile-completion');
-      }, 2000);
+      if (!data.user) {
+        setError('Failed to create account. Please try again.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if email confirmation is required
+      if (data.session) {
+        // User is immediately signed in (email confirmation disabled)
+        toast.success("Account created successfully!");
+        window.location.href = '/student/profile-completion';
+      } else {
+        // Email confirmation required
+        setSuccessMessage("Account created! Please check your email to verify your account, then sign in.");
+        toast.success("Account created! Please check your email to verify your account.");
+      }
       
     } catch (error: any) {
-      console.error('Signup error:', error);
       setError(error.message || 'An error occurred during signup');
     } finally {
       setIsLoading(false);
@@ -134,119 +141,136 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0">
-            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-white">Full Name *</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Enter your full name"
-                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                    required
-                  />
+            {successMessage ? (
+              <div className="text-center py-6">
+                <div className="inline-flex items-center justify-center p-4 bg-green-500/20 rounded-full mb-4">
+                  <svg className="h-8 w-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 </div>
+                <p className="text-white mb-4">{successMessage}</p>
+                <Button
+                  onClick={onSwitchToLogin}
+                  className="bg-white text-primary hover:bg-white/90"
+                >
+                  Go to Sign In
+                </Button>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white">Email Address *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                  />
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName" className="text-white">Full Name *</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="Enter your full name"
+                      className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">Password *</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Create a password"
-                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-white">Email Address *</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-white">Confirm Password *</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-white">Password *</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Create a password"
+                      className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToTerms: checked as boolean }))}
-                  className="mt-1 border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-primary"
-                />
-                <Label htmlFor="terms" className="text-sm text-white/90 leading-normal cursor-pointer">
-                  I agree to the Terms and Conditions and Privacy Policy *
-                </Label>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-white">Confirm Password *</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="Confirm your password"
+                      className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-white/60 focus:bg-white/30"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      required
+                    />
+                  </div>
+                </div>
 
-              {error && (
-                <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
-                  <AlertDescription className="text-white">
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={formData.agreeToTerms}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreeToTerms: checked as boolean }))}
+                    className="mt-1 border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-primary"
+                  />
+                  <Label htmlFor="terms" className="text-sm text-white/90 leading-normal cursor-pointer">
+                    I agree to the Terms and Conditions and Privacy Policy *
+                  </Label>
+                </div>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-white text-primary hover:bg-white/90 font-medium"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  'Submit'
+                {error && (
+                  <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
+                    <AlertDescription className="text-white">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
                 )}
-              </Button>
 
-              <div className="text-center pt-4 border-t border-white/20">
-                <p className="text-sm text-white/80">
-                  Already have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={onSwitchToLogin}
-                    className="text-white hover:underline font-medium"
-                  >
-                    Sign in here
-                  </button>
-                </p>
-              </div>
-            </form>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-white text-primary hover:bg-white/90 font-medium"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
+                </Button>
+
+                <div className="text-center pt-4 border-t border-white/20">
+                  <p className="text-sm text-white/80">
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={onSwitchToLogin}
+                      className="text-white hover:underline font-medium"
+                    >
+                      Sign in here
+                    </button>
+                  </p>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
