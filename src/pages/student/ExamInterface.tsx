@@ -53,7 +53,7 @@ const ExamInterface = () => {
   const timerRef = useRef<NodeJS.Timeout>();
   const examContainerRef = useRef<HTMLDivElement>(null);
 
-  // Anti-cheating measures
+  // Anti-cheating measures - comprehensive screenshot and screen capture blocking
   useEffect(() => {
     if (!examStarted) return;
 
@@ -72,24 +72,72 @@ const ExamInterface = () => {
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Disable F12, Ctrl+Shift+I, Ctrl+U, etc.
-      if (
-        e.key === "F12" ||
-        (e.ctrlKey && e.shiftKey && e.key === "I") ||
-        (e.ctrlKey && e.key === "u") ||
-        (e.ctrlKey && e.key === "s") ||
-        (e.metaKey && e.key === "c") ||
-        (e.ctrlKey && e.key === "c") ||
-        (e.metaKey && e.key === "v") ||
-        (e.ctrlKey && e.key === "v")
-      ) {
+      // Block screenshot and screen capture keys
+      const blockedKeys = [
+        'F12', 'PrintScreen', 'F11',
+      ];
+      
+      const blockedCombos = [
+        // Developer tools
+        { ctrl: true, shift: true, key: 'I' },
+        { ctrl: true, shift: true, key: 'i' },
+        { ctrl: true, shift: true, key: 'J' },
+        { ctrl: true, shift: true, key: 'j' },
+        { ctrl: true, shift: true, key: 'C' },
+        { ctrl: true, shift: true, key: 'c' },
+        { ctrl: true, key: 'u' },
+        { ctrl: true, key: 'U' },
+        { ctrl: true, key: 's' },
+        { ctrl: true, key: 'S' },
+        { ctrl: true, key: 'p' },
+        { ctrl: true, key: 'P' },
+        // Copy/paste
+        { ctrl: true, key: 'c' },
+        { ctrl: true, key: 'C' },
+        { ctrl: true, key: 'v' },
+        { ctrl: true, key: 'V' },
+        { meta: true, key: 'c' },
+        { meta: true, key: 'C' },
+        { meta: true, key: 'v' },
+        { meta: true, key: 'V' },
+        // Screenshot combos
+        { meta: true, shift: true, key: '3' }, // Mac screenshot
+        { meta: true, shift: true, key: '4' }, // Mac screenshot area
+        { meta: true, shift: true, key: '5' }, // Mac screenshot menu
+        { alt: true, key: 'PrintScreen' }, // Windows alt+printscreen
+        { key: 'PrintScreen' }, // Windows printscreen
+        // Windows snipping tool
+        { meta: true, shift: true, key: 's' },
+        { meta: true, shift: true, key: 'S' },
+      ];
+      
+      if (blockedKeys.includes(e.key)) {
         e.preventDefault();
-        toast.warning("Action not allowed during exam!");
+        e.stopPropagation();
+        toast.warning("Screenshots and screen capture are not allowed during exam!");
+        return false;
+      }
+      
+      for (const combo of blockedCombos) {
+        if (
+          (combo.ctrl === undefined || e.ctrlKey === combo.ctrl) &&
+          (combo.shift === undefined || e.shiftKey === combo.shift) &&
+          (combo.meta === undefined || e.metaKey === combo.meta) &&
+          (combo.alt === undefined || e.altKey === combo.alt) &&
+          e.key === combo.key
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+          toast.warning("This action is not allowed during exam!");
+          return false;
+        }
       }
     };
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
+      toast.warning("Right-click is disabled during exam!");
+      return false;
     };
 
     const handleResize = () => {
@@ -107,32 +155,75 @@ const ExamInterface = () => {
       }
     };
 
+    // Detect screen capture API usage
+    const handleScreenCapture = () => {
+      toast.error("Screen recording detected! Exam will be submitted.");
+      handleAutoSubmit("Screen recording detected");
+    };
+
+    // Try to detect screen recording (limited browser support)
+    if (navigator.mediaDevices) {
+      const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
+      if (originalGetDisplayMedia) {
+        navigator.mediaDevices.getDisplayMedia = async function(...args) {
+          handleScreenCapture();
+          throw new Error("Screen capture is not allowed during exam");
+        };
+      }
+    }
+
+    // Blur content when window loses focus (prevents some capture methods)
+    const handleBlur = () => {
+      if (examContainerRef.current) {
+        examContainerRef.current.style.filter = 'blur(20px)';
+      }
+    };
+
+    const handleFocus = () => {
+      if (examContainerRef.current) {
+        examContainerRef.current.style.filter = 'none';
+      }
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
     document.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("resize", handleResize);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("contextmenu", handleContextMenu);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [examStarted]);
 
-  // Disable text selection and prevent common exploits
+  // Disable text selection, prevent screenshots, and block common exploits
   useEffect(() => {
     if (!examStarted) return;
 
     const style = document.createElement('style');
+    style.id = 'exam-anti-cheat-styles';
     style.textContent = `
-      .exam-interface * {
+      .exam-interface {
         -webkit-user-select: none !important;
         -moz-user-select: none !important;
         -ms-user-select: none !important;
         user-select: none !important;
         -webkit-touch-callout: none !important;
         -webkit-tap-highlight-color: transparent !important;
+        pointer-events: auto !important;
+      }
+      .exam-interface * {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
       }
       .exam-interface input, .exam-interface textarea {
         -webkit-user-select: text !important;
@@ -140,13 +231,72 @@ const ExamInterface = () => {
         -ms-user-select: text !important;
         user-select: text !important;
       }
+      /* Hide content in print preview to prevent print-screen workarounds */
+      @media print {
+        .exam-interface {
+          display: none !important;
+          visibility: hidden !important;
+        }
+        body::before {
+          content: "Printing is not allowed during exam" !important;
+          display: block !important;
+          text-align: center !important;
+          font-size: 24px !important;
+          padding: 50px !important;
+        }
+      }
+      /* Watermark overlay to deter photo/screenshot sharing */
+      .exam-interface::after {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 100px,
+          rgba(0, 0, 0, 0.01) 100px,
+          rgba(0, 0, 0, 0.01) 200px
+        );
+        z-index: 9999;
+      }
     `;
     document.head.appendChild(style);
 
+    // Disable drag events to prevent image saving
+    const handleDragStart = (e: DragEvent) => {
+      e.preventDefault();
+      return false;
+    };
+    document.addEventListener('dragstart', handleDragStart);
+
+    // Disable copy event
+    const handleCopy = (e: ClipboardEvent) => {
+      e.preventDefault();
+      toast.warning("Copying is not allowed during exam!");
+      return false;
+    };
+    document.addEventListener('copy', handleCopy);
+
+    // Disable paste event
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      toast.warning("Pasting is not allowed during exam!");
+      return false;
+    };
+    document.addEventListener('paste', handlePaste);
+
     return () => {
-      if (document.head.contains(style)) {
-        document.head.removeChild(style);
+      const existingStyle = document.getElementById('exam-anti-cheat-styles');
+      if (existingStyle) {
+        existingStyle.remove();
       }
+      document.removeEventListener('dragstart', handleDragStart);
+      document.removeEventListener('copy', handleCopy);
+      document.removeEventListener('paste', handlePaste);
     };
   }, [examStarted]);
 
