@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import Dashboard from "@/components/Dashboard";
-import LoginForm from "@/components/auth/LoginForm";
+import Landing from "@/pages/Landing";
+import RoleLoginForm from "@/components/auth/RoleLoginForm";
+import StudentSignupForm from "@/components/auth/StudentSignupForm";
+import AdminSignupForm from "@/components/auth/AdminSignupForm";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
+type AuthView = 'landing' | 'login' | 'signup';
+
 const Index = () => {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'student' | 'teacher' | 'admin' | null>(null);
+  const [authView, setAuthView] = useState<AuthView>('landing');
 
   // Set role from authenticated user
   useEffect(() => {
@@ -31,13 +37,8 @@ const Index = () => {
     );
   }
 
-  // Show login if not authenticated
-  if (!isAuthenticated) {
-    return <LoginForm />;
-  }
-
-  // Set role if authenticated but no role selected
-  if (!selectedRole && user?.role) {
+  // Show dashboard if authenticated
+  if (isAuthenticated && user) {
     return (
       <Dashboard 
         userRole={user.role} 
@@ -48,15 +49,67 @@ const Index = () => {
     );
   }
 
-  // Dashboard view for authenticated user
-  return (
-    <Dashboard 
-      userRole={selectedRole || user?.role || 'student'} 
-      userName={user?.name || 'User'}
-      userAvatar={user?.avatar}
-      onLogout={logout}
-    />
-  );
+  // Handle role selection from landing page
+  const handleSelectRole = (role: 'student' | 'teacher' | 'admin') => {
+    setSelectedRole(role);
+    setAuthView('login');
+  };
+
+  // Handle back navigation
+  const handleBack = () => {
+    setSelectedRole(null);
+    setAuthView('landing');
+  };
+
+  // Handle switch to signup
+  const handleSwitchToSignup = () => {
+    setAuthView('signup');
+  };
+
+  // Handle switch to login
+  const handleSwitchToLogin = () => {
+    setAuthView('login');
+  };
+
+  // Show landing page
+  if (authView === 'landing' || !selectedRole) {
+    return <Landing onSelectRole={handleSelectRole} />;
+  }
+
+  // Show signup form
+  if (authView === 'signup' && selectedRole) {
+    if (selectedRole === 'student') {
+      return (
+        <StudentSignupForm 
+          onBack={handleBack}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+      );
+    }
+    if (selectedRole === 'admin') {
+      return (
+        <AdminSignupForm 
+          onBack={handleBack}
+          onSwitchToLogin={handleSwitchToLogin}
+        />
+      );
+    }
+    // Teachers can't sign up
+    setAuthView('login');
+  }
+
+  // Show login form
+  if (authView === 'login' && selectedRole) {
+    return (
+      <RoleLoginForm 
+        role={selectedRole}
+        onBack={handleBack}
+        onSwitchToSignup={selectedRole !== 'teacher' ? handleSwitchToSignup : undefined}
+      />
+    );
+  }
+
+  return <Landing onSelectRole={handleSelectRole} />;
 };
 
 export default Index;
