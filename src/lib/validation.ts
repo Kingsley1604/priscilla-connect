@@ -108,6 +108,35 @@ export const eventSchema = z.object({
     .nullable(),
 });
 
+// Report card validation
+export const reportCardSchema = z.object({
+  student_name: z.string().trim().min(2).max(100),
+  admission_no: z.string().trim().min(1).max(50),
+  class_level: z.string().trim().min(1).max(50),
+  term: z.string().trim().min(1).max(50),
+  academic_session: z.string().trim().min(1).max(50),
+  average_score: z.number().min(0).max(100).optional().nullable(),
+  percentage: z.number().min(0).max(100).optional().nullable(),
+});
+
+// Inventory alert validation
+export const inventoryAlertSchema = z.object({
+  item_name: z.string().trim().min(2).max(200),
+  current_stock: z.number().int().min(0),
+  alert_threshold: z.number().int().min(1).max(10000),
+});
+
+// Student result validation
+export const studentResultSchema = z.object({
+  student_name: z.string().trim().min(2).max(100),
+  admission_no: z.string().trim().min(1).max(50),
+  subject: z.string().trim().min(2).max(100),
+  half_term_score: z.number().min(0).max(100),
+  exam_score: z.number().min(0).max(100),
+  total_score: z.number().min(0).max(100),
+  grade: z.string().min(1).max(10),
+});
+
 // Helper function to handle validation errors
 export const handleValidationError = (error: z.ZodError): string => {
   return error.errors.map(err => err.message).join(', ');
