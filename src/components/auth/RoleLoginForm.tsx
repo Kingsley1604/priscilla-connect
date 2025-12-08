@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,13 @@ interface RoleLoginFormProps {
   onBack: () => void;
   onSwitchToSignup?: () => void;
 }
+
+// Demo credentials for each role
+const demoCredentials = {
+  student: { email: 'demo.student@priscilla.edu', password: 'Demo@Student2025' },
+  teacher: { email: 'demo.teacher@priscilla.edu', password: 'Demo@Teacher2025' },
+  admin: { email: 'demo.admin@priscilla.edu', password: 'Demo@Admin2025' },
+};
 
 const roleConfig = {
   student: {
@@ -248,6 +255,29 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
                 ) : (
                   'Sign In'
                 )}
+              </Button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-white/20" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-transparent px-2 text-white/60">Or</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-white/30 text-white hover:bg-white/20 hover:text-white"
+                onClick={() => {
+                  const demo = demoCredentials[role];
+                  setCredentials({ email: demo.email, password: demo.password });
+                  toast.info(`Demo ${role} credentials filled. Click Sign In to continue.`);
+                }}
+                disabled={isSubmitting}
+              >
+                Use Demo {role.charAt(0).toUpperCase() + role.slice(1)} Account
               </Button>
             </form>
 
