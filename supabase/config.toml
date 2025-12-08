@@ -1,5 +1,8 @@
 project_id = "fctarpegeatdizeuzzyb"
 
+[functions.setup-demo-users]
+verify_jwt = false
+
 [functions.priscilla-brain]
 verify_jwt = true
 
