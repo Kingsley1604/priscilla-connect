@@ -33,7 +33,8 @@ interface Event {
 
 const CalendarPage = () => {
   const { user } = useAuth();
-  const userRole = (user as any)?.raw_user_meta_data?.role || (user as any)?.user_metadata?.role || 'student';
+  // Use the role from useAuth which correctly fetches from user_roles table
+  const userRole = user?.role || 'student';
   
   const [events, setEvents] = useState<Event[]>([]);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
