@@ -259,7 +259,7 @@ const TeacherCreation = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => navigate('/admin/teacher-assignment')}
+                  onClick={() => navigate('/admin/teacher-assignments')}
                 >
                   Go to Teacher Assignment
                 </Button>

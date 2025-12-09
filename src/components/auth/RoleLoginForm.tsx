@@ -96,6 +96,8 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
           setErrors({ general: 'Invalid email or password. Please try again.' });
         } else if (error.message.includes('Email not confirmed')) {
           setErrors({ general: 'Please verify your email before logging in.' });
+        } else if (error.message.includes('User is banned')) {
+          setErrors({ general: 'Your account has been banned by an administrator.' });
         } else {
           setErrors({ general: error.message });
         }

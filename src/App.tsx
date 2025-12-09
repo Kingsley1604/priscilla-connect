@@ -19,6 +19,9 @@ import Analytics from "./pages/teacher/Analytics";
 import ContentUpload from "./pages/teacher/ContentUpload";
 import ClassManagement from "./pages/teacher/ClassManagement";
 import TeacherProfileSettings from "./pages/teacher/ProfileSettings";
+import TeacherProfileOptions from "./pages/teacher/ProfileOptions";
+import TeacherTwoFactorAuth from "./pages/teacher/TwoFactorAuth";
+import TeacherDeactivateAccount from "./pages/teacher/DeactivateAccount";
 import UploadResult from "./pages/teacher/UploadResult";
 import LessonPlanner from "./pages/teacher/LessonPlanner";
 import ExamBuilder from "./pages/teacher/ExamBuilder";
@@ -33,6 +36,7 @@ import ProfileCompletion from "./pages/student/ProfileCompletion";
 import TeacherAssignment from "./pages/admin/TeacherAssignment";
 import TeacherCreation from "./pages/admin/TeacherCreation";
 import TeacherManagement from "./pages/admin/TeacherManagement";
+import DeactivateTeacher from "./pages/admin/DeactivateTeacher";
 import ExamResults from "./pages/admin/ExamResults";
 import PasswordChange from "./pages/teacher/PasswordChange";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
@@ -106,10 +110,15 @@ const App = () => (
         <Route path="/student/homework" element={<HomeworkSubmission />} />
         <Route path="/student/profile-completion" element={<ProfileCompletion />} />
         <Route path="/admin/teacher-assignments" element={<TeacherAssignment />} />
+        <Route path="/admin/teacher-assignment" element={<TeacherAssignment />} />
         <Route path="/admin/teacher-creation" element={<TeacherCreation />} />
         <Route path="/admin/teacher-management" element={<TeacherManagement />} />
+        <Route path="/admin/deactivate-teacher" element={<DeactivateTeacher />} />
         <Route path="/admin/exam-results" element={<ExamResults />} />
         <Route path="/teacher/password-change" element={<PasswordChange />} />
+        <Route path="/teacher/profile-options" element={<TeacherProfileOptions />} />
+        <Route path="/teacher/two-factor-auth" element={<TeacherTwoFactorAuth />} />
+        <Route path="/teacher/deactivate-account" element={<TeacherDeactivateAccount />} />
             <Route path="/admin/announcements" element={<AnnouncementManager />} />
             <Route path="/admin/manage-announcements" element={<ManageAnnouncements />} />
             <Route path="/admin/manage-store" element={<ManageStoreEnhanced />} />

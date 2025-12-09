@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,10 +23,23 @@ import {
   Package,
   FileText,
   GamepadIcon,
-  ShoppingBag
+  ShoppingBag,
+  Menu,
+  X,
+  User,
+  LogOut,
+  Moon,
+  UserX
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
@@ -36,6 +50,14 @@ interface DashboardProps {
 
 const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps) => {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const getProfilePath = () => {
+    if (userRole === 'teacher') return '/teacher/profile-options';
+    if (userRole === 'admin') return '/admin/profile-settings';
+    return '/profile-settings';
+  };
+
   const getModulesForRole = () => {
     const baseModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Reports", description: "View academic reports", icon: FileText, color: "bg-gradient-primary", path: "/reports" },
@@ -59,19 +81,19 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
       { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management", disabled: true },
       { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics", disabled: true },
       { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload", disabled: true },
-      { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-secondary", path: "/profile-settings" },
     ];
 
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
-      { title: "Teacher Assignments", description: "Assign teachers to classes", icon: Users, color: "bg-gradient-secondary", path: "/admin/teacher-assignments" },
+      { title: "Create Teacher", description: "Add new teacher accounts", icon: Users, color: "bg-gradient-secondary", path: "/admin/teacher-creation" },
+      { title: "Teacher Assignments", description: "Assign teachers to classes", icon: Users, color: "bg-gradient-accent", path: "/admin/teacher-assignments" },
+      { title: "Deactivate Teacher", description: "Deactivate teacher accounts", icon: UserX, color: "bg-red-500", path: "/admin/deactivate-teacher" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
       { title: "Manage Store", description: "Add and manage store items", icon: ShoppingBag, color: "bg-gradient-secondary", path: "/admin/manage-store" },
       { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-accent", path: "/admin/manage-priscilla-tube" },
       { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/manage-announcements" },
       { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-secondary", path: "/admin/system-settings" },
       { title: "Inventory Manager", description: "Monitor stock levels & alerts", icon: Package, color: "bg-gradient-primary", path: "/admin/inventory-manager" },
-      { title: "Profile Settings", description: "Update your information", icon: Settings, color: "bg-gradient-primary", path: "/admin/profile-settings" },
     ];
 
     if (userRole === 'student') return [...baseModules, ...studentModules];
@@ -81,69 +103,136 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
 
   const modules = getModulesForRole();
 
+  const MobileMenuItem = ({ icon: Icon, label, onClick, variant = 'default' }: { icon: any, label: string, onClick: () => void, variant?: 'default' | 'destructive' }) => (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+        variant === 'destructive' 
+          ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20' 
+          : 'text-foreground hover:bg-muted'
+      }`}
+    >
+      <Icon className="h-5 w-5" />
+      <span className="font-medium">{label}</span>
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-gradient-hero text-white py-4 sm:py-6 px-3 sm:px-6 shadow-medium">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3 sm:space-x-4">
             <div className="bg-white/20 p-2 sm:p-3 rounded-lg backdrop-blur-sm">
               <img src={priscillaLogo} alt="Priscilla Connect" className="h-8 w-8 sm:h-12 sm:w-12 object-contain" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Priscilla Connect</h1>
-              <p className="text-white/90 text-xs sm:text-sm md:text-base">Empowering Education Together</p>
+              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold">Priscilla Connect</h1>
+              <p className="text-white/90 text-xs sm:text-sm md:text-base hidden sm:block">Empowering Education Together</p>
             </div>
           </div>
           
-            <div className="flex items-center space-x-2 sm:space-x-4 flex-wrap gap-y-2">
-              <ThemeToggle />
-              {userRole === 'teacher' && <TeacherExamNotifications />}
-              <AdminNotificationSystem />
-              {onLogout && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-white hover:bg-white/20 text-xs sm:text-sm"
-                  onClick={onLogout}
-                >
-                  Logout
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
+            <ThemeToggle />
+            {userRole === 'teacher' && <TeacherExamNotifications />}
+            <AdminNotificationSystem />
+            {onLogout && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:bg-white/20 text-xs sm:text-sm"
+                onClick={onLogout}
+              >
+                Logout
+              </Button>
+            )}
+            <Link to={getProfilePath()}>
+              <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors">
+                <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-white/30">
+                  <AvatarImage src={userAvatar} />
+                  <AvatarFallback className="bg-white/20 text-white text-xs sm:text-sm">
+                    {userName.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-right hidden md:block">
+                  <p className="font-medium text-sm">{userName}</p>
+                  <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                    {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                  </Badge>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Mobile Hamburger Menu */}
+          <div className="sm:hidden">
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 p-2">
+                  <Menu className="h-6 w-6" />
                 </Button>
-              )}
-              {userRole === 'student' ? (
-                <Link to="/profile-settings">
-                  <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors">
-                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-white/30">
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px] p-0">
+                <SheetHeader className="p-4 border-b">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12 border-2 border-primary/30">
                       <AvatarImage src={userAvatar} />
-                      <AvatarFallback className="bg-white/20 text-white text-xs sm:text-sm">
+                      <AvatarFallback className="bg-primary/10 text-primary">
                         {userName.split(' ').map(n => n[0]).join('')}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="text-right hidden sm:block">
-                      <p className="font-medium text-sm">{userName}</p>
-                      <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                    <div className="text-left">
+                      <SheetTitle className="text-base">{userName}</SheetTitle>
+                      <Badge variant="secondary" className="text-xs mt-1">
                         {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
                       </Badge>
                     </div>
                   </div>
-                </Link>
-              ) : (
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-white/30">
-                    <AvatarImage src={userAvatar} />
-                    <AvatarFallback className="bg-white/20 text-white text-xs sm:text-sm">
-                      {userName.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-right hidden sm:block">
-                    <p className="font-medium text-sm">{userName}</p>
-                    <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-                      {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
-                    </Badge>
+                </SheetHeader>
+                
+                <div className="p-2 space-y-1">
+                  <MobileMenuItem 
+                    icon={User} 
+                    label="Profile" 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate(getProfilePath());
+                    }} 
+                  />
+                  <MobileMenuItem 
+                    icon={Settings} 
+                    label="Settings" 
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      navigate(userRole === 'teacher' ? '/teacher/profile-options' : getProfilePath());
+                    }} 
+                  />
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Moon className="h-5 w-5" />
+                      <span className="font-medium">Night Mode</span>
+                    </div>
+                    <ThemeToggle />
                   </div>
+                  
+                  <div className="border-t my-2" />
+                  
+                  {onLogout && (
+                    <MobileMenuItem 
+                      icon={LogOut} 
+                      label="Logout" 
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onLogout();
+                      }}
+                      variant="destructive"
+                    />
+                  )}
                 </div>
-              )}
-            </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </header>
 
