@@ -43,27 +43,29 @@ const TeacherCreation = () => {
 
     setIsSubmitting(true);
     try {
-      // First, create the teacher user in Supabase Auth
+      // Generate default password first
+      const { data: defaultPassword, error: pwError } = await supabase.rpc('generate_default_password');
+      if (pwError) throw pwError;
+
+      // Create the teacher user in Supabase Auth with email confirmation disabled
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
-        password: 'temp_password_' + Math.random().toString(36).slice(2), // Temporary password
+        password: defaultPassword, // Use the generated password directly
         options: {
           data: {
             name: formData.fullName,
             role: 'teacher'
-          }
+          },
+          emailRedirectTo: undefined // Disable email confirmation redirect
         }
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("Failed to create user");
 
-      // Generate teacher ID and default password
+      // Generate teacher ID
       const { data: teacherId, error: idError } = await supabase.rpc('generate_teacher_id');
       if (idError) throw idError;
-
-      const { data: defaultPassword, error: pwError } = await supabase.rpc('generate_default_password');
-      if (pwError) throw pwError;
 
       // Update the profile with teacher details
       const { error: profileError } = await supabase

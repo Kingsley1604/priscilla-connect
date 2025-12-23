@@ -284,67 +284,50 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
 
   if (!selectedContact) {
     return (
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="bg-gradient-hero text-white py-6 px-6 shadow-medium">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                <div className="h-8 w-8 bg-white/20 rounded flex items-center justify-center">
-                  <span className="text-lg font-bold">P</span>
-                </div>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">PriscillaChat</h1>
-                <p className="text-white/90">Simple. Fast. Free.</p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Contacts List */}
-        <section className="py-6 px-6">
+      <div className="bg-background">
+        {/* Contacts List - No duplicate header */}
+        <section className="py-4 sm:py-6 px-4 sm:px-6">
           <div className="max-w-2xl mx-auto">
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
               <Input
                 placeholder="Search contacts..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-md"
+                className="w-full"
               />
             </div>
 
             <Card className="shadow-soft">
-              <CardHeader>
-                <h2 className="text-xl font-semibold">Your Contacts</h2>
-                <p className="text-muted-foreground">{contacts.length} friends on PriscillaChat</p>
+              <CardHeader className="p-4 sm:p-6">
+                <h2 className="text-lg sm:text-xl font-semibold">Your Contacts</h2>
+                <p className="text-sm text-muted-foreground">{contacts.length} friends on PriscillaChat</p>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y">
                   {filteredContacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className="flex items-center space-x-4 p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
                       onClick={() => setSelectedContact(contact)}
                     >
-                      <Avatar className="h-12 w-12">
+                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                         <AvatarImage src={contact.avatar} />
-                        <AvatarFallback>
+                        <AvatarFallback className="text-sm">
                           {contact.name.split(' ').map(n => n[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-foreground">{contact.name}</p>
-                            <div className="flex items-center space-x-2">
-                              {(contact.lastSeen === 'online' || onlineUsers.has(contact.id)) && (
-                                <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 text-xs">
-                                  Online
-                                </Badge>
-                              )}
-                            </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-foreground text-sm sm:text-base truncate">{contact.name}</p>
+                          <div className="flex items-center flex-shrink-0">
+                            {(contact.lastSeen === 'online' || onlineUsers.has(contact.id)) && (
+                              <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 text-xs">
+                                Online
+                              </Badge>
+                            )}
                           </div>
-                        <p className="text-sm text-muted-foreground truncate">
+                        </div>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                           {getLastMessage(contact)}
                         </p>
                         <p className="text-xs text-muted-foreground">
