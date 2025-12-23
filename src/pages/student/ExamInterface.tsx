@@ -60,9 +60,10 @@ const ExamInterface = () => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         setWarningCount(prev => {
-          const newCount = prev + 1;
+          const newCount = Math.min(prev + 1, 3);
           if (newCount >= 3) {
-            handleAutoSubmit("Too many tab switches detected");
+            handleAutoSubmit("Maximum warnings reached - auto submitting");
+            return 3;
           } else {
             toast.warning(`Warning ${newCount}/3: Tab switching detected!`);
           }
@@ -143,11 +144,12 @@ const ExamInterface = () => {
     const handleResize = () => {
       if (!document.fullscreenElement && examStarted) {
         setWarningCount(prev => {
-          const newCount = prev + 1;
-          if (newCount >= 2) {
-            handleAutoSubmit("Exited fullscreen mode");
+          const newCount = Math.min(prev + 1, 3);
+          if (newCount >= 3) {
+            handleAutoSubmit("Maximum warnings reached - auto submitting");
+            return 3;
           } else {
-            toast.warning(`Warning ${newCount}/2: Return to fullscreen!`);
+            toast.warning(`Warning ${newCount}/3: Return to fullscreen!`);
             enterFullscreen();
           }
           return newCount;

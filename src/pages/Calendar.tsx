@@ -45,7 +45,8 @@ const CalendarPage = () => {
     time: "",
     location: "",
     type: "event",
-    description: ""
+    description: "",
+    target_audience: ["student", "teacher"] as string[]
   });
   
   const canManageEvents = userRole === 'admin' || userRole === 'teacher';

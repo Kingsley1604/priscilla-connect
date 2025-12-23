@@ -4,13 +4,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, Download, Sparkles } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, BookOpen, Download, Sparkles, History, Trash2, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { format } from "date-fns";
+
+interface LessonPlanHistory {
+  id: string;
+  subject: string;
+  grade: string;
+  topic: string;
+  duration: number;
+  objectives: string;
+  generated_plan: string;
+  created_at: string;
+}
 
 const LessonPlanner = () => {
+  const { user } = useAuth();
   const [subject, setSubject] = useState("");
   const [grade, setGrade] = useState("");
   const [topic, setTopic] = useState("");
@@ -18,6 +33,9 @@ const LessonPlanner = () => {
   const [objectives, setObjectives] = useState("");
   const [lessonPlan, setLessonPlan] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState("create");
+  const [history, setHistory] = useState<LessonPlanHistory[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<LessonPlanHistory | null>(null);
 
   const grades = [
     "Play Group 1", "Play Group 2", 
@@ -33,6 +51,30 @@ const LessonPlanner = () => {
     "Religious Studies", "Civic Education", "Agricultural Science",
     "Basic Technology", "Home Economics", "French", "Literature"
   ];
+
+  useEffect(() => {
+    if (user) {
+      loadHistory();
+    }
+  }, [user]);
+
+  const loadHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('lesson_plan_history')
+        .select('*')
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +106,6 @@ const LessonPlanner = () => {
       });
 
       if (error) {
-        // Handle specific error cases
         if (error.message?.includes("402") || error.message?.includes("credits")) {
           toast.error("AI credits depleted. Please contact administrator.");
         } else if (error.message?.includes("429") || error.message?.includes("rate")) {
@@ -80,10 +121,32 @@ const LessonPlanner = () => {
         return;
       }
 
-      setLessonPlan(data?.lessonPlan || "");
+      const generatedPlan = data?.lessonPlan || "";
+      setLessonPlan(generatedPlan);
+      
+      // Save to history
+      if (user && generatedPlan) {
+        const { error: saveError } = await supabase
+          .from('lesson_plan_history')
+          .insert({
+            teacher_id: user.id,
+            subject,
+            grade,
+            topic: topic.trim(),
+            duration: durationNum,
+            objectives: objectives.trim(),
+            generated_plan: generatedPlan
+          });
+
+        if (saveError) {
+          console.error('Error saving to history:', saveError);
+        } else {
+          loadHistory();
+        }
+      }
+
       toast.success("Lesson plan generated successfully!");
     } catch (error: any) {
-      // Handle network or unexpected errors gracefully
       const errorMessage = error?.message || "";
       if (errorMessage.includes("non-2xx") || errorMessage.includes("Edge Function")) {
         toast.error("The AI service is temporarily unavailable. Please try again in a few moments.");
@@ -96,11 +159,15 @@ const LessonPlanner = () => {
   };
 
   const handleDownload = async () => {
+    const planToDownload = selectedPlan?.generated_plan || lessonPlan;
+    const planSubject = selectedPlan?.subject || subject;
+    const planGrade = selectedPlan?.grade || grade;
+    const planTopic = selectedPlan?.topic || topic;
+
     try {
       const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
       
-      // Parse the lesson plan into paragraphs
-      const lines = lessonPlan.split('\n');
+      const lines = planToDownload.split('\n');
       const children: any[] = [];
       
       lines.forEach(line => {
@@ -141,12 +208,12 @@ const LessonPlanner = () => {
           properties: {},
           children: [
             new Paragraph({
-              text: `${subject} - ${grade}`,
+              text: `${planSubject} - ${planGrade}`,
               heading: HeadingLevel.TITLE,
               spacing: { after: 200 }
             }),
             new Paragraph({
-              text: `Topic: ${topic}`,
+              text: `Topic: ${planTopic}`,
               heading: HeadingLevel.HEADING_1,
               spacing: { after: 300 }
             }),
@@ -157,15 +224,14 @@ const LessonPlanner = () => {
 
       const blob = await Packer.toBlob(doc);
       const { saveAs } = await import('file-saver');
-      saveAs(blob, `${subject}_${grade}_${topic.replace(/\s+/g, "_")}_LessonPlan.docx`);
+      saveAs(blob, `${planSubject}_${planGrade}_${planTopic.replace(/\s+/g, "_")}_LessonPlan.docx`);
       toast.success("Lesson plan downloaded as Word document!");
     } catch (error) {
       console.error('Download error:', error);
-      // Fallback to text download
       const element = document.createElement("a");
-      const file = new Blob([lessonPlan], { type: "text/plain" });
+      const file = new Blob([planToDownload], { type: "text/plain" });
       element.href = URL.createObjectURL(file);
-      element.download = `${subject}_${grade}_${topic.replace(/\s+/g, "_")}_LessonPlan.txt`;
+      element.download = `${planSubject}_${planGrade}_${planTopic.replace(/\s+/g, "_")}_LessonPlan.txt`;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
@@ -173,10 +239,31 @@ const LessonPlanner = () => {
     }
   };
 
+  const handleDeleteHistory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this lesson plan?")) return;
+
+    try {
+      const { error } = await supabase
+        .from('lesson_plan_history')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      toast.success("Lesson plan deleted");
+      loadHistory();
+      if (selectedPlan?.id === id) {
+        setSelectedPlan(null);
+      }
+    } catch (error) {
+      console.error('Error deleting:', error);
+      toast.error("Failed to delete");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-gradient-hero text-white py-6 px-6 shadow-medium">
+      <header className="bg-gradient-hero text-white py-4 sm:py-6 px-4 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center space-x-4 mb-4">
             <Link to="/">
@@ -188,146 +275,266 @@ const LessonPlanner = () => {
           </div>
           <div className="flex items-center space-x-4">
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-              <BookOpen className="h-8 w-8" />
+              <BookOpen className="h-6 w-6 sm:h-8 sm:w-8" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">AI Lesson Planner</h1>
-              <p className="text-white/90">Generate comprehensive lesson plans with AI assistance</p>
+              <h1 className="text-xl sm:text-3xl font-bold">AI Lesson Planner</h1>
+              <p className="text-white/90 text-sm sm:text-base">Generate comprehensive lesson plans with AI assistance</p>
             </div>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <section className="py-8 px-6">
+      <section className="py-6 sm:py-8 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Input Form */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <CardTitle>Lesson Details</CardTitle>
-                </div>
-                <CardDescription>
-                  Fill in the details to generate a comprehensive lesson plan
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleGenerate} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="subject">Subject</Label>
-                    <Select value={subject} onValueChange={setSubject}>
-                      <SelectTrigger id="subject">
-                        <SelectValue placeholder="Select subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjects.map((subj) => (
-                          <SelectItem key={subj} value={subj}>
-                            {subj}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="create">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Create New
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="h-4 w-4 mr-2" />
+                History ({history.length})
+              </TabsTrigger>
+            </TabsList>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="grade">Grade Level</Label>
-                    <Select value={grade} onValueChange={setGrade}>
-                      <SelectTrigger id="grade">
-                        <SelectValue placeholder="Select grade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {grades.map((gradeLevel) => (
-                          <SelectItem key={gradeLevel} value={gradeLevel}>
-                            {gradeLevel}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+            <TabsContent value="create">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Input Form */}
+                <Card className="shadow-soft">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      <CardTitle>Lesson Details</CardTitle>
+                    </div>
+                    <CardDescription>
+                      Fill in the details to generate a comprehensive lesson plan
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleGenerate} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">Subject</Label>
+                        <Select value={subject} onValueChange={setSubject}>
+                          <SelectTrigger id="subject">
+                            <SelectValue placeholder="Select subject" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subjects.map((subj) => (
+                              <SelectItem key={subj} value={subj}>
+                                {subj}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="topic">Lesson Topic</Label>
-                    <Input
-                      id="topic"
-                      placeholder="e.g., Introduction to Fractions"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="grade">Grade Level</Label>
+                        <Select value={grade} onValueChange={setGrade}>
+                          <SelectTrigger id="grade">
+                            <SelectValue placeholder="Select grade" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {grades.map((gradeLevel) => (
+                              <SelectItem key={gradeLevel} value={gradeLevel}>
+                                {gradeLevel}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      min="20"
-                      max="120"
-                      value={duration}
-                      onChange={(e) => setDuration(e.target.value)}
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="topic">Lesson Topic</Label>
+                        <Input
+                          id="topic"
+                          placeholder="e.g., Introduction to Fractions"
+                          value={topic}
+                          onChange={(e) => setTopic(e.target.value)}
+                        />
+                      </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="objectives">Learning Objectives</Label>
-                    <Textarea
-                      id="objectives"
-                      placeholder="What should students learn from this lesson? List the key objectives..."
-                      value={objectives}
-                      onChange={(e) => setObjectives(e.target.value)}
-                      className="min-h-[100px]"
-                    />
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="duration">Duration (minutes)</Label>
+                        <Input
+                          id="duration"
+                          type="number"
+                          min="20"
+                          max="120"
+                          value={duration}
+                          onChange={(e) => setDuration(e.target.value)}
+                        />
+                      </div>
 
-                  <Button type="submit" className="w-full" disabled={isGenerating}>
-                    {isGenerating ? (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
-                        Generating...
-                      </>
+                      <div className="space-y-2">
+                        <Label htmlFor="objectives">Learning Objectives</Label>
+                        <Textarea
+                          id="objectives"
+                          placeholder="What should students learn from this lesson? List the key objectives..."
+                          value={objectives}
+                          onChange={(e) => setObjectives(e.target.value)}
+                          className="min-h-[100px]"
+                        />
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={isGenerating}>
+                        {isGenerating ? (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate Lesson Plan
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Generated Lesson Plan */}
+                <Card className="shadow-soft">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Generated Lesson Plan</CardTitle>
+                      {lessonPlan && (
+                        <Button variant="outline" size="sm" onClick={handleDownload}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      )}
+                    </div>
+                    <CardDescription>
+                      Your AI-generated comprehensive lesson plan will appear here
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {lessonPlan ? (
+                      <div className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-sm font-sans">{lessonPlan}</pre>
+                      </div>
                     ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Generate Lesson Plan
-                      </>
+                      <div className="text-center py-12 text-muted-foreground">
+                        <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Fill in the form and click "Generate Lesson Plan"</p>
+                        <p className="text-sm mt-2">Your lesson plan will appear here</p>
+                      </div>
                     )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
-            {/* Generated Lesson Plan */}
-            <Card className="shadow-soft">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Generated Lesson Plan</CardTitle>
-                  {lessonPlan && (
-                    <Button variant="outline" size="sm" onClick={handleDownload}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
-                  )}
-                </div>
-                <CardDescription>
-                  Your AI-generated comprehensive lesson plan will appear here
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {lessonPlan ? (
-                  <div className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm font-sans">{lessonPlan}</pre>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Fill in the form and click "Generate Lesson Plan"</p>
-                    <p className="text-sm mt-2">Your lesson plan will appear here</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+            <TabsContent value="history">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* History List */}
+                <Card className="shadow-soft">
+                  <CardHeader>
+                    <CardTitle>Previous Lesson Plans</CardTitle>
+                    <CardDescription>
+                      View and download your previously generated lesson plans
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {history.map((plan) => (
+                        <div
+                          key={plan.id}
+                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                            selectedPlan?.id === plan.id ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                          }`}
+                          onClick={() => setSelectedPlan(plan)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h4 className="font-medium">{plan.topic}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {plan.subject} • {plan.grade}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {format(new Date(plan.created_at), 'MMM dd, yyyy HH:mm')}
+                              </p>
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPlan(plan);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteHistory(plan.id);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {history.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No lesson plans in history yet</p>
+                          <p className="text-sm mt-2">Generate a lesson plan to see it here</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Selected Plan Preview */}
+                <Card className="shadow-soft">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>
+                        {selectedPlan ? selectedPlan.topic : 'Select a Lesson Plan'}
+                      </CardTitle>
+                      {selectedPlan && (
+                        <Button variant="outline" size="sm" onClick={handleDownload}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      )}
+                    </div>
+                    {selectedPlan && (
+                      <CardDescription>
+                        {selectedPlan.subject} • {selectedPlan.grade} • {selectedPlan.duration} minutes
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    {selectedPlan ? (
+                      <div className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-sm font-sans">{selectedPlan.generated_plan}</pre>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Select a lesson plan from the list</p>
+                        <p className="text-sm mt-2">The plan content will appear here</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Tips Card */}
           <Card className="shadow-soft mt-8">

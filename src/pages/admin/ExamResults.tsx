@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, CheckCircle, XCircle, Eye, Users, Trophy, Clock, Calendar } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, CheckCircle, XCircle, Eye, Users, Trophy, Clock, Calendar, Trash2, Search, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -70,12 +71,24 @@ const ExamResults = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [examsList, setExamsList] = useState<Array<{id: string, title: string, exam_type: string}>>([]);
 
+  // Filter states
+  const [tokenFilter, setTokenFilter] = useState<'all' | 'used' | 'available' | 'expired'>('all');
+  const [resultFilter, setResultFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [classFilter, setClassFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Token creation form
   const [newToken, setNewToken] = useState({
     exam_id: "",
     token_number: "",
     count: 1
   });
+
+  const classLevels = [
+    "all", "Play Group 1", "Play Group 2", "Nursery 1", "Nursery 2",
+    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+    "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
+  ];
 
   useEffect(() => {
     loadData();
@@ -198,7 +211,7 @@ const ExamResults = () => {
       setIsCreateTokenOpen(false);
       setNewToken({ exam_id: "", token_number: "", count: 1 });
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating tokens:", error);
       if (error.message?.includes("duplicate")) {
         toast.error("Token number already exists");
@@ -210,9 +223,26 @@ const ExamResults = () => {
     }
   };
 
+  const deleteToken = async (tokenId: string) => {
+    if (!confirm("Are you sure you want to delete this token?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("exam_tokens")
+        .delete()
+        .eq("id", tokenId);
+
+      if (error) throw error;
+      toast.success("Token deleted successfully!");
+      loadData();
+    } catch (error) {
+      console.error("Error deleting token:", error);
+      toast.error("Failed to delete token");
+    }
+  };
+
   const calculateScore = async (result: ExamResult) => {
     try {
-      // Get questions and answers
       const { data: questions, error } = await supabase
         .from("exam_questions")
         .select("id, correct_answer")
@@ -254,7 +284,6 @@ const ExamResults = () => {
       };
 
       if (action === 'approved' && result.score === 0) {
-        // Calculate actual score
         const scoreData = await calculateScore(result);
         if (scoreData) {
           updateData.score = scoreData.score;
@@ -294,6 +323,42 @@ const ExamResults = () => {
     );
   };
 
+  // Check if token is expired (older than 30 days and unused)
+  const isTokenExpired = (token: ExamToken) => {
+    if (token.used_at) return false;
+    const createdDate = new Date(token.created_at);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return createdDate < thirtyDaysAgo;
+  };
+
+  // Filter tokens
+  const filteredTokens = tokens.filter(token => {
+    const matchesSearch = token.token_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         token.exams.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    switch (tokenFilter) {
+      case 'used': return token.used_at !== null;
+      case 'available': return token.used_at === null && !isTokenExpired(token);
+      case 'expired': return isTokenExpired(token);
+      default: return true;
+    }
+  });
+
+  // Filter results
+  const filteredResults = results.filter(result => {
+    const matchesSearch = result.exam_attempts.token_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         result.exams.title.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    if (resultFilter !== 'all' && result.status !== resultFilter) return false;
+    
+    return true;
+  });
+
   const pendingResults = results.filter(r => r.status === 'pending');
   const approvedResults = results.filter(r => r.status === 'approved');
   const totalAttempts = attempts.length;
@@ -304,13 +369,13 @@ const ExamResults = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center space-x-4">
             <Button variant="ghost" onClick={() => navigate("/dashboard")}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-3xl font-bold">Exam Management</h1>
+            <h1 className="text-xl sm:text-3xl font-bold">Exam Management</h1>
           </div>
           
           <Dialog open={isCreateTokenOpen} onOpenChange={setIsCreateTokenOpen}>
@@ -328,7 +393,7 @@ const ExamResults = () => {
                     id="exam"
                     value={newToken.exam_id}
                     onChange={(e) => setNewToken(prev => ({ ...prev, exam_id: e.target.value }))}
-                    className="w-full p-2 border rounded-md"
+                    className="w-full p-2 border rounded-md bg-background"
                   >
                     <option value="">Select an exam...</option>
                     {examsList.map(exam => (
@@ -370,14 +435,14 @@ const ExamResults = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
                 <Clock className="w-5 h-5 text-orange-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending Results</p>
-                  <p className="text-2xl font-bold">{pendingResults.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Pending Results</p>
+                  <p className="text-xl sm:text-2xl font-bold">{pendingResults.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -388,8 +453,8 @@ const ExamResults = () => {
               <div className="flex items-center space-x-2">
                 <Trophy className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Approved Results</p>
-                  <p className="text-2xl font-bold">{approvedResults.length}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Approved Results</p>
+                  <p className="text-xl sm:text-2xl font-bold">{approvedResults.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -400,8 +465,8 @@ const ExamResults = () => {
               <div className="flex items-center space-x-2">
                 <Users className="w-5 h-5 text-blue-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Attempts</p>
-                  <p className="text-2xl font-bold">{totalAttempts}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Attempts</p>
+                  <p className="text-xl sm:text-2xl font-bold">{totalAttempts}</p>
                 </div>
               </div>
             </CardContent>
@@ -412,16 +477,63 @@ const ExamResults = () => {
               <div className="flex items-center space-x-2">
                 <Calendar className="w-5 h-5 text-green-500" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Used Tokens</p>
-                  <p className="text-2xl font-bold">{usedTokens}/{totalTokens}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Used Tokens</p>
+                  <p className="text-xl sm:text-2xl font-bold">{usedTokens}/{totalTokens}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Search and Filters */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search by token or exam name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              {activeTab === 'tokens' && (
+                <Select value={tokenFilter} onValueChange={(v: any) => setTokenFilter(v)}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter tokens" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tokens</SelectItem>
+                    <SelectItem value="used">Used Tokens</SelectItem>
+                    <SelectItem value="available">Available Tokens</SelectItem>
+                    <SelectItem value="expired">Expired Tokens</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              
+              {activeTab === 'results' && (
+                <Select value={resultFilter} onValueChange={(v: any) => setResultFilter(v)}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter results" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Results</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Tabs */}
-        <div className="flex space-x-1 mb-6">
+        <div className="flex space-x-1 mb-6 overflow-x-auto">
           {[
             { key: 'results', label: 'Results' },
             { key: 'tokens', label: 'Tokens' },
@@ -431,6 +543,7 @@ const ExamResults = () => {
               key={tab.key}
               variant={activeTab === tab.key ? 'default' : 'ghost'}
               onClick={() => setActiveTab(tab.key as any)}
+              className="whitespace-nowrap"
             >
               {tab.label}
             </Button>
@@ -441,15 +554,15 @@ const ExamResults = () => {
         {activeTab === 'results' && (
           <Card>
             <CardHeader>
-              <CardTitle>Exam Results</CardTitle>
+              <CardTitle>Exam Results ({filteredResults.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {results.map((result) => (
+                {filteredResults.map((result) => (
                   <div key={result.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           <h4 className="font-medium">{result.exams.title}</h4>
                           <Badge variant={result.exams.exam_type === 'entrance' ? 'default' : 'secondary'}>
                             {result.exams.exam_type.toUpperCase()}
@@ -457,7 +570,7 @@ const ExamResults = () => {
                           {getStatusBadge(result.status)}
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
                           <div>
                             <span className="font-medium">Token:</span> {result.exam_attempts.token_number}
                           </div>
@@ -473,7 +586,7 @@ const ExamResults = () => {
                         </div>
                       </div>
                       
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button size="sm" variant="outline">
@@ -530,7 +643,7 @@ const ExamResults = () => {
                   </div>
                 ))}
 
-                {results.length === 0 && (
+                {filteredResults.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     No exam results found
                   </div>
@@ -544,20 +657,26 @@ const ExamResults = () => {
         {activeTab === 'tokens' && (
           <Card>
             <CardHeader>
-              <CardTitle>Exam Tokens</CardTitle>
+              <CardTitle>Exam Tokens ({filteredTokens.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {tokens.map((token) => (
-                  <div key={token.id} className="flex items-center justify-between p-3 border rounded-lg">
+                {filteredTokens.map((token) => (
+                  <div 
+                    key={token.id} 
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-2 group hover:bg-muted/50 transition-colors"
+                  >
                     <div>
-                      <div className="flex items-center space-x-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{token.token_number}</span>
                         <Badge variant={token.exams.exam_type === 'entrance' ? 'default' : 'secondary'}>
                           {token.exams.exam_type.toUpperCase()}
                         </Badge>
-                        <Badge variant={token.used_at ? 'destructive' : 'default'}>
-                          {token.used_at ? 'Used' : 'Available'}
+                        <Badge variant={
+                          token.used_at ? 'destructive' : 
+                          isTokenExpired(token) ? 'secondary' : 'default'
+                        }>
+                          {token.used_at ? 'Used' : isTokenExpired(token) ? 'Expired' : 'Available'}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
@@ -565,12 +684,21 @@ const ExamResults = () => {
                         {token.used_at && ` • Used ${formatDate(token.used_at)}`}
                       </div>
                     </div>
+                    
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-center"
+                      onClick={() => deleteToken(token.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
 
-                {tokens.length === 0 && (
+                {filteredTokens.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    No tokens created yet
+                    No tokens found
                   </div>
                 )}
               </div>
@@ -587,9 +715,9 @@ const ExamResults = () => {
             <CardContent>
               <div className="space-y-3">
                 {attempts.map((attempt) => (
-                  <div key={attempt.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={attempt.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-2">
                     <div>
-                      <div className="flex items-center space-x-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{attempt.exams.title}</span>
                         <Badge variant={attempt.exams.exam_type === 'entrance' ? 'default' : 'secondary'}>
                           {attempt.exams.exam_type.toUpperCase()}

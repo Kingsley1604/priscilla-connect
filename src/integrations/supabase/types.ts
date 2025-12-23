@@ -88,6 +88,80 @@ export type Database = {
         }
         Relationships: []
       }
+      class_students: {
+        Row: {
+          class_id: string
+          enrolled_at: string | null
+          enrolled_by: string
+          id: string
+          is_active: boolean | null
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          enrolled_at?: string | null
+          enrolled_by: string
+          id?: string
+          is_active?: boolean | null
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          enrolled_at?: string | null
+          enrolled_by?: string
+          id?: string
+          is_active?: boolean | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          academic_session: string
+          class_level: string
+          class_teacher_id: string | null
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          name: string
+          section: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          academic_session?: string
+          class_level: string
+          class_teacher_id?: string | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          section?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          academic_session?: string
+          class_level?: string
+          class_teacher_id?: string | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          section?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           approved_at: string | null
@@ -99,6 +173,7 @@ export type Database = {
           id: string
           location: string | null
           status: string
+          target_audience: string[] | null
           time: string | null
           title: string
           type: string
@@ -114,6 +189,7 @@ export type Database = {
           id?: string
           location?: string | null
           status?: string
+          target_audience?: string[] | null
           time?: string | null
           title: string
           type?: string
@@ -129,6 +205,7 @@ export type Database = {
           id?: string
           location?: string | null
           status?: string
+          target_audience?: string[] | null
           time?: string | null
           title?: string
           type?: string
@@ -494,6 +571,42 @@ export type Database = {
           },
         ]
       }
+      lesson_plan_history: {
+        Row: {
+          created_at: string | null
+          duration: number
+          generated_plan: string
+          grade: string
+          id: string
+          objectives: string
+          subject: string
+          teacher_id: string
+          topic: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration: number
+          generated_plan: string
+          grade: string
+          id?: string
+          objectives: string
+          subject: string
+          teacher_id: string
+          topic: string
+        }
+        Update: {
+          created_at?: string | null
+          duration?: number
+          generated_plan?: string
+          grade?: string
+          id?: string
+          objectives?: string
+          subject?: string
+          teacher_id?: string
+          topic?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admission_no: string | null
@@ -516,6 +629,7 @@ export type Database = {
           home_address: string | null
           id: string
           is_profile_complete: boolean | null
+          is_suspended: boolean | null
           medical_details: string | null
           must_change_password: boolean | null
           name: string | null
@@ -531,6 +645,9 @@ export type Database = {
           preferred_language: string | null
           previous_class: string | null
           previous_school: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
           teacher_id: string | null
           updated_at: string
         }
@@ -555,6 +672,7 @@ export type Database = {
           home_address?: string | null
           id: string
           is_profile_complete?: boolean | null
+          is_suspended?: boolean | null
           medical_details?: string | null
           must_change_password?: boolean | null
           name?: string | null
@@ -570,6 +688,9 @@ export type Database = {
           preferred_language?: string | null
           previous_class?: string | null
           previous_school?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
           teacher_id?: string | null
           updated_at?: string
         }
@@ -594,6 +715,7 @@ export type Database = {
           home_address?: string | null
           id?: string
           is_profile_complete?: boolean | null
+          is_suspended?: boolean | null
           medical_details?: string | null
           must_change_password?: boolean | null
           name?: string | null
@@ -609,6 +731,9 @@ export type Database = {
           preferred_language?: string | null
           previous_class?: string | null
           previous_school?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
           teacher_id?: string | null
           updated_at?: string
         }
@@ -940,6 +1065,42 @@ export type Database = {
         }
         Relationships: []
       }
+      suspension_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          id: string
+          reason: string
+          requested_by: string
+          status: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          reason: string
+          requested_by: string
+          status?: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          reason?: string
+          requested_by?: string
+          status?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       teacher_assignments: {
         Row: {
           academic_session: string
@@ -948,6 +1109,7 @@ export type Database = {
           class_level: string
           id: string
           is_active: boolean
+          is_class_teacher: boolean | null
           subject: string
           teacher_id: string
           teacher_name: string
@@ -959,6 +1121,7 @@ export type Database = {
           class_level: string
           id?: string
           is_active?: boolean
+          is_class_teacher?: boolean | null
           subject: string
           teacher_id: string
           teacher_name: string
@@ -970,6 +1133,7 @@ export type Database = {
           class_level?: string
           id?: string
           is_active?: boolean
+          is_class_teacher?: boolean | null
           subject?: string
           teacher_id?: string
           teacher_name?: string

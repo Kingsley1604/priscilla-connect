@@ -79,15 +79,26 @@ const TeacherCreation = () => {
 
       if (profileError) throw profileError;
 
-      // Create user role
-      const { error: roleError } = await supabase
+      // Check if role already exists (created by trigger), if not create it
+      const { data: existingRole } = await supabase
         .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'teacher'
-        });
+        .select('id')
+        .eq('user_id', authData.user.id)
+        .eq('role', 'teacher')
+        .maybeSingle();
 
-      if (roleError) throw roleError;
+      if (!existingRole) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: 'teacher'
+          });
+
+        if (roleError && !roleError.message?.includes('duplicate')) {
+          throw roleError;
+        }
+      }
 
       // Set the created teacher details
       setCreatedTeacher({
