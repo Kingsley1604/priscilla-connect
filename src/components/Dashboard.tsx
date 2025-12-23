@@ -78,7 +78,8 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
       { title: "AI Lesson Planner", description: "Generate lesson plans with AI", icon: Brain, color: "bg-gradient-accent", path: "/teacher/lesson-planner" },
-      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management", disabled: true },
+      { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management" },
+      { title: "Upload Result", description: "Upload student results", icon: FileText, color: "bg-gradient-secondary", path: "/teacher/upload-result" },
       { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics", disabled: true },
       { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload", disabled: true },
     ];
@@ -268,17 +269,17 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
               <Card className="shadow-soft hover:shadow-medium transition-shadow">
                 <CardHeader className="pb-2 p-3 sm:p-4">
-                  <CardTitle className="text-sm sm:text-base md:text-lg flex items-center">
-                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
-                    {userRole === 'teacher' ? 'Classes' : 'Schools'}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-4 pt-0">
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1">
-                    {userRole === 'teacher' ? '5' : '12'}
-                  </div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {userRole === 'teacher' ? 'Teaching classes' : 'Managed schools'}
+                    <CardTitle className="text-sm sm:text-base md:text-lg flex items-center">
+                      <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-primary" />
+                      {userRole === 'teacher' ? 'Classes' : 'School Sections'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 sm:p-4 pt-0">
+                    <div className="text-xl sm:text-2xl md:text-3xl font-bold text-primary mb-1">
+                      {userRole === 'teacher' ? '5' : '3'}
+                    </div>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
+                      {userRole === 'teacher' ? 'Teaching classes' : 'Nursery, Primary & Secondary'}
                   </p>
                 </CardContent>
               </Card>
