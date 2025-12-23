@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Search, ShoppingCart as CartIcon, Star, Filter, Package } from "lucide-react";
+import { ArrowLeft, Search, ShoppingCart as CartIcon, Star, Filter, Package, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ShoppingCartComponent from "@/components/store/ShoppingCart";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Product {
   id: string;
@@ -23,69 +25,43 @@ const Store = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [cart, setCart] = useState<{id: string, quantity: number}[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const products: Product[] = [
-    {
-      id: "1",
-      name: "School Uniform - Complete Set",
-      price: 8500,
-      image: "/placeholder.svg",
-      category: "uniform",
-      rating: 4.8,
-      stock: 25,
-      description: "Complete school uniform set including shirt, trouser/skirt, tie, and socks"
-    },
-    {
-      id: "2", 
-      name: "Mathematics Textbook - JSS 1",
-      price: 2500,
-      image: "/placeholder.svg",
-      category: "textbooks",
-      rating: 4.5,
-      stock: 50,
-      description: "Comprehensive mathematics textbook for JSS 1 students"
-    },
-    {
-      id: "3",
-      name: "Exercise Notebooks - Pack of 10",
-      price: 1200,
-      image: "/placeholder.svg", 
-      category: "notebooks",
-      rating: 4.7,
-      stock: 100,
-      description: "High-quality exercise notebooks, 80 pages each"
-    },
-    {
-      id: "4",
-      name: "Sports Wear - Complete Kit",
-      price: 6500,
-      image: "/placeholder.svg",
-      category: "sportwear",
-      rating: 4.6,
-      stock: 15,
-      description: "Complete sports kit including jersey, shorts, and sports shoes"
-    },
-    {
-      id: "5",
-      name: "Friday Casual Wear",
-      price: 4500,
-      image: "/placeholder.svg",
-      category: "fridaywear", 
-      rating: 4.4,
-      stock: 30,
-      description: "Smart casual outfit for Fridays - polo shirt and khaki trousers"
-    },
-    {
-      id: "6",
-      name: "Science Practical Set",
-      price: 3500,
-      image: "/placeholder.svg",
-      category: "textbooks",
-      rating: 4.9,
-      stock: 20,
-      description: "Complete science practical kit with apparatus and safety gear"
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('store_items')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const mappedProducts: Product[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image_url || '/placeholder.svg',
+        category: item.category,
+        rating: item.rating || 4.5,
+        stock: item.stock,
+        description: item.description || ''
+      }));
+
+      setProducts(mappedProducts);
+    } catch (error) {
+      console.error('Error loading products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
   const categories = [
     { id: "all", name: "All Items", icon: Package },
@@ -227,11 +203,21 @@ const Store = () => {
         </Card>
 
         {/* Products Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Loading products...</span>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => (
             <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="aspect-video bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
-                <Package className="h-12 w-12 text-slate-400" />
+                {product.image && product.image !== '/placeholder.svg' ? (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Package className="h-12 w-12 text-slate-400" />
+                )}
               </div>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
@@ -278,8 +264,9 @@ const Store = () => {
             </Card>
           ))}
         </div>
+        )}
 
-        {filteredProducts.length === 0 && (
+        {!isLoading && filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-muted-foreground mb-2">No products found</h3>

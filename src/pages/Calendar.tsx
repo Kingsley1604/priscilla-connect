@@ -157,7 +157,8 @@ const CalendarPage = () => {
         time: "",
         location: "",
         type: "event",
-        description: ""
+        description: "",
+        target_audience: ["student", "teacher"]
       });
       setIsAddEventOpen(false);
       setSelectedDate(null);
