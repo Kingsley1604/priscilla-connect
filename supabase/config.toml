@@ -4,7 +4,7 @@ project_id = "fctarpegeatdizeuzzyb"
 verify_jwt = false
 
 [functions.priscilla-brain]
-verify_jwt = true
+verify_jwt = false
 
 [functions.lesson-planner]
-verify_jwt = true
+verify_jwt = false

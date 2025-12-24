@@ -9,8 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Users, BookOpen, Calendar, Plus, Search, UserMinus, UserPlus, AlertTriangle, Check, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Users, BookOpen, Calendar, Plus, Search, UserMinus, UserPlus, AlertTriangle, Check, X, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -34,6 +34,13 @@ interface Student {
   is_suspended: boolean;
 }
 
+interface ClassStudent {
+  id: string;
+  class_id: string;
+  student_id: string;
+  enrolled_at: string;
+}
+
 interface SuspensionRequest {
   id: string;
   student_id: string;
@@ -44,25 +51,41 @@ interface SuspensionRequest {
 }
 
 const ClassManagement = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("classes");
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [classStudents, setClassStudents] = useState<ClassStudent[]>([]);
   const [suspensionRequests, setSuspensionRequests] = useState<SuspensionRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
+  const [isCreateStudentOpen, setIsCreateStudentOpen] = useState(false);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isSuspendOpen, setIsSuspendOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
   const [suspensionReason, setSuspensionReason] = useState("");
+  const [existingStudentSearch, setExistingStudentSearch] = useState("");
+  const [selectedExistingStudent, setSelectedExistingStudent] = useState<Student | null>(null);
+  const [isClassTeacher, setIsClassTeacher] = useState(false);
 
   const [newClass, setNewClass] = useState({
     name: "",
     class_level: "",
     section: "",
     academic_session: "2024/2025"
+  });
+
+  const [newStudent, setNewStudent] = useState({
+    name: "",
+    email: "",
+    admission_no: "",
+    class_grade: "",
+    gender: "",
+    date_of_birth: "",
+    parent_guardian_name: "",
+    parent_phone: ""
   });
 
   const classLevels = [
@@ -73,7 +96,25 @@ const ClassManagement = () => {
 
   useEffect(() => {
     loadData();
+    checkIsClassTeacher();
   }, [user]);
+
+  const checkIsClassTeacher = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('teacher_assignments')
+        .select('is_class_teacher')
+        .eq('teacher_id', user.id)
+        .eq('is_class_teacher', true)
+        .single();
+      
+      setIsClassTeacher(!!data);
+    } catch {
+      setIsClassTeacher(false);
+    }
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -111,6 +152,14 @@ const ClassManagement = () => {
           is_suspended: s.is_suspended || false
         })));
       }
+
+      // Load class_students
+      const { data: classStudentsData } = await supabase
+        .from('class_students')
+        .select('*')
+        .eq('is_active', true);
+      
+      setClassStudents(classStudentsData || []);
 
       // Load suspension requests for teachers
       if (user.role === 'teacher') {
@@ -173,6 +222,155 @@ const ClassManagement = () => {
     } catch (error: any) {
       console.error('Error creating class:', error);
       toast.error(error.message || "Failed to create class");
+    }
+  };
+
+  const handleCreateStudent = async () => {
+    if (!newStudent.name || !newStudent.email || !newStudent.class_grade) {
+      toast.error("Please fill in name, email, and class");
+      return;
+    }
+
+    try {
+      // Generate a random password
+      const generatePassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+
+      const tempPassword = generatePassword();
+      const admissionNo = `ADM${Date.now().toString().slice(-6)}`;
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newStudent.email,
+        password: tempPassword,
+        options: {
+          data: {
+            name: newStudent.name,
+            role: 'student'
+          },
+          emailRedirectTo: undefined
+        }
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        // Update profile
+        await supabase
+          .from('profiles')
+          .update({
+            name: newStudent.name,
+            admission_no: admissionNo,
+            class_grade: newStudent.class_grade,
+            gender: newStudent.gender || null,
+            date_of_birth: newStudent.date_of_birth || null,
+            parent_guardian_name: newStudent.parent_guardian_name || null,
+            parent_phone: newStudent.parent_phone || null,
+            default_password: tempPassword,
+            must_change_password: true
+          })
+          .eq('id', authData.user.id);
+
+        // Add to class if selected
+        if (selectedClass) {
+          await supabase
+            .from('class_students')
+            .insert({
+              class_id: selectedClass.id,
+              student_id: authData.user.id,
+              enrolled_by: user?.id
+            });
+        }
+
+        toast.success(`Student created! Admission: ${admissionNo}, Password: ${tempPassword}`);
+        setIsCreateStudentOpen(false);
+        setNewStudent({
+          name: "",
+          email: "",
+          admission_no: "",
+          class_grade: "",
+          gender: "",
+          date_of_birth: "",
+          parent_guardian_name: "",
+          parent_phone: ""
+        });
+        loadData();
+      }
+    } catch (error: any) {
+      console.error('Error creating student:', error);
+      toast.error(error.message || "Failed to create student");
+    }
+  };
+
+  const handleAddExistingStudent = async () => {
+    if (!selectedExistingStudent || !selectedClass) {
+      toast.error("Please select a student and class");
+      return;
+    }
+
+    try {
+      // Check if already in class
+      const existing = classStudents.find(
+        cs => cs.class_id === selectedClass.id && cs.student_id === selectedExistingStudent.id
+      );
+
+      if (existing) {
+        toast.error("Student is already in this class");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('class_students')
+        .insert({
+          class_id: selectedClass.id,
+          student_id: selectedExistingStudent.id,
+          enrolled_by: user?.id
+        });
+
+      if (error) throw error;
+
+      // Update student's class_grade
+      await supabase
+        .from('profiles')
+        .update({ class_grade: selectedClass.class_level })
+        .eq('id', selectedExistingStudent.id);
+
+      toast.success("Student added to class!");
+      setIsAddStudentOpen(false);
+      setSelectedExistingStudent(null);
+      setExistingStudentSearch("");
+      loadData();
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error(error.message || "Failed to add student");
+    }
+  };
+
+  const handleRemoveStudentFromClass = async (studentId: string, classId: string) => {
+    if (user?.role === 'admin') {
+      // Admin can remove directly
+      try {
+        const { error } = await supabase
+          .from('class_students')
+          .update({ is_active: false })
+          .eq('class_id', classId)
+          .eq('student_id', studentId);
+
+        if (error) throw error;
+        toast.success("Student removed from class");
+        loadData();
+      } catch (error: any) {
+        toast.error("Failed to remove student");
+      }
+    } else {
+      // Teacher needs approval - create a request
+      toast.info("This action requires admin approval. Please contact an administrator.");
     }
   };
 
@@ -278,6 +476,13 @@ const ClassManagement = () => {
     }
   };
 
+  const getStudentsInClass = (classId: string) => {
+    const studentIds = classStudents
+      .filter(cs => cs.class_id === classId)
+      .map(cs => cs.student_id);
+    return students.filter(s => studentIds.includes(s.id));
+  };
+
   const filteredClasses = classes.filter(cls =>
     cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cls.class_level.toLowerCase().includes(searchTerm.toLowerCase())
@@ -287,6 +492,41 @@ const ClassManagement = () => {
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.admission_no.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const searchedExistingStudents = students.filter(student =>
+    (student.name.toLowerCase().includes(existingStudentSearch.toLowerCase()) ||
+    student.admission_no.toLowerCase().includes(existingStudentSearch.toLowerCase())) &&
+    !student.is_suspended
+  );
+
+  // Check access - only class teachers and admins
+  const canAccess = user?.role === 'admin' || isClassTeacher;
+
+  if (!canAccess && user?.role === 'teacher') {
+    return (
+      <div className="min-h-screen bg-background p-3 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center space-x-4 mb-6">
+            <Link to="/">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+          </div>
+          <Card className="shadow-soft">
+            <CardContent className="p-8 text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
+              <p className="text-muted-foreground">
+                Only class teachers can access this feature. Please contact an administrator if you believe this is an error.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-6">
@@ -306,64 +546,155 @@ const ClassManagement = () => {
             </div>
           </div>
           
-          {user?.role === 'admin' && (
-            <Dialog open={isCreateClassOpen} onOpenChange={setIsCreateClassOpen}>
+          <div className="flex flex-wrap gap-2">
+            {user?.role === 'admin' && (
+              <Dialog open={isCreateClassOpen} onOpenChange={setIsCreateClassOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Class
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Class</DialogTitle>
+                    <DialogDescription>Add a new class to the system</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Class Name</Label>
+                      <Input
+                        value={newClass.name}
+                        onChange={(e) => setNewClass(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g., Primary 1A"
+                      />
+                    </div>
+                    <div>
+                      <Label>Class Level</Label>
+                      <Select value={newClass.class_level} onValueChange={(v) => setNewClass(prev => ({ ...prev, class_level: v }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select level" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classLevels.map(level => (
+                            <SelectItem key={level} value={level}>{level}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Section (Optional)</Label>
+                      <Input
+                        value={newClass.section}
+                        onChange={(e) => setNewClass(prev => ({ ...prev, section: e.target.value }))}
+                        placeholder="e.g., A, B, C"
+                      />
+                    </div>
+                    <div>
+                      <Label>Academic Session</Label>
+                      <Input
+                        value={newClass.academic_session}
+                        onChange={(e) => setNewClass(prev => ({ ...prev, academic_session: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsCreateClassOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCreateClass}>Create Class</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+
+            <Dialog open={isCreateStudentOpen} onOpenChange={setIsCreateStudentOpen}>
               <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Class
+                <Button variant="secondary">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Create Student
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>Create New Class</DialogTitle>
-                  <DialogDescription>Add a new class to the system</DialogDescription>
+                  <DialogTitle>Create New Student</DialogTitle>
+                  <DialogDescription>Add a new student to the system</DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Class Name</Label>
-                    <Input
-                      value={newClass.name}
-                      onChange={(e) => setNewClass(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="e.g., Primary 1A"
-                    />
-                  </div>
-                  <div>
-                    <Label>Class Level</Label>
-                    <Select value={newClass.class_level} onValueChange={(v) => setNewClass(prev => ({ ...prev, class_level: v }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classLevels.map(level => (
-                          <SelectItem key={level} value={level}>{level}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Section (Optional)</Label>
-                    <Input
-                      value={newClass.section}
-                      onChange={(e) => setNewClass(prev => ({ ...prev, section: e.target.value }))}
-                      placeholder="e.g., A, B, C"
-                    />
-                  </div>
-                  <div>
-                    <Label>Academic Session</Label>
-                    <Input
-                      value={newClass.academic_session}
-                      onChange={(e) => setNewClass(prev => ({ ...prev, academic_session: e.target.value }))}
-                    />
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2">
+                      <Label>Full Name *</Label>
+                      <Input
+                        value={newStudent.name}
+                        onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Student's full name"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        value={newStudent.email}
+                        onChange={(e) => setNewStudent(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="student@email.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Class *</Label>
+                      <Select value={newStudent.class_grade} onValueChange={(v) => setNewStudent(prev => ({ ...prev, class_grade: v }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classLevels.map(level => (
+                            <SelectItem key={level} value={level}>{level}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Gender</Label>
+                      <Select value={newStudent.gender} onValueChange={(v) => setNewStudent(prev => ({ ...prev, gender: v }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Date of Birth</Label>
+                      <Input
+                        type="date"
+                        value={newStudent.date_of_birth}
+                        onChange={(e) => setNewStudent(prev => ({ ...prev, date_of_birth: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <Label>Parent/Guardian Name</Label>
+                      <Input
+                        value={newStudent.parent_guardian_name}
+                        onChange={(e) => setNewStudent(prev => ({ ...prev, parent_guardian_name: e.target.value }))}
+                        placeholder="Parent name"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Parent Phone</Label>
+                      <Input
+                        value={newStudent.parent_phone}
+                        onChange={(e) => setNewStudent(prev => ({ ...prev, parent_phone: e.target.value }))}
+                        placeholder="+234..."
+                      />
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateClassOpen(false)}>Cancel</Button>
-                  <Button onClick={handleCreateClass}>Create Class</Button>
+                  <Button variant="outline" onClick={() => setIsCreateStudentOpen(false)}>Cancel</Button>
+                  <Button onClick={handleCreateStudent}>Create Student</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          )}
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -440,7 +771,7 @@ const ClassManagement = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="classes">Classes</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
             {(user?.role === 'admin' || suspensionRequests.length > 0) && (
@@ -474,13 +805,23 @@ const ClassManagement = () => {
                         <span className="text-sm text-muted-foreground">Session</span>
                         <span className="font-medium text-sm">{cls.academic_session}</span>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Students</span>
+                        <span className="font-medium text-sm">{getStudentsInClass(cls.id).length}</span>
+                      </div>
                     </div>
                     <div className="flex space-x-2 mt-4">
-                      <Button variant="default" size="sm" className="flex-1">
-                        View Details
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1">
-                        Students
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedClass(cls);
+                          setIsAddStudentOpen(true);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Add Student
                       </Button>
                     </div>
                   </CardContent>
@@ -576,48 +917,51 @@ const ClassManagement = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {suspensionRequests.map((request) => (
-                    <div key={request.id} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Student ID: {request.student_id}</p>
-                          <p className="text-sm text-muted-foreground">{request.reason}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Requested on {new Date(request.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {request.status === 'pending' ? (
-                            user?.role === 'admin' ? (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApproveSuspension(request.id, request.student_id, true)}
-                                >
-                                  <Check className="h-4 w-4 mr-1" />
-                                  Approve
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleApproveSuspension(request.id, request.student_id, false)}
-                                >
-                                  <X className="h-4 w-4 mr-1" />
-                                  Reject
-                                </Button>
-                              </>
+                  {suspensionRequests.map((request) => {
+                    const studentInfo = students.find(s => s.id === request.student_id);
+                    return (
+                      <div key={request.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="font-medium">{studentInfo?.name || 'Unknown Student'}</p>
+                            <p className="text-sm text-muted-foreground">{request.reason}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Requested on {new Date(request.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {request.status === 'pending' ? (
+                              user?.role === 'admin' ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApproveSuspension(request.id, request.student_id, true)}
+                                  >
+                                    <Check className="h-4 w-4 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleApproveSuspension(request.id, request.student_id, false)}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Reject
+                                  </Button>
+                                </>
+                              ) : (
+                                <Badge variant="secondary">Pending</Badge>
+                              )
                             ) : (
-                              <Badge variant="secondary">Pending</Badge>
-                            )
-                          ) : (
-                            <Badge variant={request.status === 'approved' ? 'default' : 'destructive'}>
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                            </Badge>
-                          )}
+                              <Badge variant={request.status === 'approved' ? 'default' : 'destructive'}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {suspensionRequests.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
@@ -629,6 +973,67 @@ const ClassManagement = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Add Existing Student to Class Dialog */}
+        <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Student to {selectedClass?.name}</DialogTitle>
+              <DialogDescription>
+                Search for an existing student to add to this class
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Search Student</Label>
+                <Input
+                  value={existingStudentSearch}
+                  onChange={(e) => setExistingStudentSearch(e.target.value)}
+                  placeholder="Search by name or admission number..."
+                />
+              </div>
+              {existingStudentSearch && (
+                <div className="max-h-48 overflow-y-auto border rounded-lg">
+                  {searchedExistingStudents.map(student => (
+                    <div
+                      key={student.id}
+                      className={`p-3 cursor-pointer hover:bg-muted flex justify-between items-center ${
+                        selectedExistingStudent?.id === student.id ? 'bg-primary/10' : ''
+                      }`}
+                      onClick={() => setSelectedExistingStudent(student)}
+                    >
+                      <div>
+                        <p className="font-medium">{student.name}</p>
+                        <p className="text-sm text-muted-foreground">{student.admission_no}</p>
+                      </div>
+                      {selectedExistingStudent?.id === student.id && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                  ))}
+                  {searchedExistingStudents.length === 0 && (
+                    <p className="p-3 text-center text-muted-foreground">No students found</p>
+                  )}
+                </div>
+              )}
+              {selectedExistingStudent && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm">Selected: <strong>{selectedExistingStudent.name}</strong></p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setIsAddStudentOpen(false);
+                setSelectedExistingStudent(null);
+                setExistingStudentSearch("");
+              }}>Cancel</Button>
+              <Button onClick={handleAddExistingStudent} disabled={!selectedExistingStudent}>
+                Add to Class
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Suspend Student Dialog */}
         <Dialog open={isSuspendOpen} onOpenChange={setIsSuspendOpen}>
