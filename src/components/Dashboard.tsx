@@ -30,7 +30,8 @@ import {
   LogOut,
   Moon,
   UserX,
-  School
+  GraduationCap,
+  ClipboardList
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
@@ -77,18 +78,19 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     ];
 
     const teacherModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
-      { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-primary", path: "/teacher/exam-builder" },
+      { title: "Assign Homework", description: "Create homework for students", icon: ClipboardList, color: "bg-gradient-primary", path: "/teacher/homework-assignment" },
+      { title: "Create Exam", description: "Build custom exams", icon: Settings, color: "bg-gradient-secondary", path: "/teacher/exam-builder" },
       { title: "AI Lesson Planner", description: "Generate lesson plans with AI", icon: Brain, color: "bg-gradient-accent", path: "/teacher/lesson-planner" },
       { title: "Class Management", description: "Manage your classes", icon: Users, color: "bg-gradient-primary", path: "/teacher/class-management" },
       { title: "Upload Result", description: "Upload student results", icon: FileText, color: "bg-gradient-secondary", path: "/teacher/upload-result" },
-      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-secondary", path: "/teacher/analytics", disabled: true },
-      { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-accent", path: "/teacher/content-upload", disabled: true },
+      { title: "Analytics", description: "Student performance", icon: BarChart3, color: "bg-gradient-accent", path: "/teacher/analytics", disabled: true },
+      { title: "Content Upload", description: "Upload learning materials", icon: BookOpen, color: "bg-gradient-primary", path: "/teacher/content-upload", disabled: true },
     ];
 
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
       { title: "Create Teacher", description: "Add new teacher accounts", icon: Users, color: "bg-gradient-secondary", path: "/admin/teacher-creation" },
-      { title: "Create Class", description: "Create new classes", icon: School, color: "bg-gradient-accent", path: "/admin/create-class" },
+      { title: "Create Class", description: "Create new classes", icon: GraduationCap, color: "bg-gradient-accent", path: "/admin/create-class" },
       { title: "Teacher Assignments", description: "Assign teachers to classes", icon: Users, color: "bg-gradient-primary", path: "/admin/teacher-assignments" },
       { title: "Deactivate Teacher", description: "Deactivate teacher accounts", icon: UserX, color: "bg-red-500", path: "/admin/deactivate-teacher" },
       { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-secondary", path: "/admin/exam-results" },

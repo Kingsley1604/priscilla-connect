@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, UserPlus, Copy, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,7 @@ const TeacherCreation = () => {
     password: string;
     email: string;
     name: string;
+    teacherType: string;
   } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
@@ -24,6 +26,7 @@ const TeacherCreation = () => {
     fullName: "",
     email: "",
     phone: "",
+    teacherType: "subject" // "class" or "subject"
   });
 
   const handleCopy = (text: string, field: string) => {
@@ -107,7 +110,8 @@ const TeacherCreation = () => {
         teacherId: teacherId,
         password: defaultPassword,
         email: formData.email,
-        name: formData.fullName
+        name: formData.fullName,
+        teacherType: formData.teacherType
       });
 
       toast.success("Teacher created successfully!");
@@ -117,6 +121,7 @@ const TeacherCreation = () => {
         fullName: "",
         email: "",
         phone: "",
+        teacherType: "subject"
       });
     } catch (error: any) {
       console.error('Error creating teacher:', error);
@@ -153,6 +158,9 @@ const TeacherCreation = () => {
             <AlertDescription>
               <div className="space-y-4">
                 <p className="font-semibold text-lg">Teacher Account Created Successfully!</p>
+                <p className="text-sm text-muted-foreground">
+                  Type: <strong>{createdTeacher.teacherType === 'class' ? 'Class Teacher' : 'Subject Teacher'}</strong>
+                </p>
                 
                 <div className="space-y-3 bg-background p-4 rounded-lg">
                   <div className="flex items-center justify-between">
@@ -219,6 +227,9 @@ const TeacherCreation = () => {
 
                 <p className="text-sm text-muted-foreground">
                   ⚠️ <strong>Important:</strong> Please save these credentials. The teacher will use their <strong>Teacher ID</strong> as their username and can change their password after first login.
+                  {createdTeacher.teacherType === 'class' && (
+                    <span className="block mt-2">📌 Since this is a <strong>Class Teacher</strong>, go to Teacher Assignments to assign them a class.</span>
+                  )}
                 </p>
               </div>
             </AlertDescription>
@@ -231,6 +242,27 @@ const TeacherCreation = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="teacherType">Teacher Type *</Label>
+                <Select
+                  value={formData.teacherType}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, teacherType: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select teacher type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="class">Class Teacher (Can manage a class)</SelectItem>
+                    <SelectItem value="subject">Subject Teacher (Teaches subjects only)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formData.teacherType === 'class' 
+                    ? 'Class teachers can manage students, attendance, and class affairs' 
+                    : 'Subject teachers can only manage their assigned subjects'}
+                </p>
+              </div>
+
               <div>
                 <Label htmlFor="fullName">Full Name *</Label>
                 <Input
