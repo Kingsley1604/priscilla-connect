@@ -34,6 +34,7 @@ import ExamInterface from "./pages/student/ExamInterface";
 import HomeworkSubmission from "./pages/student/HomeworkSubmission";
 import ProfileCompletion from "./pages/student/ProfileCompletion";
 import TeacherAssignment from "./pages/admin/TeacherAssignment";
+import CreateClass from "./pages/admin/CreateClass";
 import TeacherCreation from "./pages/admin/TeacherCreation";
 import TeacherManagement from "./pages/admin/TeacherManagement";
 import DeactivateTeacher from "./pages/admin/DeactivateTeacher";
@@ -90,7 +91,7 @@ const App = () => (
             <Route path="/teacher/analytics" element={<ComingSoon title="Analytics" description="Comprehensive student performance analytics and insights" />} />
             <Route path="/teacher/content-upload" element={<ComingSoon title="Content Upload" description="Upload and manage educational content" />} />
             <Route path="/teacher/lesson-planner" element={<LessonPlanner />} />
-            <Route path="/teacher/class-management" element={<ComingSoon title="Class Management" description="Manage your classes and students" />} />
+            <Route path="/teacher/class-management" element={<ClassManagement />} />
             <Route path="/teacher/profile-settings" element={<TeacherProfileSettings />} />
             <Route path="/teacher/upload-result" element={<EnhancedUploadResult />} />
             <Route path="/teacher/midterm-report" element={<MidtermReportSheet />} />
@@ -111,6 +112,7 @@ const App = () => (
         <Route path="/student/profile-completion" element={<ProfileCompletion />} />
         <Route path="/admin/teacher-assignments" element={<TeacherAssignment />} />
         <Route path="/admin/teacher-assignment" element={<TeacherAssignment />} />
+        <Route path="/admin/create-class" element={<CreateClass />} />
         <Route path="/admin/teacher-creation" element={<TeacherCreation />} />
         <Route path="/admin/teacher-management" element={<TeacherManagement />} />
         <Route path="/admin/deactivate-teacher" element={<DeactivateTeacher />} />

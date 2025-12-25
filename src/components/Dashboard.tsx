@@ -29,7 +29,8 @@ import {
   User,
   LogOut,
   Moon,
-  UserX
+  UserX,
+  School
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
@@ -87,13 +88,14 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
     const adminModules: Array<{title: string, description: string, icon: any, color: string, path: string, disabled?: boolean}> = [
       { title: "Pass Announcement", description: "Send announcement to public", icon: Bell, color: "bg-gradient-primary", path: "/admin/pass-announcement" },
       { title: "Create Teacher", description: "Add new teacher accounts", icon: Users, color: "bg-gradient-secondary", path: "/admin/teacher-creation" },
-      { title: "Teacher Assignments", description: "Assign teachers to classes", icon: Users, color: "bg-gradient-accent", path: "/admin/teacher-assignments" },
+      { title: "Create Class", description: "Create new classes", icon: School, color: "bg-gradient-accent", path: "/admin/create-class" },
+      { title: "Teacher Assignments", description: "Assign teachers to classes", icon: Users, color: "bg-gradient-primary", path: "/admin/teacher-assignments" },
       { title: "Deactivate Teacher", description: "Deactivate teacher accounts", icon: UserX, color: "bg-red-500", path: "/admin/deactivate-teacher" },
-      { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-primary", path: "/admin/exam-results" },
-      { title: "Manage Store", description: "Add and manage store items", icon: ShoppingBag, color: "bg-gradient-secondary", path: "/admin/manage-store" },
-      { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-accent", path: "/admin/manage-priscilla-tube" },
-      { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-accent", path: "/admin/manage-announcements" },
-      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-secondary", path: "/admin/system-settings" },
+      { title: "Manage Results", description: "Approve exam results", icon: Trophy, color: "bg-gradient-secondary", path: "/admin/exam-results" },
+      { title: "Manage Store", description: "Add and manage store items", icon: ShoppingBag, color: "bg-gradient-accent", path: "/admin/manage-store" },
+      { title: "Manage PriscillaTube", description: "Review video content", icon: PlayCircle, color: "bg-gradient-primary", path: "/admin/manage-priscilla-tube" },
+      { title: "Announcements", description: "Manage announcements", icon: Bell, color: "bg-gradient-secondary", path: "/admin/manage-announcements" },
+      { title: "System Settings", description: "Platform configuration", icon: Settings, color: "bg-gradient-accent", path: "/admin/system-settings" },
       { title: "Inventory Manager", description: "Monitor stock levels & alerts", icon: Package, color: "bg-gradient-primary", path: "/admin/inventory-manager" },
     ];
 
@@ -121,7 +123,7 @@ const Dashboard = ({ userRole, userName, userAvatar, onLogout }: DashboardProps)
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-gradient-hero text-white py-4 sm:py-6 px-3 sm:px-6 shadow-medium">
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-3 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3 sm:space-x-4">
             <div className="bg-white/20 p-2 sm:p-3 rounded-lg backdrop-blur-sm">
