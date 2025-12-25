@@ -117,10 +117,10 @@ const Store = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-50 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 pb-0 shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <Link to="/">
               <Button variant="outline" size="sm">
@@ -155,7 +155,9 @@ const Store = () => {
             </Button>
           </div>
         </div>
-
+      </div>
+      
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
         {/* Search and Filter */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
@@ -274,14 +276,14 @@ const Store = () => {
           </div>
         )}
 
-        {/* Shopping Cart */}
-        <ShoppingCartComponent
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          cartItems={getCartItems()}
-          onUpdateQuantity={updateCartQuantity}
-          onRemoveItem={removeFromCart}
-        />
+      {/* Shopping Cart */}
+      <ShoppingCartComponent
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={getCartItems()}
+        onUpdateQuantity={updateCartQuantity}
+        onRemoveItem={removeFromCart}
+      />
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import LoadingScreen from "@/components/LoadingScreen";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Assignment {
   id: string;
@@ -24,6 +25,7 @@ interface Assignment {
   academic_session: string;
   assigned_at: string;
   is_active: boolean;
+  is_class_teacher: boolean;
 }
 
 interface Teacher {
@@ -46,7 +48,8 @@ const TeacherAssignment = () => {
   const [formData, setFormData] = useState({
     class_level: "",
     subject: "",
-    academic_session: "2024/2025"
+    academic_session: "2024/2025",
+    is_class_teacher: false
   });
 
   const classes = [
@@ -120,8 +123,14 @@ const TeacherAssignment = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedTeacher || !formData.class_level || !formData.subject) {
-      toast.error("Please select a teacher and fill in all fields");
+    if (!selectedTeacher || !formData.class_level) {
+      toast.error("Please select a teacher and class");
+      return;
+    }
+
+    // Subject is optional for class teachers
+    if (!formData.is_class_teacher && !formData.subject) {
+      toast.error("Please select a subject for subject teacher assignment");
       return;
     }
 
@@ -130,25 +139,46 @@ const TeacherAssignment = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // If assigning as class teacher, update the class table
+      if (formData.is_class_teacher) {
+        const { data: classData } = await supabase
+          .from('classes')
+          .select('id')
+          .eq('class_level', formData.class_level)
+          .eq('is_active', true)
+          .single();
+        
+        if (classData) {
+          await supabase
+            .from('classes')
+            .update({ class_teacher_id: selectedTeacher.id })
+            .eq('id', classData.id);
+        }
+      }
+
       const { error } = await supabase
         .from('teacher_assignments')
         .insert({
           teacher_id: selectedTeacher.id,
           teacher_name: selectedTeacher.name,
           class_level: formData.class_level,
-          subject: formData.subject,
+          subject: formData.is_class_teacher ? "Class Teacher" : formData.subject,
           academic_session: formData.academic_session,
-          assigned_by: user.id
+          assigned_by: user.id,
+          is_class_teacher: formData.is_class_teacher
         });
 
       if (error) throw error;
 
-      toast.success("Teacher assigned successfully!");
+      toast.success(formData.is_class_teacher 
+        ? "Class teacher assigned successfully!" 
+        : "Subject teacher assigned successfully!");
       setSelectedTeacher(null);
       setFormData({
         class_level: "",
         subject: "",
-        academic_session: "2024/2025"
+        academic_session: "2024/2025",
+        is_class_teacher: false
       });
       setShowForm(false);
       fetchAssignments();
@@ -303,23 +333,45 @@ const TeacherAssignment = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                   </div>
+                  <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+                    <Checkbox 
+                      id="is_class_teacher"
+                      checked={formData.is_class_teacher}
+                      onCheckedChange={(checked) => setFormData(prev => ({ 
+                        ...prev, 
+                        is_class_teacher: checked === true,
+                        subject: checked === true ? "" : prev.subject
+                      }))}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label htmlFor="is_class_teacher" className="flex items-center gap-2 cursor-pointer">
+                        <Crown className="h-4 w-4 text-yellow-500" />
+                        Assign as Class Teacher
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Class teachers can manage students, attendance, and class affairs
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <Label>Subject</Label>
-                    <Select
-                      value={formData.subject}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, subject: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjects.map(subj => (
-                          <SelectItem key={subj} value={subj}>{subj}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {!formData.is_class_teacher && (
+                    <div>
+                      <Label>Subject</Label>
+                      <Select
+                        value={formData.subject}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, subject: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subjects.map(subj => (
+                            <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div>
                     <Label>Academic Session</Label>
                     <Input
@@ -359,7 +411,7 @@ const TeacherAssignment = () => {
                     <TableRow>
                       <TableHead>Teacher</TableHead>
                       <TableHead>Class</TableHead>
-                      <TableHead>Subject</TableHead>
+                      <TableHead>Role/Subject</TableHead>
                       <TableHead>Session</TableHead>
                       <TableHead>Assigned On</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -368,11 +420,26 @@ const TeacherAssignment = () => {
                   <TableBody>
                     {assignments.map((assignment) => (
                       <TableRow key={assignment.id}>
-                        <TableCell className="font-medium">{assignment.teacher_name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {assignment.teacher_name}
+                            {assignment.is_class_teacher && (
+                              <Crown className="h-4 w-4 text-yellow-500" />
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge variant="outline">{assignment.class_level}</Badge>
                         </TableCell>
-                        <TableCell>{assignment.subject}</TableCell>
+                        <TableCell>
+                          {assignment.is_class_teacher ? (
+                            <Badge className="bg-yellow-500/20 text-yellow-700 border-yellow-300">
+                              Class Teacher
+                            </Badge>
+                          ) : (
+                            assignment.subject
+                          )}
+                        </TableCell>
                         <TableCell>{assignment.academic_session}</TableCell>
                         <TableCell>{format(new Date(assignment.assigned_at), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="text-right">

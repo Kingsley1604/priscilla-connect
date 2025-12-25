@@ -42,15 +42,16 @@ const TeacherManagement = () => {
 
   const loadTeachers = async () => {
     try {
-      const { data: teacherRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'teacher');
+      // Use the search_teachers RPC function to get teachers
+      const { data: teachersData, error: teachersError } = await supabase.rpc('search_teachers', {
+        search_term: ''
+      });
 
-      if (rolesError) throw rolesError;
+      if (teachersError) throw teachersError;
 
-      const teacherIds = teacherRoles.map(r => r.user_id);
-
+      // Get additional profile data
+      const teacherIds = (teachersData || []).map((t: any) => t.id);
+      
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id, name, teacher_id, phone, department')
@@ -58,27 +59,21 @@ const TeacherManagement = () => {
 
       if (profilesError) throw profilesError;
 
-      // Get emails from auth.users (via RPC or direct query)
-      const { data: authData, error: usersError } = await supabase.auth.admin.listUsers();
-      
-      if (usersError) throw usersError;
-
-      const users = authData?.users || [];
-
-      const teachersWithEmails = profiles.map(profile => {
-        const user = users.find((u: any) => u.id === profile.id);
+      const teachersWithDetails = (teachersData || []).map((teacher: any) => {
+        const profile = profiles?.find(p => p.id === teacher.id);
         return {
-          id: profile.id,
-          name: profile.name || "Unknown",
-          email: user?.email || "",
-          teacher_id: profile.teacher_id || "",
-          phone: profile.phone || "",
-          department: profile.department || ""
+          id: teacher.id,
+          name: teacher.name || profile?.name || "Unknown",
+          email: teacher.email || "",
+          teacher_id: profile?.teacher_id || "",
+          phone: profile?.phone || "",
+          department: profile?.department || ""
         };
       });
 
-      setTeachers(teachersWithEmails);
+      setTeachers(teachersWithDetails);
     } catch (error) {
+      console.error('Error loading teachers:', error);
       toast.error("Failed to load teachers");
     } finally {
       setIsLoading(false);
@@ -89,13 +84,26 @@ const TeacherManagement = () => {
     if (!deleteTeacherId) return;
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(deleteTeacherId);
-      if (error) throw error;
+      // Delete user role first
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', deleteTeacherId)
+        .eq('role', 'teacher');
+      
+      if (roleError) throw roleError;
+
+      // Mark profile as inactive/deleted (soft delete)
+      await supabase
+        .from('profiles')
+        .update({ is_suspended: true, suspension_reason: 'Account deleted' })
+        .eq('id', deleteTeacherId);
 
       toast.success("Teacher deleted successfully");
       setDeleteTeacherId(null);
       loadTeachers();
     } catch (error) {
+      console.error('Error deleting teacher:', error);
       toast.error("Failed to delete teacher");
     }
   };
@@ -107,14 +115,8 @@ const TeacherManagement = () => {
 
       const newPassword = data;
 
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
-        teacherId,
-        { password: newPassword }
-      );
-
-      if (updateError) throw updateError;
-
-      await supabase
+      // Update password in profile (user must use forgot password for actual auth reset)
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           default_password: newPassword,
@@ -122,10 +124,13 @@ const TeacherManagement = () => {
         })
         .eq('id', teacherId);
 
-      toast.success(`Password reset! New password: ${newPassword}`, {
+      if (profileError) throw profileError;
+
+      toast.success(`Password reset! New password: ${newPassword}. Teacher should use this on next login.`, {
         duration: 10000
       });
     } catch (error) {
+      console.error('Error resetting password:', error);
       toast.error("Failed to reset password");
     }
   };
