@@ -102,7 +102,7 @@ const CreateClass = () => {
         .insert({
           name: className.trim(),
           class_level: classLevel,
-          section: section || null,
+          section: section && section !== "none" ? section : null,
           academic_session: academicSession,
           created_by: user.id,
           is_active: true
@@ -229,7 +229,7 @@ const CreateClass = () => {
                         <SelectValue placeholder="Select section" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {sections.map((sec) => (
                           <SelectItem key={sec} value={sec}>
                             {sec}
