@@ -96,7 +96,7 @@ const AdminNotificationSystem = () => {
     return null;
   }
   return <div className="relative">
-      <Button variant="outline" size="icon" onClick={() => setIsOpen(!isOpen)} className="relative bg-[#eb89b4]">
+      <Button variant="outline" size="icon" onClick={() => setIsOpen(!isOpen)} className="relative text-black bg-inherit">
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs bg-destructive text-destructive-foreground">
             {unreadCount > 99 ? '99+' : unreadCount}
