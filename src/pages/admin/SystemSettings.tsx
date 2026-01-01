@@ -48,26 +48,29 @@ const SystemSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-6xl mx-auto flex items-center gap-4">
           <Link to="/">
-            <Button variant="outline" size="sm">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Settings className="h-6 w-6" />
-              System Settings
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              Configure system-wide settings and preferences
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Settings className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">System Settings</h1>
+              <p className="text-white/80">Configure system-wide settings and preferences</p>
+            </div>
           </div>
         </div>
+      </header>
+      
+      <div className="max-w-6xl mx-auto space-y-6 p-4">
 
         <Tabs defaultValue="general" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">

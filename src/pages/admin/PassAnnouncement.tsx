@@ -75,29 +75,27 @@ const PassAnnouncement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="mb-4"
-          >
+    <div className="min-h-screen bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-          
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <div className="bg-gradient-primary p-3 rounded-lg">
-              <Megaphone className="h-8 w-8 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Megaphone className="h-8 w-8" />
             </div>
-            Pass Announcement
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Create and publish announcements that will appear on student and teacher dashboards.
-          </p>
+            <div>
+              <h1 className="text-2xl font-bold">Pass Announcement</h1>
+              <p className="text-white/80">Create announcements for students and teachers</p>
+            </div>
+          </div>
         </div>
-
+      </header>
+      
+      <div className="max-w-2xl mx-auto p-6">
         <DemoInstructions />
 
         <Card className="shadow-medium">

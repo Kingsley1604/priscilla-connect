@@ -122,21 +122,29 @@ const DeactivateTeacher = () => {
   if (isLoading) return <LoadingScreen />;
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+    <div className="min-h-screen bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
           <Link to="/dashboard">
-            <Button variant="outline" size="sm">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Deactivate Teacher Account</h1>
-            <p className="text-muted-foreground text-sm">Manage teacher account status when they leave the school</p>
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <UserX className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Deactivate Teacher Account</h1>
+              <p className="text-white/80">Manage teacher account status when they leave the school</p>
+            </div>
           </div>
         </div>
+      </header>
+      
+      <div className="max-w-4xl mx-auto p-6">
 
         {/* Search */}
         <Card className="shadow-soft mb-6">

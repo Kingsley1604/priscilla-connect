@@ -127,27 +127,31 @@ const ManageAnnouncements = () => {
   const canManageAll = userRole === 'admin';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-6xl mx-auto flex items-center gap-4">
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <Eye className="h-8 w-8" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Manage Announcements
-              </h1>
-              <p className="text-slate-600 dark:text-slate-400">
+              <h1 className="text-2xl font-bold">Manage Announcements</h1>
+              <p className="text-white/80">
                 {canManageAll ? 'Create and manage all announcements' : 'Create announcements for approval'}
               </p>
             </div>
           </div>
         </div>
+      </header>
+      
+      <div className="max-w-6xl mx-auto space-y-6 p-4">
 
         {/* Pending Approvals (Admin only) */}
         {canManageAll && pendingAnnouncements.length > 0 && (
