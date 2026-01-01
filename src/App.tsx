@@ -59,6 +59,7 @@ import DraftResults from "./pages/teacher/DraftResults";
 import ExamOverview from "./pages/teacher/ExamOverview";
 import ExamSetup from "./pages/teacher/ExamSetup";
 import CreateQuestions from "./pages/teacher/CreateQuestions";
+import HomeworkAssignment from "./pages/teacher/HomeworkAssignment";
 import InventoryManager from "./pages/admin/InventoryManager";
 import ManageStoreEnhanced from "./pages/admin/ManageStoreEnhanced";
 import Error404 from "./pages/errors/Error404";
@@ -105,6 +106,7 @@ const App = () => (
             <Route path="/teacher/exam-setup" element={<ExamSetup />} />
             <Route path="/teacher/create-questions" element={<CreateQuestions />} />
             <Route path="/teacher/results-management" element={<ResultsManagement />} />
+            <Route path="/teacher/homework-assignment" element={<HomeworkAssignment />} />
             <Route path="/admin/profile-settings" element={<AdminProfileSettings />} />
             <Route path="/teacher/exam-builder" element={<ExamBuilder />} />
         <Route path="/student/exam" element={<ExamInterface />} />

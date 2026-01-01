@@ -132,26 +132,27 @@ const TeacherCreation = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
+    <div className="min-h-screen bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
-          
-          <div className="flex items-start gap-3">
-            <div className="bg-gradient-primary p-3 rounded-lg">
-              <UserPlus className="h-8 w-8 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <UserPlus className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Create Teacher Account</h1>
-              <p className="text-muted-foreground mt-2">
-                Add a new teacher to the system and assign them credentials
-              </p>
+              <h1 className="text-2xl font-bold">Create Teacher Account</h1>
+              <p className="text-white/80">Add a new teacher to the system</p>
             </div>
           </div>
         </div>
+      </header>
+      
+      <div className="max-w-4xl mx-auto p-6">
 
         {createdTeacher && (
           <Alert className="mb-6 bg-gradient-primary/10 border-primary">

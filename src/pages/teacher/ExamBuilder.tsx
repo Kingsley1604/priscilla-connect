@@ -360,24 +360,29 @@ const ExamBuilder = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/dashboard")}
-            >
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" onClick={() => navigate("/dashboard")} className="text-white hover:bg-white/20">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-3xl font-bold">Exam Builder</h1>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                <Edit className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Exam Builder</h1>
+                <p className="text-white/80">Create and manage exams</p>
+              </div>
+            </div>
           </div>
           
           <Dialog open={isCreateExamOpen} onOpenChange={setIsCreateExamOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-white text-primary hover:bg-white/90">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Exam
               </Button>
@@ -524,7 +529,9 @@ const ExamBuilder = () => {
             </DialogContent>
           </Dialog>
         </div>
-
+      </header>
+      
+      <div className="max-w-6xl mx-auto p-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Exams List */}
           <div className="lg:col-span-1">

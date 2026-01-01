@@ -218,32 +218,32 @@ const TeacherAssignment = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <div className="bg-gradient-primary p-3 rounded-lg">
-                  <UserCheck className="h-8 w-8 text-white" />
+    <div className="min-h-screen bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                  <UserCheck className="h-8 w-8" />
                 </div>
-                Teacher Assignments
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                Assign teachers to classes and subjects
-              </p>
+                <div>
+                  <h1 className="text-2xl font-bold">Teacher Assignments</h1>
+                  <p className="text-white/80">Assign teachers to classes and subjects</p>
+                </div>
+              </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => navigate('/admin/teacher-creation')}>
+              <Button variant="secondary" onClick={() => navigate('/admin/teacher-creation')} className="bg-white/20 hover:bg-white/30 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Teacher
               </Button>
-              <Button variant="outline" onClick={() => navigate('/admin/teacher-management')}>
+              <Button variant="secondary" onClick={() => navigate('/admin/teacher-management')} className="bg-white/20 hover:bg-white/30 text-white">
                 <Users className="h-4 w-4 mr-2" />
                 Manage Teachers
               </Button>
@@ -254,13 +254,16 @@ const TeacherAssignment = () => {
                   return;
                 }
                 setShowForm(!showForm);
-              }} className="gap-2">
+              }} className="gap-2 bg-white text-primary hover:bg-white/90">
                 <Plus className="h-4 w-4" />
                 New Assignment
               </Button>
             </div>
           </div>
         </div>
+      </header>
+      
+      <div className="max-w-7xl mx-auto p-6">
 
         {showForm && (
           <Card className="mb-6 shadow-medium">

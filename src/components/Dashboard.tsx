@@ -141,12 +141,6 @@ const Dashboard = ({
       color: "bg-gradient-primary",
       path: "/teacher/class-management"
     }, {
-      title: "Upload Result",
-      description: "Upload student results",
-      icon: FileText,
-      color: "bg-gradient-secondary",
-      path: "/teacher/upload-result"
-    }, {
       title: "Analytics",
       description: "Student performance",
       icon: BarChart3,
