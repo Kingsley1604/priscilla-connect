@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Users, Plus, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -127,7 +128,8 @@ const CalendarPage = () => {
         location: newEvent.location || null,
         type: newEvent.type,
         created_by: user.id,
-        status: userRole === 'admin' ? 'approved' : 'pending'
+        status: userRole === 'admin' ? 'approved' : 'pending',
+        target_audience: newEvent.target_audience
       };
 
       const { data, error } = await supabase
@@ -250,12 +252,16 @@ const CalendarPage = () => {
     }
   };
 
-  // Filter events based on user role and status
+  // Filter events based on user role, status, and target audience
   const visibleEvents = events.filter(event => {
     if (userRole === 'admin') return true;
     if (event.created_by === user?.id) return true;
-    if (userRole === 'student' && event.status === 'approved') return true;
-    if (userRole === 'teacher' && event.status === 'approved') return true;
+    if (event.status !== 'approved') return false;
+    
+    // Check target audience
+    const targetAudience = (event as any).target_audience || ['student', 'teacher'];
+    if (userRole === 'student' && targetAudience.includes('student')) return true;
+    if (userRole === 'teacher' && targetAudience.includes('teacher')) return true;
     return false;
   });
 
@@ -376,6 +382,45 @@ const CalendarPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {userRole === 'admin' && (
+                      <div className="grid grid-cols-4 items-start gap-4">
+                        <label className="text-right text-sm font-medium pt-2">
+                          Audience
+                        </label>
+                        <div className="col-span-3 space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="student-audience"
+                              checked={newEvent.target_audience.includes('student')}
+                              onCheckedChange={(checked) => {
+                                setNewEvent(prev => ({
+                                  ...prev,
+                                  target_audience: checked 
+                                    ? [...prev.target_audience, 'student']
+                                    : prev.target_audience.filter(a => a !== 'student')
+                                }));
+                              }}
+                            />
+                            <label htmlFor="student-audience" className="text-sm">Students</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="teacher-audience"
+                              checked={newEvent.target_audience.includes('teacher')}
+                              onCheckedChange={(checked) => {
+                                setNewEvent(prev => ({
+                                  ...prev,
+                                  target_audience: checked 
+                                    ? [...prev.target_audience, 'teacher']
+                                    : prev.target_audience.filter(a => a !== 'teacher')
+                                }));
+                              }}
+                            />
+                            <label htmlFor="teacher-audience" className="text-sm">Teachers</label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                       <label htmlFor="description" className="text-right text-sm font-medium">
                         Description

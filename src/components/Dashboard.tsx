@@ -10,6 +10,7 @@ import MessageInput from "@/components/messaging/MessageInput";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import StudentDashboardWidget from "@/components/student/StudentDashboardWidget";
 import { BookOpen, Users, Trophy, Calendar, MessageSquare, BarChart3, Bell, Settings, PlayCircle, Brain, Package, FileText, GamepadIcon, ShoppingBag, Menu, X, User, LogOut, Moon, UserX, GraduationCap, ClipboardList } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Link, useNavigate } from "react-router-dom";
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -267,9 +268,27 @@ const Dashboard = ({
             <ThemeToggle />
             {userRole === 'teacher' && <TeacherExamNotifications />}
             <AdminNotificationSystem />
-            {onLogout && <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 text-xs sm:text-sm" onClick={onLogout}>
-                Logout
-              </Button>}
+            {onLogout && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 text-xs sm:text-sm">
+                    Logout
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      You will be signed out of Priscilla Connect.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>No, I want to stay</AlertDialogCancel>
+                    <AlertDialogAction onClick={onLogout}>Yes, I do want to leave</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <Link to={getProfilePath()}>
               <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer hover:bg-white/10 p-1.5 sm:p-2 rounded-lg transition-colors">
                 <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-white/30">
