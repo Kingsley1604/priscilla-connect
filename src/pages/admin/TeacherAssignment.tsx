@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+// Removed Command component due to compatibility issues
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -287,34 +287,46 @@ const TeacherAssignment = () => {
                           <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
-                        <Command shouldFilter={false}>
-                          <CommandInput 
-                            placeholder="Search teachers..." 
+                      <PopoverContent className="w-[300px] p-0" align="start">
+                        <div className="p-2">
+                          <input
+                            type="text"
+                            placeholder="Search teachers..."
                             value={searchTerm}
-                            onValueChange={setSearchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           />
-                          <CommandEmpty>No teacher found.</CommandEmpty>
-                          <CommandGroup>
-                            {teachers && teachers.length > 0 ? (
-                              teachers.map((teacher) => (
-                                <CommandItem
+                        </div>
+                        <div className="max-h-[200px] overflow-y-auto">
+                          {teachers && teachers.length > 0 ? (
+                            teachers
+                              .filter(t => 
+                                !searchTerm || 
+                                (t.name && t.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                                (t.email && t.email.toLowerCase().includes(searchTerm.toLowerCase()))
+                              )
+                              .map((teacher) => (
+                                <div
                                   key={teacher.id}
-                                  value={teacher.id}
-                                  onSelect={() => {
+                                  className="px-3 py-2 hover:bg-muted cursor-pointer"
+                                  onClick={() => {
                                     setSelectedTeacher(teacher);
                                     setOpenTeacherSelect(false);
+                                    setSearchTerm("");
                                   }}
                                 >
                                   <div className="flex flex-col">
                                     <span className="font-medium">{teacher.name || 'Unknown'}</span>
                                     <span className="text-sm text-muted-foreground">{teacher.email || ''}</span>
                                   </div>
-                                </CommandItem>
+                                </div>
                               ))
-                            ) : null}
-                          </CommandGroup>
-                        </Command>
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-muted-foreground">
+                              No teachers found. Create a teacher first.
+                            </div>
+                          )}
+                        </div>
                       </PopoverContent>
                     </Popover>
                     {selectedTeacher && (

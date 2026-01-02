@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import AdminNotificationSystem from "@/components/notifications/AdminNotificationSystem";
 import TeacherExamNotifications from "@/components/notifications/TeacherExamNotifications";
-import MessageInput from "@/components/messaging/MessageInput";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import StudentDashboardWidget from "@/components/student/StudentDashboardWidget";
+import SystemHealthCard from "@/components/dashboard/SystemHealthCard";
 import { BookOpen, Users, Trophy, Calendar, MessageSquare, BarChart3, Bell, Settings, PlayCircle, Brain, Package, FileText, GamepadIcon, ShoppingBag, Menu, X, User, LogOut, Moon, UserX, GraduationCap, ClipboardList } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Link, useNavigate } from "react-router-dom";
@@ -422,20 +422,7 @@ const Dashboard = ({
                 </CardContent>
               </Card>
 
-              <Card className="shadow-soft hover:shadow-medium transition-shadow sm:col-span-2 md:col-span-1">
-                <CardHeader className="pb-2 p-3 sm:p-4">
-                  <CardTitle className="text-sm sm:text-base md:text-lg flex items-center">
-                    <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-secondary" />
-                    Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 sm:p-4 pt-0">
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-secondary mb-1">87%</div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {userRole === 'teacher' ? 'Class average' : 'System health'}
-                  </p>
-                </CardContent>
-              </Card>
+              <SystemHealthCard userRole={userRole} />
             </div>}
         </div>
       </section>
@@ -466,14 +453,6 @@ const Dashboard = ({
                 </Card>
               </Link>)}
           </div>
-        </div>
-      </section>
-
-      {/* Content Monitoring Demo */}
-      <section className="pb-8 sm:pb-10 md:pb-12 px-3 sm:px-4 md:px-6">
-        <div className="max-w-7xl mx-auto">
-          <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-4 sm:mb-6 text-foreground">Content Monitoring Demo</h3>
-          <MessageInput />
         </div>
       </section>
     </div>;

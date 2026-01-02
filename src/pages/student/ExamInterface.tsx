@@ -820,6 +820,50 @@ const ExamInterface = () => {
         </Card>
       </div>
 
+      {/* Question Navigator - Shows unanswered questions */}
+      <div className="max-w-4xl mx-auto mb-6">
+        <Card>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Question Navigator</span>
+              <span className="text-xs text-muted-foreground">
+                {Object.keys(answers).length}/{questions.length} answered
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-2">
+            <div className="flex flex-wrap gap-2">
+              {questions.map((q, index) => {
+                const isAnswered = !!answers[q.id];
+                const isCurrent = index === currentQuestion;
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setCurrentQuestion(index)}
+                    className={`w-8 h-8 rounded-md text-xs font-medium transition-colors ${
+                      isCurrent 
+                        ? 'bg-primary text-primary-foreground' 
+                        : isAnswered 
+                          ? 'bg-green-500 text-white' 
+                          : 'bg-red-100 text-red-700 border border-red-300'
+                    }`}
+                    title={isAnswered ? 'Answered' : 'Not answered'}
+                  >
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+            {Object.keys(answers).length < questions.length && (
+              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {questions.length - Object.keys(answers).length} question(s) not answered yet
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Navigation */}
       <div className="max-w-4xl mx-auto">
         <Card>
@@ -835,7 +879,16 @@ const ExamInterface = () => {
               
               {currentQuestion === questions.length - 1 ? (
                 <Button
-                  onClick={() => submitExam()}
+                  onClick={() => {
+                    const unansweredCount = questions.length - Object.keys(answers).length;
+                    if (unansweredCount > 0) {
+                      const proceed = window.confirm(
+                        `You have ${unansweredCount} unanswered question(s). Are you sure you want to submit?`
+                      );
+                      if (!proceed) return;
+                    }
+                    submitExam();
+                  }}
                   className="bg-destructive hover:bg-destructive/90"
                 >
                   Submit Exam

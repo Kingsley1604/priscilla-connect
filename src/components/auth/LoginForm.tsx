@@ -92,7 +92,15 @@ const LoginForm = () => {
           .single();
 
         const userRole = roleData?.role;
-        const maintenanceMode = localStorage.getItem('maintenanceMode') === 'true';
+        
+        // Check maintenance mode from database
+        const { data: maintenanceData } = await supabase
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'maintenance_mode')
+          .single();
+
+        const maintenanceMode = maintenanceData?.setting_value === 'true';
 
         if (maintenanceMode && userRole !== 'admin') {
           // Sign them out and show error
