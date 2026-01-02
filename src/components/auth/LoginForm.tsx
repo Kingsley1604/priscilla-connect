@@ -18,6 +18,9 @@ const LoginForm = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Listen for auth changes to trigger re-render when logged in
   useEffect(() => {
@@ -81,12 +84,54 @@ const LoginForm = () => {
       }
 
       if (data.user && data.session) {
+        // Check user role and maintenance mode
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+
+        const userRole = roleData?.role;
+        const maintenanceMode = localStorage.getItem('maintenanceMode') === 'true';
+
+        if (maintenanceMode && userRole !== 'admin') {
+          // Sign them out and show error
+          await supabase.auth.signOut();
+          setErrors({ general: 'System is under maintenance. Please try again later.' });
+          setIsSubmitting(false);
+          return;
+        }
+
         toast.success('Login successful!');
         // The onAuthStateChange listener will handle the redirect
       }
     } catch (error: any) {
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
       setIsSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail.trim()) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset email');
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -198,6 +243,16 @@ const LoginForm = () => {
               </Button>
             </form>
 
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-white/80 hover:text-white hover:underline"
+              >
+                Forgot your password?
+              </button>
+            </div>
+
             <div className="mt-6 pt-4 border-t border-white/20">
               <div className="text-center">
                 <p className="text-sm text-white/80 mb-4">
@@ -212,6 +267,59 @@ const LoginForm = () => {
                 </p>
               </div>
             </div>
+
+            {/* Forgot Password Dialog */}
+            {showForgotPassword && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <Card className="w-full max-w-md">
+                  <CardHeader>
+                    <CardTitle>Reset Password</CardTitle>
+                    <CardDescription>
+                      Enter your email and we'll send you a reset link. 
+                      <br />
+                      <span className="text-amber-600 text-xs">Note: Teachers should contact school admin for password reset.</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email Address</Label>
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        value={forgotPasswordEmail}
+                        onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                        placeholder="Enter your email"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleForgotPassword}
+                        disabled={isResettingPassword}
+                        className="flex-1"
+                      >
+                        {isResettingPassword ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          'Send Reset Link'
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowForgotPassword(false);
+                          setForgotPasswordEmail('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

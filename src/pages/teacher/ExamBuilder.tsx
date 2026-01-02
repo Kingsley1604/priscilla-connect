@@ -59,7 +59,7 @@ const ExamBuilder = () => {
   // Create exam form state
   const [newExam, setNewExam] = useState<{
     title: string;
-    exam_type: 'entrance' | 'cbt';
+    exam_type: 'entrance' | 'cbt' | 'termly';
     duration_minutes: number;
     randomize_questions: boolean;
     class_level: string;
@@ -177,11 +177,14 @@ const ExamBuilder = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Map 'termly' to 'cbt' for database (as termly is not in the enum)
+      const dbExamType = newExam.exam_type === 'termly' ? 'cbt' : newExam.exam_type;
+      
       const { data, error } = await supabase
         .from("exams")
         .insert({
-          title: newExam.title,
-          exam_type: newExam.exam_type,
+          title: newExam.exam_type === 'termly' ? `[TERMLY] ${newExam.title}` : newExam.title,
+          exam_type: dbExamType,
           duration_minutes: newExam.duration_minutes,
           randomize_questions: newExam.randomize_questions,
           created_by: user.user.id
@@ -406,13 +409,14 @@ const ExamBuilder = () => {
                   <Label htmlFor="type">Exam Type</Label>
                   <Select 
                     value={newExam.exam_type} 
-                    onValueChange={(value) => setNewExam(prev => ({ ...prev, exam_type: value as 'entrance' | 'cbt', class_level: "", grade: "" }))}
+                    onValueChange={(value) => setNewExam(prev => ({ ...prev, exam_type: value as 'entrance' | 'cbt' | 'termly', class_level: "", grade: "" }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="entrance">Entrance Exam</SelectItem>
+                      <SelectItem value="termly">Termly Examination</SelectItem>
                       <SelectItem value="cbt">CBT Test</SelectItem>
                     </SelectContent>
                   </Select>
@@ -430,6 +434,12 @@ const ExamBuilder = () => {
                     </SelectTrigger>
                     <SelectContent>
                       {newExam.exam_type === 'entrance' ? (
+                        <>
+                          <SelectItem value="Primary">Primary</SelectItem>
+                          <SelectItem value="Junior Secondary">Junior Secondary</SelectItem>
+                          <SelectItem value="Senior Secondary">Senior Secondary</SelectItem>
+                        </>
+                      ) : newExam.exam_type === 'termly' ? (
                         <>
                           <SelectItem value="Primary">Primary</SelectItem>
                           <SelectItem value="Junior Secondary">Junior Secondary</SelectItem>
@@ -457,45 +467,68 @@ const ExamBuilder = () => {
                       <SelectTrigger>
                         <SelectValue placeholder="Select grade" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {newExam.exam_type === 'entrance' ? (
-                          newExam.class_level === 'Primary' ? (
-                            <>
-                              <SelectItem value="Play Group 1">Play Group 1 Result</SelectItem>
-                              <SelectItem value="Play Group 2">Play Group 2 Result</SelectItem>
-                              <SelectItem value="First Grade">First Grade Result</SelectItem>
-                              <SelectItem value="Second Grade">Second Grade Result</SelectItem>
-                              <SelectItem value="Third Grade">Third Grade Result</SelectItem>
-                              <SelectItem value="Fourth Grade">Fourth Grade Result</SelectItem>
-                              <SelectItem value="Fifth Grade">Fifth Grade Result</SelectItem>
-                              <SelectItem value="Sixth Grade">Sixth Grade Result</SelectItem>
-                            </>
-                          ) : newExam.class_level === 'Junior Secondary' ? (
-                            <>
-                              <SelectItem value="Seventh Grade">Seventh Grade Result</SelectItem>
-                              <SelectItem value="Eighth Grade">Eighth Grade Result</SelectItem>
-                              <SelectItem value="Nineth Grade">Nineth Grade Result</SelectItem>
-                            </>
-                          ) : (
-                            <>
-                              <SelectItem value="Tenth Grade">Tenth Grade Result</SelectItem>
-                              <SelectItem value="Eleventh Grade">Eleventh Grade Result</SelectItem>
-                              <SelectItem value="Twelfth Grade">Twelfth Grade Result</SelectItem>
-                            </>
-                          )
+                    <SelectContent>
+                      {newExam.exam_type === 'entrance' ? (
+                        newExam.class_level === 'Primary' ? (
+                          <>
+                            <SelectItem value="Play Group 1">Play Group 1</SelectItem>
+                            <SelectItem value="Play Group 2">Play Group 2</SelectItem>
+                            <SelectItem value="First Grade">First Grade</SelectItem>
+                            <SelectItem value="Second Grade">Second Grade</SelectItem>
+                            <SelectItem value="Third Grade">Third Grade</SelectItem>
+                            <SelectItem value="Fourth Grade">Fourth Grade</SelectItem>
+                            <SelectItem value="Fifth Grade">Fifth Grade</SelectItem>
+                            <SelectItem value="Sixth Grade">Sixth Grade</SelectItem>
+                          </>
+                        ) : newExam.class_level === 'Junior Secondary' ? (
+                          <>
+                            <SelectItem value="Seventh Grade">Seventh Grade</SelectItem>
+                            <SelectItem value="Eighth Grade">Eighth Grade</SelectItem>
+                            <SelectItem value="Nineth Grade">Nineth Grade</SelectItem>
+                          </>
                         ) : (
-                          newExam.class_level === 'Primary Upper' ? (
-                            <>
-                              <SelectItem value="Fifth Grade">Fifth Grade Result</SelectItem>
-                              <SelectItem value="Sixth Grade">Sixth Grade Result</SelectItem>
-                            </>
-                          ) : newExam.class_level === 'JSS3' ? (
-                            <SelectItem value="Nineth Grade">Nineth Grade Result</SelectItem>
-                          ) : (
-                            <SelectItem value="Twelfth Grade">Twelfth Grade Result</SelectItem>
-                          )
-                        )}
-                      </SelectContent>
+                          <>
+                            <SelectItem value="Tenth Grade">Tenth Grade</SelectItem>
+                            <SelectItem value="Eleventh Grade">Eleventh Grade</SelectItem>
+                            <SelectItem value="Twelfth Grade">Twelfth Grade</SelectItem>
+                          </>
+                        )
+                      ) : newExam.exam_type === 'termly' ? (
+                        newExam.class_level === 'Primary' ? (
+                          <>
+                            <SelectItem value="Primary 1">Primary 1</SelectItem>
+                            <SelectItem value="Primary 2">Primary 2</SelectItem>
+                            <SelectItem value="Primary 3">Primary 3</SelectItem>
+                            <SelectItem value="Primary 4">Primary 4</SelectItem>
+                            <SelectItem value="Primary 5">Primary 5</SelectItem>
+                            <SelectItem value="Primary 6">Primary 6</SelectItem>
+                          </>
+                        ) : newExam.class_level === 'Junior Secondary' ? (
+                          <>
+                            <SelectItem value="JSS 1">JSS 1</SelectItem>
+                            <SelectItem value="JSS 2">JSS 2</SelectItem>
+                            <SelectItem value="JSS 3">JSS 3</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="SSS 1">SSS 1</SelectItem>
+                            <SelectItem value="SSS 2">SSS 2</SelectItem>
+                            <SelectItem value="SSS 3">SSS 3</SelectItem>
+                          </>
+                        )
+                      ) : (
+                        newExam.class_level === 'Primary Upper' ? (
+                          <>
+                            <SelectItem value="Fifth Grade">Fifth Grade</SelectItem>
+                            <SelectItem value="Sixth Grade">Sixth Grade</SelectItem>
+                          </>
+                        ) : newExam.class_level === 'JSS3' ? (
+                          <SelectItem value="Nineth Grade">Nineth Grade</SelectItem>
+                        ) : (
+                          <SelectItem value="Twelfth Grade">Twelfth Grade</SelectItem>
+                        )
+                      )}
+                    </SelectContent>
                     </Select>
                   </div>
                 )}

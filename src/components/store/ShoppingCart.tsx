@@ -95,11 +95,23 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
         notes: notes.trim() || null
       };
 
-      const { error } = await supabase
+      const { data: orderResult, error } = await supabase
         .from('store_orders')
-        .insert(orderData);
+        .insert(orderData)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Create notification for admins
+      if (orderResult) {
+        await supabase.from('admin_notifications').insert({
+          title: 'New Store Order',
+          message: `New order placed for ₦${total.toLocaleString()}. ${cartItems.length} item(s) ordered.`,
+          type: 'order',
+          related_order_id: orderResult.id
+        });
+      }
 
       toast.success("Order placed successfully! Admin will be notified.");
       

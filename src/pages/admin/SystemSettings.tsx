@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,18 @@ const SystemSettings = () => {
     emailDigest: true,
     announcementBroadcast: true
   });
+
+  // Load maintenance mode from localStorage on mount
+  useEffect(() => {
+    const maintenanceMode = localStorage.getItem('maintenanceMode') === 'true';
+    setSettings(prev => ({ ...prev, maintenanceMode }));
+  }, []);
+
+  const handleMaintenanceModeToggle = (checked: boolean) => {
+    setSettings(prev => ({ ...prev, maintenanceMode: checked }));
+    localStorage.setItem('maintenanceMode', String(checked));
+    toast.success(checked ? 'Maintenance mode enabled. Students and teachers cannot log in.' : 'Maintenance mode disabled. All users can log in.');
+  };
 
   const handleSaveSettings = async (category: string) => {
     // Simulate saving settings
@@ -122,12 +134,12 @@ const SystemSettings = () => {
                   <div className="space-y-0.5">
                     <Label>Maintenance Mode</Label>
                     <p className="text-sm text-slate-500">
-                      Put the system into maintenance mode
+                      Put the system into maintenance mode (blocks student/teacher login)
                     </p>
                   </div>
                   <Switch
                     checked={settings.maintenanceMode}
-                    onCheckedChange={(checked) => setSettings({...settings, maintenanceMode: checked})}
+                    onCheckedChange={handleMaintenanceModeToggle}
                   />
                 </div>
 

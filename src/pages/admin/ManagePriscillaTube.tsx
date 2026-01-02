@@ -91,7 +91,7 @@ const ManagePriscillaTube = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-gradient-hero text-white py-6 px-6 shadow-medium">
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center space-x-4 mb-4">
             <Link to="/dashboard">
