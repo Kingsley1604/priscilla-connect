@@ -6,9 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Settings, Database, Mail, Shield, Bell, Users } from "lucide-react";
+import { ArrowLeft, Settings, Database, Mail, Shield, Bell, Users, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const SystemSettings = () => {
   const [settings, setSettings] = useState({
@@ -32,17 +33,61 @@ const SystemSettings = () => {
     emailDigest: true,
     announcementBroadcast: true
   });
+  const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(false);
 
-  // Load maintenance mode from localStorage on mount
+  // Load maintenance mode from database on mount
   useEffect(() => {
-    const maintenanceMode = localStorage.getItem('maintenanceMode') === 'true';
-    setSettings(prev => ({ ...prev, maintenanceMode }));
+    loadMaintenanceMode();
   }, []);
 
-  const handleMaintenanceModeToggle = (checked: boolean) => {
-    setSettings(prev => ({ ...prev, maintenanceMode: checked }));
-    localStorage.setItem('maintenanceMode', String(checked));
-    toast.success(checked ? 'Maintenance mode enabled. Students and teachers cannot log in.' : 'Maintenance mode disabled. All users can log in.');
+  const loadMaintenanceMode = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'maintenance_mode')
+        .single();
+
+      if (!error && data) {
+        const isEnabled = data.setting_value === 'true';
+        setSettings(prev => ({ ...prev, maintenanceMode: isEnabled }));
+        // Also sync to localStorage for quick client-side checks
+        localStorage.setItem('maintenanceMode', String(isEnabled));
+      }
+    } catch (error) {
+      console.error('Error loading maintenance mode:', error);
+    }
+  };
+
+  const handleMaintenanceModeToggle = async (checked: boolean) => {
+    setIsLoadingMaintenance(true);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({
+          setting_key: 'maintenance_mode',
+          setting_value: String(checked),
+          updated_at: new Date().toISOString(),
+          updated_by: user.user?.id
+        }, { onConflict: 'setting_key' });
+
+      if (error) throw error;
+
+      setSettings(prev => ({ ...prev, maintenanceMode: checked }));
+      // Sync to localStorage for quick client-side checks
+      localStorage.setItem('maintenanceMode', String(checked));
+      
+      toast.success(checked 
+        ? 'Maintenance mode enabled. Students and teachers cannot log in.' 
+        : 'Maintenance mode disabled. All users can log in.');
+    } catch (error) {
+      console.error('Error updating maintenance mode:', error);
+      toast.error('Failed to update maintenance mode');
+    } finally {
+      setIsLoadingMaintenance(false);
+    }
   };
 
   const handleSaveSettings = async (category: string) => {
@@ -137,10 +182,14 @@ const SystemSettings = () => {
                       Put the system into maintenance mode (blocks student/teacher login)
                     </p>
                   </div>
-                  <Switch
-                    checked={settings.maintenanceMode}
-                    onCheckedChange={handleMaintenanceModeToggle}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={settings.maintenanceMode}
+                      onCheckedChange={handleMaintenanceModeToggle}
+                      disabled={isLoadingMaintenance}
+                    />
+                    {isLoadingMaintenance && <Loader2 className="h-4 w-4 animate-spin" />}
+                  </div>
                 </div>
 
                 <div className="pt-4">

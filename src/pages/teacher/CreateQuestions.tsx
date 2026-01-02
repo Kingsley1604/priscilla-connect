@@ -679,20 +679,22 @@ const CreateQuestions = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-responsive">
-      <div className="max-w-4xl mx-auto space-responsive">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <Button variant="outline" onClick={() => navigate(`/teacher/exam-overview?examId=${examId}`)}>
+    <div className="min-h-screen bg-background">
+      {/* Sticky Header */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate(`/teacher/exam-overview?examId=${examId}`)} className="text-white hover:bg-white/20">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
-          <div className="flex-1">
-            <h1 className="text-responsive-2xl font-bold">Create {getQuestionTypeLabel(questionType)} Question</h1>
-            <p className="text-muted-foreground text-responsive-sm mt-1">
-              Question #{questionCount + 1} for your exam
-            </p>
+          <div>
+            <h1 className="text-2xl font-bold">Create {getQuestionTypeLabel(questionType)} Question</h1>
+            <p className="text-white/80">Question #{questionCount + 1} for your exam</p>
           </div>
         </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
 
         <Card>
           <CardHeader>
