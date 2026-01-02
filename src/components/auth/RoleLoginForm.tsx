@@ -259,6 +259,35 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
                 )}
               </Button>
 
+              {/* Forgot Password Link */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!credentials.email.trim()) {
+                      toast.error('Please enter your email address first');
+                      return;
+                    }
+                    if (role === 'teacher') {
+                      toast.info('Teachers: Please contact your school administrator to reset your password.');
+                      return;
+                    }
+                    try {
+                      const { error } = await supabase.auth.resetPasswordForEmail(credentials.email, {
+                        redirectTo: `${window.location.origin}/reset-password`,
+                      });
+                      if (error) throw error;
+                      toast.success('Password reset email sent! Check your inbox.');
+                    } catch (error: any) {
+                      toast.error(error.message || 'Failed to send reset email');
+                    }
+                  }}
+                  className="text-sm text-white/80 hover:text-white hover:underline"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-white/20" />

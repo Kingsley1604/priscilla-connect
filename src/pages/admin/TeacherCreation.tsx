@@ -26,7 +26,8 @@ const TeacherCreation = () => {
     fullName: "",
     email: "",
     phone: "",
-    teacherType: "subject" // "class" or "subject"
+    teacherType: "subject", // "class" or "subject"
+    sector: "" // "primary" or "secondary"
   });
 
   const handleCopy = (text: string, field: string) => {
@@ -41,6 +42,11 @@ const TeacherCreation = () => {
     
     if (!formData.fullName || !formData.email) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    if (!formData.sector) {
+      toast.error("Please select a sector (Primary or Secondary)");
       return;
     }
 
@@ -121,7 +127,8 @@ const TeacherCreation = () => {
         fullName: "",
         email: "",
         phone: "",
-        teacherType: "subject"
+        teacherType: "subject",
+        sector: ""
       });
     } catch (error: any) {
       console.error('Error creating teacher:', error);
@@ -261,6 +268,25 @@ const TeacherCreation = () => {
                   {formData.teacherType === 'class' 
                     ? 'Class teachers can manage students, attendance, and class affairs' 
                     : 'Subject teachers can only manage their assigned subjects'}
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="sector">Sector *</Label>
+                <Select
+                  value={formData.sector}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, sector: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sector" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">Primary Section</SelectItem>
+                    <SelectItem value="secondary">Secondary Section</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Teacher will only be visible and manageable within their assigned sector.
                 </p>
               </div>
 

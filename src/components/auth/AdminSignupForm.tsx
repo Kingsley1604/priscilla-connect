@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, User, Mail, Lock, ArrowLeft, Settings, Building } from 'lucide-react';
+import { Loader2, User, Mail, Lock, ArrowLeft, Settings, Building, School } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,11 +24,17 @@ const departments = [
   'Information Technology Department',
 ];
 
+const sectors = [
+  { value: 'primary', label: 'Primary Section' },
+  { value: 'secondary', label: 'Secondary Section' },
+];
+
 const AdminSignupForm = ({ onBack, onSwitchToLogin }: AdminSignupFormProps) => {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     department: '',
+    sector: '',
     password: '',
     confirmPassword: '',
     agreeToTerms: false
@@ -63,6 +69,12 @@ const AdminSignupForm = ({ onBack, onSwitchToLogin }: AdminSignupFormProps) => {
       return;
     }
 
+    if (!formData.sector) {
+      setError('Please select your sector (Primary or Secondary)');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setIsLoading(false);
@@ -90,7 +102,8 @@ const AdminSignupForm = ({ onBack, onSwitchToLogin }: AdminSignupFormProps) => {
           data: {
             name: formData.fullName.trim(),
             role: 'admin',
-            department: formData.department
+            department: formData.department,
+            sector: formData.sector
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -256,6 +269,31 @@ const AdminSignupForm = ({ onBack, onSwitchToLogin }: AdminSignupFormProps) => {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sector" className="text-white">Sector *</Label>
+                  <div className="relative">
+                    <School className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60 z-10" />
+                    <Select
+                      value={formData.sector}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, sector: value }))}
+                    >
+                      <SelectTrigger className="pl-10 bg-white/20 border-white/30 text-white focus:bg-white/30">
+                        <SelectValue placeholder="Select your sector" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sectors.map((sector) => (
+                          <SelectItem key={sector.value} value={sector.value}>
+                            {sector.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <p className="text-xs text-white/60">
+                    You will only be able to manage teachers and students in your selected sector.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
