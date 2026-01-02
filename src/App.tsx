@@ -62,6 +62,7 @@ import CreateQuestions from "./pages/teacher/CreateQuestions";
 import HomeworkAssignment from "./pages/teacher/HomeworkAssignment";
 import InventoryManager from "./pages/admin/InventoryManager";
 import ManageStoreEnhanced from "./pages/admin/ManageStoreEnhanced";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import Error404 from "./pages/errors/Error404";
 import Error403 from "./pages/errors/Error403";
 import Error401 from "./pages/errors/Error401";
@@ -77,8 +78,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
+        <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/achievements" element={<Achievements />} />

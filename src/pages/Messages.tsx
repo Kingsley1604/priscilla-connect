@@ -8,8 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
@@ -57,6 +58,32 @@ interface MissedCall {
   is_seen: boolean;
 }
 
+interface ChatGroup {
+  id: string;
+  name: string;
+  description?: string;
+  created_by: string;
+  avatar_url?: string;
+  members: GroupMember[];
+}
+
+interface GroupMember {
+  id: string;
+  user_id: string;
+  is_admin: boolean;
+  user_name?: string;
+}
+
+interface GroupMessage {
+  id: string;
+  group_id: string;
+  sender_id: string;
+  sender_name?: string;
+  content: string;
+  message_type: string;
+  created_at: string;
+}
+
 // Content monitoring - inappropriate words
 const INAPPROPRIATE_WORDS = [
   'stupid', 'idiot', 'dumb', 'loser', 'freak', 'ugly', 'fat', 'retard',
@@ -87,6 +114,15 @@ const Messages = () => {
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [contentWarning, setContentWarning] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('chats');
+  const [groups, setGroups] = useState<ChatGroup[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<ChatGroup | null>(null);
+  const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [showManageMembers, setShowManageMembers] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch all users from the system - FIXED to actually get users
@@ -137,7 +173,52 @@ const Messages = () => {
     };
 
     fetchUsers();
+    fetchGroups();
   }, [user]);
+
+  // Fetch groups
+  const fetchGroups = async () => {
+    if (!user) return;
+
+    try {
+      // Get groups where user is a member
+      const { data: memberData, error: memberError } = await supabase
+        .from('chat_group_members')
+        .select('group_id, is_admin')
+        .eq('user_id', user.id);
+
+      if (memberError) throw memberError;
+
+      if (memberData && memberData.length > 0) {
+        const groupIds = memberData.map(m => m.group_id);
+        
+        const { data: groupsData, error: groupsError } = await supabase
+          .from('chat_groups')
+          .select('*')
+          .in('id', groupIds);
+
+        if (groupsError) throw groupsError;
+
+        // Get members for each group
+        const groupsWithMembers: ChatGroup[] = [];
+        for (const group of groupsData || []) {
+          const { data: members } = await supabase
+            .from('chat_group_members')
+            .select('id, user_id, is_admin')
+            .eq('group_id', group.id);
+
+          groupsWithMembers.push({
+            ...group,
+            members: members || []
+          });
+        }
+
+        setGroups(groupsWithMembers);
+      }
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    }
+  };
 
   // Fetch missed calls
   useEffect(() => {
@@ -481,6 +562,168 @@ const Messages = () => {
     u.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const filteredGroups = groups.filter(g =>
+    g.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleCreateGroup = async () => {
+    if (!user || !newGroupName.trim()) {
+      toast.error('Please enter a group name');
+      return;
+    }
+
+    try {
+      // Create the group
+      const { data: groupData, error: groupError } = await supabase
+        .from('chat_groups')
+        .insert({
+          name: newGroupName.trim(),
+          description: newGroupDescription.trim() || null,
+          created_by: user.id
+        })
+        .select()
+        .single();
+
+      if (groupError) throw groupError;
+
+      // Add creator as admin member
+      await supabase.from('chat_group_members').insert({
+        group_id: groupData.id,
+        user_id: user.id,
+        is_admin: true
+      });
+
+      // Add selected members
+      for (const memberId of selectedMembers) {
+        await supabase.from('chat_group_members').insert({
+          group_id: groupData.id,
+          user_id: memberId,
+          is_admin: false
+        });
+      }
+
+      toast.success('Group created successfully!');
+      setShowCreateGroup(false);
+      setNewGroupName('');
+      setNewGroupDescription('');
+      setSelectedMembers([]);
+      fetchGroups();
+    } catch (error) {
+      console.error('Error creating group:', error);
+      toast.error('Failed to create group');
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, groupId: string) => {
+    if (!user) return;
+
+    // Check if current user is admin
+    const group = groups.find(g => g.id === groupId);
+    const currentUserMember = group?.members.find(m => m.user_id === user.id);
+    const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
+
+    if (!isAdmin) {
+      toast.error('Only group admins can remove members');
+      return;
+    }
+
+    try {
+      await supabase
+        .from('chat_group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', memberId);
+
+      toast.success('Member removed');
+      fetchGroups();
+    } catch (error) {
+      console.error('Error removing member:', error);
+      toast.error('Failed to remove member');
+    }
+  };
+
+  const handleMakeAdmin = async (memberId: string, groupId: string) => {
+    if (!user) return;
+
+    // Check if current user is admin
+    const group = groups.find(g => g.id === groupId);
+    const currentUserMember = group?.members.find(m => m.user_id === user.id);
+    const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
+
+    if (!isAdmin) {
+      toast.error('Only group admins can promote members');
+      return;
+    }
+
+    try {
+      await supabase
+        .from('chat_group_members')
+        .update({ is_admin: true })
+        .eq('group_id', groupId)
+        .eq('user_id', memberId);
+
+      toast.success('Member promoted to admin');
+      fetchGroups();
+    } catch (error) {
+      console.error('Error promoting member:', error);
+      toast.error('Failed to promote member');
+    }
+  };
+
+  const loadGroupMessages = async (groupId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_group_messages')
+        .select('*')
+        .eq('group_id', groupId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Get sender names
+      const messagesWithNames: GroupMessage[] = [];
+      for (const msg of data || []) {
+        const sender = users.find(u => u.id === msg.sender_id);
+        messagesWithNames.push({
+          ...msg,
+          sender_name: sender?.name || 'Unknown'
+        });
+      }
+
+      setGroupMessages(messagesWithNames);
+    } catch (error) {
+      console.error('Error loading group messages:', error);
+    }
+  };
+
+  const handleSendGroupMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !selectedGroup || !user) return;
+
+    // Check content before sending
+    if (!checkContent(newMessage)) {
+      toast.error('Message blocked due to inappropriate content');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('chat_group_messages').insert({
+        group_id: selectedGroup.id,
+        sender_id: user.id,
+        content: newMessage,
+        message_type: 'text'
+      });
+
+      if (error) throw error;
+
+      setNewMessage('');
+      loadGroupMessages(selectedGroup.id);
+    } catch (error) {
+      console.error('Error sending group message:', error);
+      toast.error('Failed to send message');
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
@@ -503,7 +746,7 @@ const Messages = () => {
   }
 
   // Contact list view
-  if (!selectedUser) {
+  if (!selectedUser && !selectedGroup) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <header className="bg-gradient-hero text-white py-4 px-4 sm:py-6 sm:px-6 shadow-medium sticky top-0 z-50">
@@ -525,20 +768,33 @@ const Messages = () => {
                 </div>
               </div>
               
-              {/* Missed Calls Button */}
-              {missedCalls.length > 0 && (
+              <div className="flex items-center gap-2">
+                {/* Create Group Button */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20 relative"
-                  onClick={() => setShowMissedCalls(true)}
+                  className="text-white hover:bg-white/20"
+                  onClick={() => setShowCreateGroup(true)}
                 >
-                  <PhoneMissed className="h-5 w-5" />
-                  <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs h-5 w-5 p-0 flex items-center justify-center">
-                    {missedCalls.length}
-                  </Badge>
+                  <Plus className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">New Group</span>
                 </Button>
-              )}
+
+                {/* Missed Calls Button */}
+                {missedCalls.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/20 relative"
+                    onClick={() => setShowMissedCalls(true)}
+                  >
+                    <PhoneMissed className="h-5 w-5" />
+                    <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs h-5 w-5 p-0 flex items-center justify-center">
+                      {missedCalls.length}
+                    </Badge>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -547,65 +803,193 @@ const Messages = () => {
           <div className="max-w-2xl mx-auto">
             <div className="mb-4 sm:mb-6">
               <Input
-                placeholder="Search users..."
+                placeholder="Search users or groups..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full"
               />
             </div>
 
-            <Card className="shadow-soft">
-              <CardHeader className="p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-semibold">Available Users</h2>
-                <p className="text-sm text-muted-foreground">{users.length} users on Priscilla Chat</p>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {filteredUsers.length === 0 ? (
-                    <div className="p-6 text-center text-muted-foreground">
-                      {users.length === 0 
-                        ? "No other users found. Users will appear here once they complete their profile."
-                        : "No users match your search."}
-                    </div>
-                  ) : (
-                    filteredUsers.map((chatUser) => (
-                      <div
-                        key={chatUser.id}
-                        className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => setSelectedUser(chatUser)}
-                      >
-                        <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                          <AvatarImage src={chatUser.avatar} />
-                          <AvatarFallback className="text-sm">
-                            {chatUser.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="font-medium text-foreground text-sm sm:text-base truncate">{chatUser.name}</p>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <Badge className={getRoleBadgeColor(chatUser.role)} variant="secondary">
-                                {chatUser.role}
-                              </Badge>
-                              {onlineUsers.has(chatUser.id) && (
-                                <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 text-xs">
-                                  Online
-                                </Badge>
-                              )}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="chats" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Chats
+                </TabsTrigger>
+                <TabsTrigger value="groups" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Groups ({groups.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="chats">
+                <Card className="shadow-soft">
+                  <CardHeader className="p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-semibold">Available Users</h2>
+                    <p className="text-sm text-muted-foreground">{users.length} users on Priscilla Chat</p>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                      {filteredUsers.length === 0 ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          {users.length === 0 
+                            ? "No other users found. Users will appear here once they complete their profile."
+                            : "No users match your search."}
+                        </div>
+                      ) : (
+                        filteredUsers.map((chatUser) => (
+                          <div
+                            key={chatUser.id}
+                            className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => setSelectedUser(chatUser)}
+                          >
+                            <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                              <AvatarImage src={chatUser.avatar} />
+                              <AvatarFallback className="text-sm">
+                                {chatUser.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium text-foreground text-sm sm:text-base truncate">{chatUser.name}</p>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <Badge className={getRoleBadgeColor(chatUser.role)} variant="secondary">
+                                    {chatUser.role}
+                                  </Badge>
+                                  {onlineUsers.has(chatUser.id) && (
+                                    <Badge variant="secondary" className="bg-green-500/20 text-green-700 dark:text-green-400 text-xs">
+                                      Online
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                                Click to start chatting
+                              </p>
                             </div>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            Click to start chatting
-                          </p>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="groups">
+                <Card className="shadow-soft">
+                  <CardHeader className="p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-semibold">Your Groups</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {groups.length === 0 ? 'Create a group to start chatting!' : `${groups.length} group(s)`}
+                    </p>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="divide-y">
+                      {filteredGroups.length === 0 ? (
+                        <div className="p-6 text-center text-muted-foreground">
+                          <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No groups yet. Click "New Group" to create one!</p>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                      ) : (
+                        filteredGroups.map((group) => (
+                          <div
+                            key={group.id}
+                            className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 hover:bg-muted/50 cursor-pointer transition-colors"
+                            onClick={() => {
+                              setSelectedGroup(group);
+                              loadGroupMessages(group.id);
+                            }}
+                          >
+                            <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-primary">
+                              <AvatarFallback className="text-sm bg-primary text-primary-foreground">
+                                <Users className="h-5 w-5" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="font-medium text-foreground text-sm sm:text-base truncate">{group.name}</p>
+                                <Badge variant="secondary" className="text-xs">
+                                  {group.members?.length || 0} members
+                                </Badge>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                                {group.description || 'Group chat'}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </section>
+
+        {/* Create Group Dialog */}
+        <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Create New Group
+              </DialogTitle>
+              <DialogDescription>Create a study group or connect with your classmates</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Group Name *</label>
+                <Input
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g., WAEC Study Group"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Input
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
+                  placeholder="What's this group about?"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Add Members</label>
+                <ScrollArea className="h-40 border rounded-md p-2">
+                  {users.map((u) => (
+                    <div key={u.id} className="flex items-center justify-between p-2 hover:bg-muted rounded">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">
+                            {u.name.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{u.name}</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedMembers.includes(u.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedMembers([...selectedMembers, u.id]);
+                          } else {
+                            setSelectedMembers(selectedMembers.filter(id => id !== u.id));
+                          }
+                        }}
+                        className="h-4 w-4"
+                      />
+                    </div>
+                  ))}
+                </ScrollArea>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreateGroup(false)}>Cancel</Button>
+              <Button onClick={handleCreateGroup}>Create Group</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Missed Calls Dialog */}
         <Dialog open={showMissedCalls} onOpenChange={setShowMissedCalls}>
@@ -640,7 +1024,208 @@ const Messages = () => {
     );
   }
 
-  // Chat view
+  // Group Chat view
+  if (selectedGroup) {
+    const currentUserMember = selectedGroup.members.find(m => m.user_id === user.id);
+    const isGroupAdmin = user.role === 'admin' || currentUserMember?.is_admin;
+
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="bg-gradient-hero text-white py-4 px-6 shadow-medium sticky top-0 z-50">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-white hover:bg-white/20"
+              onClick={() => setSelectedGroup(null)}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Avatar className="h-10 w-10 bg-white/20">
+              <AvatarFallback>
+                <Users className="h-5 w-5" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold">{selectedGroup.name}</h2>
+                <Badge variant="secondary" className="text-xs">
+                  {selectedGroup.members?.length || 0} members
+                </Badge>
+              </div>
+              <p className="text-sm text-white/80">
+                {selectedGroup.description || 'Group chat'}
+              </p>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setShowManageMembers(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Members
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Content Warning */}
+        {contentWarning && (
+          <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <p className="text-sm text-destructive">{contentWarning}</p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-auto text-destructive"
+              onClick={() => setContentWarning(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
+
+        {/* Group Messages */}
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {groupMessages.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>No messages yet. Start the conversation!</p>
+              </div>
+            ) : (
+              groupMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                      message.sender_id === user.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground'
+                    }`}
+                  >
+                    {message.sender_id !== user.id && (
+                      <p className="text-xs font-medium mb-1 opacity-70">{message.sender_name}</p>
+                    )}
+                    <p className="text-sm">{message.content}</p>
+                    <div className={`flex items-center justify-end gap-1 mt-1 ${
+                      message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                    }`}>
+                      <span className="text-xs">
+                        {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+
+        {/* Group Message Input */}
+        <div className="border-t p-4">
+          <form onSubmit={handleSendGroupMessage} className="flex space-x-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1"
+            />
+            <Button 
+              type="submit"
+              disabled={!newMessage.trim()}
+              className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+
+        {/* Manage Members Dialog */}
+        <Dialog open={showManageMembers} onOpenChange={setShowManageMembers}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Group Members</DialogTitle>
+              <DialogDescription>
+                {isGroupAdmin ? 'Manage group members and admins' : 'View group members'}
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-60">
+              <div className="space-y-2">
+                {selectedGroup.members.map((member) => {
+                  const memberUser = users.find(u => u.id === member.user_id);
+                  const isCreator = selectedGroup.created_by === member.user_id;
+                  
+                  return (
+                    <div key={member.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">
+                            {memberUser?.name?.split(' ').map(n => n[0]).join('') || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">
+                            {memberUser?.name || 'Unknown'}
+                            {member.user_id === user.id && ' (You)'}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            {member.is_admin && (
+                              <Badge variant="secondary" className="text-xs">Admin</Badge>
+                            )}
+                            {isCreator && (
+                              <Badge variant="outline" className="text-xs">Creator</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {isGroupAdmin && member.user_id !== user.id && !isCreator && (
+                        <div className="flex gap-1">
+                          {!member.is_admin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleMakeAdmin(member.user_id, selectedGroup.id)}
+                            >
+                              Make Admin
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => handleRemoveMember(member.user_id, selectedGroup.id)}
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowManageMembers(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Chat view - only show if selectedUser exists
+  if (!selectedUser) {
+    return null; // Should not reach here, but just in case
+  }
+  
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-gradient-hero text-white py-4 px-6 shadow-medium sticky top-0 z-50">

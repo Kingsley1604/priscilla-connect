@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users, Crown } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users, Crown, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +35,13 @@ interface Teacher {
   email: string;
 }
 
+interface EditingAssignment {
+  id: string;
+  class_level: string;
+  subject: string;
+  is_class_teacher: boolean;
+}
+
 const TeacherAssignment = () => {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -44,6 +52,7 @@ const TeacherAssignment = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [openTeacherSelect, setOpenTeacherSelect] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<EditingAssignment | null>(null);
   
   const [formData, setFormData] = useState({
     class_level: "",
@@ -210,6 +219,39 @@ const TeacherAssignment = () => {
     } catch (error) {
       console.error('Error deleting assignment:', error);
       toast.error('Failed to remove assignment');
+    }
+  };
+
+  const handleEdit = (assignment: Assignment) => {
+    setEditingAssignment({
+      id: assignment.id,
+      class_level: assignment.class_level,
+      subject: assignment.subject,
+      is_class_teacher: assignment.is_class_teacher
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAssignment) return;
+
+    try {
+      const { error } = await supabase
+        .from('teacher_assignments')
+        .update({
+          class_level: editingAssignment.class_level,
+          subject: editingAssignment.is_class_teacher ? "Class Teacher" : editingAssignment.subject,
+          is_class_teacher: editingAssignment.is_class_teacher
+        })
+        .eq('id', editingAssignment.id);
+
+      if (error) throw error;
+
+      toast.success("Assignment updated successfully!");
+      setEditingAssignment(null);
+      fetchAssignments();
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      toast.error('Failed to update assignment');
     }
   };
 
@@ -460,14 +502,24 @@ const TeacherAssignment = () => {
                         <TableCell>{assignment.academic_session}</TableCell>
                         <TableCell>{format(new Date(assignment.assigned_at), 'MMM dd, yyyy')}</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(assignment.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(assignment)}
+                              className="text-primary hover:text-primary"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(assignment.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -478,6 +530,73 @@ const TeacherAssignment = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Assignment Dialog */}
+      <Dialog open={!!editingAssignment} onOpenChange={(open) => !open && setEditingAssignment(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Assignment</DialogTitle>
+            <DialogDescription>Modify the class level and role/subject for this assignment.</DialogDescription>
+          </DialogHeader>
+          {editingAssignment && (
+            <div className="space-y-4">
+              <div>
+                <Label>Class Level</Label>
+                <Select
+                  value={editingAssignment.class_level}
+                  onValueChange={(value) => setEditingAssignment(prev => prev ? { ...prev, class_level: value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map(cls => (
+                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+                <Checkbox 
+                  id="edit_is_class_teacher"
+                  checked={editingAssignment.is_class_teacher}
+                  onCheckedChange={(checked) => setEditingAssignment(prev => prev ? { 
+                    ...prev, 
+                    is_class_teacher: checked === true,
+                    subject: checked === true ? "Class Teacher" : prev.subject
+                  } : null)}
+                />
+                <Label htmlFor="edit_is_class_teacher" className="flex items-center gap-2 cursor-pointer">
+                  <Crown className="h-4 w-4 text-yellow-500" />
+                  Assign as Class Teacher
+                </Label>
+              </div>
+              {!editingAssignment.is_class_teacher && (
+                <div>
+                  <Label>Subject</Label>
+                  <Select
+                    value={editingAssignment.subject}
+                    onValueChange={(value) => setEditingAssignment(prev => prev ? { ...prev, subject: value } : null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map(subj => (
+                        <SelectItem key={subj} value={subj}>{subj}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingAssignment(null)}>Cancel</Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
