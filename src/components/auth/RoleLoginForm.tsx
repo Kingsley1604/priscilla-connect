@@ -127,17 +127,24 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
           return;
         }
 
-        // Check maintenance mode for non-admin users
-        if (roleData.role !== 'admin') {
-          const { data: maintenanceData } = await supabase
-            .from('system_settings')
-            .select('setting_value')
-            .eq('setting_key', 'maintenance_mode')
+        // Check maintenance mode - block all users except super admin
+        const { data: maintenanceData } = await supabase
+          .from('system_settings')
+          .select('setting_value')
+          .eq('setting_key', 'maintenance_mode')
+          .single();
+
+        if (maintenanceData?.setting_value === 'true') {
+          // Check if user is super admin
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('is_super_admin')
+            .eq('id', data.user.id)
             .single();
 
-          if (maintenanceData?.setting_value === 'true') {
+          if (!profileData?.is_super_admin) {
             await supabase.auth.signOut();
-            setErrors({ general: 'System is under maintenance. Only administrators can login. Please try again later.' });
+            setErrors({ general: 'Priscilla Connect SMS is currently under maintenance. Please try again later.' });
             setIsSubmitting(false);
             return;
           }
@@ -275,34 +282,26 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
                 )}
               </Button>
 
-              {/* Forgot Password Link */}
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!credentials.email.trim()) {
-                      toast.error('Please enter your email address first');
-                      return;
-                    }
-                    if (role === 'teacher') {
-                      toast.info('Teachers: Please contact your school administrator to reset your password.');
-                      return;
-                    }
-                    try {
-                      const { error } = await supabase.auth.resetPasswordForEmail(credentials.email, {
-                        redirectTo: `${window.location.origin}/reset-password`,
-                      });
-                      if (error) throw error;
-                      toast.success('Password reset email sent! Check your inbox.');
-                    } catch (error: any) {
-                      toast.error(error.message || 'Failed to send reset email');
-                    }
-                  }}
-                  className="text-sm text-white/80 hover:text-white hover:underline"
-                >
-                  Forgot Password?
-                </button>
-              </div>
+              {/* Forgot Password Link - Only for admin and student */}
+              {role !== 'teacher' && (
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/forgot-password')}
+                    className="text-sm text-white/80 hover:text-white hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
+              
+              {role === 'teacher' && (
+                <div className="text-center">
+                  <p className="text-sm text-white/60">
+                    Forgot password? Contact your administrator.
+                  </p>
+                </div>
+              )}
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

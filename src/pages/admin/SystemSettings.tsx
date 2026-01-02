@@ -6,12 +6,16 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Settings, Database, Mail, Shield, Bell, Users, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Settings, Database, Mail, Shield, Bell, Users, Loader2, AlertTriangle, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const SystemSettings = () => {
+  const { user } = useAuth();
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [settings, setSettings] = useState({
     // General Settings
     systemName: "Priscilla Education System",
@@ -35,6 +39,29 @@ const SystemSettings = () => {
   });
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(false);
 
+  // Check if current user is super admin
+  useEffect(() => {
+    checkSuperAdmin();
+  }, [user]);
+
+  const checkSuperAdmin = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data) {
+        setIsSuperAdmin(data.is_super_admin || false);
+      }
+    } catch (error) {
+      console.error('Error checking super admin status:', error);
+    }
+  };
+
   // Load maintenance mode from database on mount
   useEffect(() => {
     loadMaintenanceMode();
@@ -51,8 +78,6 @@ const SystemSettings = () => {
       if (!error && data) {
         const isEnabled = data.setting_value === 'true';
         setSettings(prev => ({ ...prev, maintenanceMode: isEnabled }));
-        // Also sync to localStorage for quick client-side checks
-        localStorage.setItem('maintenanceMode', String(isEnabled));
       }
     } catch (error) {
       console.error('Error loading maintenance mode:', error);
@@ -60,9 +85,15 @@ const SystemSettings = () => {
   };
 
   const handleMaintenanceModeToggle = async (checked: boolean) => {
+    // Only super admin can toggle maintenance mode
+    if (!isSuperAdmin) {
+      toast.error('Only the super admin can enable/disable maintenance mode');
+      return;
+    }
+
     setIsLoadingMaintenance(true);
     try {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
       
       const { error } = await supabase
         .from('system_settings')
@@ -70,17 +101,15 @@ const SystemSettings = () => {
           setting_key: 'maintenance_mode',
           setting_value: String(checked),
           updated_at: new Date().toISOString(),
-          updated_by: user.user?.id
+          updated_by: userData.user?.id
         }, { onConflict: 'setting_key' });
 
       if (error) throw error;
 
       setSettings(prev => ({ ...prev, maintenanceMode: checked }));
-      // Sync to localStorage for quick client-side checks
-      localStorage.setItem('maintenanceMode', String(checked));
       
       toast.success(checked 
-        ? 'Maintenance mode enabled. Students and teachers cannot log in.' 
+        ? 'Maintenance mode enabled. Only super admin can access the system.' 
         : 'Maintenance mode disabled. All users can log in.');
     } catch (error) {
       console.error('Error updating maintenance mode:', error);
@@ -177,20 +206,38 @@ const SystemSettings = () => {
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Maintenance Mode</Label>
+                    <div className="flex items-center gap-2">
+                      <Label>Maintenance Mode</Label>
+                      {!isSuperAdmin && <Lock className="h-3 w-3 text-muted-foreground" />}
+                    </div>
                     <p className="text-sm text-slate-500">
-                      Put the system into maintenance mode (blocks student/teacher login)
+                      Put the system into maintenance mode (blocks all users except super admin)
                     </p>
+                    {!isSuperAdmin && (
+                      <p className="text-xs text-amber-600">
+                        Only the super admin can toggle this setting
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
                       checked={settings.maintenanceMode}
                       onCheckedChange={handleMaintenanceModeToggle}
-                      disabled={isLoadingMaintenance}
+                      disabled={isLoadingMaintenance || !isSuperAdmin}
                     />
                     {isLoadingMaintenance && <Loader2 className="h-4 w-4 animate-spin" />}
                   </div>
                 </div>
+
+                {settings.maintenanceMode && (
+                  <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800 dark:text-amber-200">
+                      <strong>Maintenance mode is active.</strong> All users (including other admins) cannot access the system. 
+                      Only you (super admin) can access and make changes.
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 <div className="pt-4">
                   <Button onClick={() => handleSaveSettings('General')}>

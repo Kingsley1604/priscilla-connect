@@ -69,6 +69,7 @@ const ClassManagement = () => {
   const [existingStudentSearch, setExistingStudentSearch] = useState("");
   const [selectedExistingStudent, setSelectedExistingStudent] = useState<Student | null>(null);
   const [isClassTeacher, setIsClassTeacher] = useState(false);
+  const [teacherAssignedClass, setTeacherAssignedClass] = useState<string | null>(null);
 
   const [newClass, setNewClass] = useState({
     name: "",
@@ -105,12 +106,18 @@ const ClassManagement = () => {
     try {
       const { data } = await supabase
         .from('teacher_assignments')
-        .select('is_class_teacher')
+        .select('is_class_teacher, class_level')
         .eq('teacher_id', user.id)
         .eq('is_class_teacher', true)
+        .eq('is_active', true)
         .single();
       
       setIsClassTeacher(!!data);
+      if (data) {
+        setTeacherAssignedClass(data.class_level);
+        // Auto-set the new student class to teacher's assigned class
+        setNewStudent(prev => ({ ...prev, class_grade: data.class_level }));
+      }
     } catch {
       setIsClassTeacher(false);
     }
@@ -483,15 +490,28 @@ const ClassManagement = () => {
     return students.filter(s => studentIds.includes(s.id));
   };
 
-  const filteredClasses = classes.filter(cls =>
-    cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cls.class_level.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // For class teachers, filter to only show their assigned class
+  const filteredClasses = classes.filter(cls => {
+    const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cls.class_level.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // If teacher, only show their assigned class
+    if (user?.role === 'teacher' && teacherAssignedClass) {
+      return matchesSearch && cls.class_level === teacherAssignedClass;
+    }
+    return matchesSearch;
+  });
 
-  const filteredStudents = students.filter(student =>
-    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.admission_no.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // For class teachers, only show students in their class
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.admission_no.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (user?.role === 'teacher' && teacherAssignedClass) {
+      return matchesSearch && student.class_grade === teacherAssignedClass;
+    }
+    return matchesSearch;
+  });
 
   const searchedExistingStudents = students.filter(student =>
     (student.name.toLowerCase().includes(existingStudentSearch.toLowerCase()) ||
@@ -639,16 +659,25 @@ const ClassManagement = () => {
                     </div>
                     <div>
                       <Label>Class *</Label>
-                      <Select value={newStudent.class_grade} onValueChange={(v) => setNewStudent(prev => ({ ...prev, class_grade: v }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select class" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {classLevels.map(level => (
-                            <SelectItem key={level} value={level}>{level}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {/* If teacher is class teacher, class is fixed to their assigned class */}
+                      {user?.role === 'teacher' && teacherAssignedClass ? (
+                        <Input
+                          value={teacherAssignedClass}
+                          disabled
+                          className="bg-muted"
+                        />
+                      ) : (
+                        <Select value={newStudent.class_grade} onValueChange={(v) => setNewStudent(prev => ({ ...prev, class_grade: v }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classLevels.map(level => (
+                              <SelectItem key={level} value={level}>{level}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                     <div>
                       <Label>Gender</Label>
