@@ -63,7 +63,7 @@ const ProfileCompletion = () => {
   });
 
   const handleNext = () => {
-    if (currentStep < 6) {
+    if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -152,7 +152,7 @@ const ProfileCompletion = () => {
               Please complete the form below accurately. All fields marked with an asterisk (*) are required.
             </p>
             <div className="flex justify-center gap-2 mt-4">
-              {[1, 2, 3, 4, 5, 6].map((step) => (
+              {[1, 2, 3, 4, 5].map((step) => (
                 <div
                   key={step}
                   className={`h-2 w-12 rounded-full transition-colors ${
@@ -172,11 +172,10 @@ const ProfileCompletion = () => {
           <CardHeader>
             <CardTitle>
               {currentStep === 1 && "1. Student Information"}
-              {currentStep === 2 && "2. Academic Details"}
-              {currentStep === 3 && "3. Parent/Guardian Information"}
-              {currentStep === 4 && "4. Emergency Contact"}
-              {currentStep === 5 && "5. Medical Information"}
-              {currentStep === 6 && "6. Consent & Declaration"}
+              {currentStep === 2 && "2. Parent/Guardian Information"}
+              {currentStep === 3 && "3. Emergency Contact"}
+              {currentStep === 4 && "4. Medical Information"}
+              {currentStep === 5 && "5. Consent & Declaration"}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -271,58 +270,8 @@ const ProfileCompletion = () => {
               </div>
             )}
 
-            {/* Step 2: Academic Details */}
+            {/* Step 2: Parent/Guardian Information */}
             {currentStep === 2 && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="currentAcademicSession">Current Academic Session *</Label>
-                  <Input
-                    id="currentAcademicSession"
-                    value={formData.currentAcademicSession}
-                    onChange={(e) => setFormData(prev => ({ ...prev, currentAcademicSession: e.target.value }))}
-                    placeholder="e.g., 2024/2025"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="classGrade">Class/Grade Applying For *</Label>
-                  <Input
-                    id="classGrade"
-                    value={formData.classGrade}
-                    onChange={(e) => setFormData(prev => ({ ...prev, classGrade: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="previousSchool">Previous School Attended</Label>
-                  <Input
-                    id="previousSchool"
-                    value={formData.previousSchool}
-                    onChange={(e) => setFormData(prev => ({ ...prev, previousSchool: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="previousClass">Previous Class/Grade</Label>
-                  <Input
-                    id="previousClass"
-                    value={formData.previousClass}
-                    onChange={(e) => setFormData(prev => ({ ...prev, previousClass: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="preferredLanguage">Preferred Language of Instruction *</Label>
-                  <Input
-                    id="preferredLanguage"
-                    value={formData.preferredLanguage}
-                    onChange={(e) => setFormData(prev => ({ ...prev, preferredLanguage: e.target.value }))}
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Parent/Guardian Information */}
-            {currentStep === 3 && (
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="parentName">Full Name of Parent/Guardian *</Label>
@@ -384,8 +333,8 @@ const ProfileCompletion = () => {
               </div>
             )}
 
-            {/* Step 4: Emergency Contact */}
-            {currentStep === 4 && (
+            {/* Step 3: Emergency Contact */}
+            {currentStep === 3 && (
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="emergencyContactName">Name *</Label>
@@ -429,8 +378,8 @@ const ProfileCompletion = () => {
               </div>
             )}
 
-            {/* Step 5: Medical Information */}
-            {currentStep === 5 && (
+            {/* Step 4: Medical Information */}
+            {currentStep === 4 && (
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -471,8 +420,8 @@ const ProfileCompletion = () => {
               </div>
             )}
 
-            {/* Step 6: Consent & Declaration */}
-            {currentStep === 6 && (
+            {/* Step 5: Consent & Declaration */}
+            {currentStep === 5 && (
               <div className="space-y-4">
                 <div className="space-y-4 border p-4 rounded-lg">
                   <div className="flex items-start space-x-2">
@@ -510,7 +459,7 @@ const ProfileCompletion = () => {
                   Previous
                 </Button>
               )}
-              {currentStep < 6 ? (
+              {currentStep < 5 ? (
                 <Button type="button" onClick={handleNext} className="ml-auto">
                   Next
                   <ArrowRight className="h-4 w-4 ml-2" />

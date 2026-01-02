@@ -284,7 +284,7 @@ const Dashboard = ({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>No, I want to stay</AlertDialogCancel>
-                    <AlertDialogAction onClick={onLogout}>Yes, I do want to leave</AlertDialogAction>
+                    <AlertDialogAction onClick={onLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, I do want to leave</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
