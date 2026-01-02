@@ -49,10 +49,24 @@ const HomeworkSubmission = () => {
 
   const fetchHomework = async () => {
     try {
+      // First get the student's class
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('class_grade')
+        .eq('id', user.id)
+        .single();
+
+      const studentClass = profile?.class_grade || '';
+
+      // Fetch only homework for the student's class
       const { data, error } = await supabase
         .from('homework')
         .select('*')
         .eq('is_active', true)
+        .eq('class_level', studentClass)
         .order('due_date', { ascending: true });
 
       if (error) throw error;

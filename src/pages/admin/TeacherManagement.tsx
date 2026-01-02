@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Search, UserPlus, Edit, Trash2, Key } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +28,7 @@ interface Teacher {
   teacher_id: string;
   phone: string;
   department: string;
+  sector: string;
 }
 
 const TeacherManagement = () => {
@@ -34,6 +36,7 @@ const TeacherManagement = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sectorFilter, setSectorFilter] = useState<string>("all");
   const [deleteTeacherId, setDeleteTeacherId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,7 +57,7 @@ const TeacherManagement = () => {
       
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, name, teacher_id, phone, department')
+        .select('id, name, teacher_id, phone, department, sector')
         .in('id', teacherIds);
 
       if (profilesError) throw profilesError;
@@ -67,7 +70,8 @@ const TeacherManagement = () => {
           email: teacher.email || "",
           teacher_id: profile?.teacher_id || "",
           phone: profile?.phone || "",
-          department: profile?.department || ""
+          department: profile?.department || "",
+          sector: profile?.sector || "primary"
         };
       });
 
@@ -135,11 +139,13 @@ const TeacherManagement = () => {
     }
   };
 
-  const filteredTeachers = teachers.filter(teacher =>
-    teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    teacher.teacher_id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTeachers = teachers.filter(teacher => {
+    const matchesSearch = teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      teacher.teacher_id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSector = sectorFilter === "all" || teacher.sector === sectorFilter;
+    return matchesSearch && matchesSector;
+  });
 
   if (isLoading) {
     return <LoadingScreen />;
@@ -167,16 +173,28 @@ const TeacherManagement = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <CardTitle>All Teachers ({filteredTeachers.length})</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search teachers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex items-center gap-3">
+                <Select value={sectorFilter} onValueChange={setSectorFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="All Sectors" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sectors</SelectItem>
+                    <SelectItem value="primary">Primary</SelectItem>
+                    <SelectItem value="secondary">Secondary</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search teachers..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>

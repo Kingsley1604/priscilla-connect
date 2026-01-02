@@ -88,6 +88,48 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          file_name: string | null
+          file_url: string | null
+          id: string
+          is_deleted_by_receiver: boolean | null
+          is_deleted_by_sender: boolean | null
+          is_read: boolean | null
+          message_type: string
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_deleted_by_receiver?: boolean | null
+          is_deleted_by_sender?: boolean | null
+          is_read?: boolean | null
+          message_type?: string
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_name?: string | null
+          file_url?: string | null
+          id?: string
+          is_deleted_by_receiver?: boolean | null
+          is_deleted_by_sender?: boolean | null
+          is_read?: boolean | null
+          message_type?: string
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       class_students: {
         Row: {
           class_id: string
@@ -607,6 +649,33 @@ export type Database = {
         }
         Relationships: []
       }
+      missed_calls: {
+        Row: {
+          call_type: string
+          caller_id: string
+          created_at: string
+          id: string
+          is_seen: boolean | null
+          receiver_id: string
+        }
+        Insert: {
+          call_type?: string
+          caller_id: string
+          created_at?: string
+          id?: string
+          is_seen?: boolean | null
+          receiver_id: string
+        }
+        Update: {
+          call_type?: string
+          caller_id?: string
+          created_at?: string
+          id?: string
+          is_seen?: boolean | null
+          receiver_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admission_no: string | null
@@ -645,6 +714,7 @@ export type Database = {
           preferred_language: string | null
           previous_class: string | null
           previous_school: string | null
+          sector: string | null
           suspended_at: string | null
           suspended_by: string | null
           suspension_reason: string | null
@@ -688,6 +758,7 @@ export type Database = {
           preferred_language?: string | null
           previous_class?: string | null
           previous_school?: string | null
+          sector?: string | null
           suspended_at?: string | null
           suspended_by?: string | null
           suspension_reason?: string | null
@@ -731,6 +802,7 @@ export type Database = {
           preferred_language?: string | null
           previous_class?: string | null
           previous_school?: string | null
+          sector?: string | null
           suspended_at?: string | null
           suspended_by?: string | null
           suspension_reason?: string | null

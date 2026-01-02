@@ -127,6 +127,22 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
           return;
         }
 
+        // Check maintenance mode for non-admin users
+        if (roleData.role !== 'admin') {
+          const { data: maintenanceData } = await supabase
+            .from('system_settings')
+            .select('setting_value')
+            .eq('setting_key', 'maintenance_mode')
+            .single();
+
+          if (maintenanceData?.setting_value === 'true') {
+            await supabase.auth.signOut();
+            setErrors({ general: 'System is under maintenance. Only administrators can login. Please try again later.' });
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         toast.success('Login successful!');
         
         // Navigate to dashboard

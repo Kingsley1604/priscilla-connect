@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { storeOrderSchema } from "@/lib/validation";
+import { useNotificationSystem } from "@/hooks/useNotificationSystem";
 
 interface CartItem {
   id: string;
@@ -33,6 +34,7 @@ interface ShoppingCartProps {
 
 const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem }: ShoppingCartProps) => {
   const { user } = useAuth();
+  const { notifyOrderPlaced } = useNotificationSystem();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState<'pickup' | 'delivery'>('pickup');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'delivery'>('online');
@@ -103,12 +105,15 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
 
       if (error) throw error;
 
-      // Create notification for admins
+      // Create notification for admins via hook
       if (orderResult) {
+        notifyOrderPlaced(user.name || 'Customer', total, orderResult.id);
+        
+        // Also store in database for persistence
         await supabase.from('admin_notifications').insert({
           title: 'New Store Order',
-          message: `New order placed for ₦${total.toLocaleString()}. ${cartItems.length} item(s) ordered.`,
-          type: 'order',
+          message: `${user.name || 'Customer'} placed an order for ₦${total.toLocaleString()}. ${cartItems.length} item(s) ordered.`,
+          type: 'order_placed',
           related_order_id: orderResult.id
         });
       }
