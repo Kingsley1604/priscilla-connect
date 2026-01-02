@@ -287,8 +287,8 @@ const TeacherAssignment = () => {
                           <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command shouldFilter={false}>
                           <CommandInput 
                             placeholder="Search teachers..." 
                             value={searchTerm}
@@ -296,21 +296,23 @@ const TeacherAssignment = () => {
                           />
                           <CommandEmpty>No teacher found.</CommandEmpty>
                           <CommandGroup>
-                            {teachers.map((teacher) => (
-                              <CommandItem
-                                key={teacher.id}
-                                value={teacher.name}
-                                onSelect={() => {
-                                  setSelectedTeacher(teacher);
-                                  setOpenTeacherSelect(false);
-                                }}
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{teacher.name}</span>
-                                  <span className="text-sm text-muted-foreground">{teacher.email}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
+                            {teachers && teachers.length > 0 ? (
+                              teachers.map((teacher) => (
+                                <CommandItem
+                                  key={teacher.id}
+                                  value={teacher.id}
+                                  onSelect={() => {
+                                    setSelectedTeacher(teacher);
+                                    setOpenTeacherSelect(false);
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{teacher.name || 'Unknown'}</span>
+                                    <span className="text-sm text-muted-foreground">{teacher.email || ''}</span>
+                                  </div>
+                                </CommandItem>
+                              ))
+                            ) : null}
                           </CommandGroup>
                         </Command>
                       </PopoverContent>
