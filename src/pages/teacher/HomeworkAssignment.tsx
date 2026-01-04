@@ -34,6 +34,11 @@ const HomeworkAssignment = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [teacherInfo, setTeacherInfo] = useState<{
+    isClassTeacher: boolean;
+    assignedClass: string | null;
+    sector: string | null;
+  }>({ isClassTeacher: false, assignedClass: null, sector: null });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -44,11 +49,34 @@ const HomeworkAssignment = () => {
     total_marks: 100
   });
 
-  const classes = [
+  const primaryClasses = [
     "Play Group 1", "Play Group 2", "Nursery 1", "Nursery 2",
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"
+  ];
+
+  const secondaryClasses = [
     "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
   ];
+
+  // Get available classes based on teacher's sector and type
+  const getAvailableClasses = () => {
+    // If class teacher, only their assigned class
+    if (teacherInfo.isClassTeacher && teacherInfo.assignedClass) {
+      return [teacherInfo.assignedClass];
+    }
+
+    // Subject teacher - filter by sector
+    if (teacherInfo.sector === 'primary') {
+      return primaryClasses;
+    } else if (teacherInfo.sector === 'secondary') {
+      return secondaryClasses;
+    } else if (teacherInfo.sector === 'both') {
+      return [...primaryClasses, ...secondaryClasses];
+    }
+
+    // Default - all classes
+    return [...primaryClasses, ...secondaryClasses];
+  };
 
   const subjects = [
     "Mathematics", "English", "Science", "Social Studies",
@@ -59,7 +87,43 @@ const HomeworkAssignment = () => {
 
   useEffect(() => {
     loadHomework();
+    loadTeacherInfo();
   }, [user]);
+
+  const loadTeacherInfo = async () => {
+    if (!user) return;
+    
+    try {
+      // Check if class teacher
+      const { data: assignment } = await supabase
+        .from('teacher_assignments')
+        .select('is_class_teacher, class_level')
+        .eq('teacher_id', user.id)
+        .eq('is_class_teacher', true)
+        .eq('is_active', true)
+        .single();
+
+      // Get teacher's sector from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('sector')
+        .eq('id', user.id)
+        .single();
+
+      setTeacherInfo({
+        isClassTeacher: !!assignment?.is_class_teacher,
+        assignedClass: assignment?.class_level || null,
+        sector: profile?.sector || null
+      });
+
+      // If class teacher, auto-set the class
+      if (assignment?.is_class_teacher && assignment?.class_level) {
+        setFormData(prev => ({ ...prev, class_level: assignment.class_level }));
+      }
+    } catch (error) {
+      console.error('Error loading teacher info:', error);
+    }
+  };
 
   const loadHomework = async () => {
     if (!user) return;
@@ -190,12 +254,21 @@ const HomeworkAssignment = () => {
                   </div>
                   <div>
                     <Label>Class *</Label>
-                    <Select value={formData.class_level} onValueChange={(v) => setFormData(prev => ({ ...prev, class_level: v }))}>
-                      <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
-                      <SelectContent>
-                        {classes.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    {teacherInfo.isClassTeacher && teacherInfo.assignedClass ? (
+                      <Input value={teacherInfo.assignedClass} disabled className="bg-muted" />
+                    ) : (
+                      <Select value={formData.class_level} onValueChange={(v) => setFormData(prev => ({ ...prev, class_level: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
+                        <SelectContent>
+                          {getAvailableClasses().map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {teacherInfo.sector && !teacherInfo.isClassTeacher && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You can assign homework to {teacherInfo.sector === 'both' ? 'all' : teacherInfo.sector} classes.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label>Due Date *</Label>

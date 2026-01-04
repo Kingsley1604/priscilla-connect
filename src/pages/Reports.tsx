@@ -47,29 +47,29 @@ const Reports = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-4 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <Link to="/">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 px-2 sm:px-3">
+                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Back to Dashboard</span>
                 </Button>
               </Link>
               <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                <FileText className="h-8 w-8" />
+                <FileText className="h-6 w-6 sm:h-8 sm:w-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">Reports</h1>
-                <p className="text-white/90">View your academic performance</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">Reports</h1>
+                <p className="text-white/90 text-xs sm:text-sm">View your academic performance</p>
               </div>
             </div>
             
             {/* Teacher Upload Result Button */}
             {userRole === 'teacher' && (
               <Link to="/teacher/upload-result">
-                <Button className="bg-green-600 hover:bg-green-700">
+                <Button className="bg-green-600 hover:bg-green-700 text-sm">
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Result
                 </Button>

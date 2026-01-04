@@ -25,7 +25,7 @@ interface Contact {
 interface CallInterfaceProps {
   contact: Contact;
   callType: 'audio' | 'video';
-  callStatus: 'connecting' | 'ringing' | 'active' | 'ended';
+  callStatus: 'calling' | 'connecting' | 'ringing' | 'active' | 'ended';
   onEndCall: () => void;
   onToggleVideo?: () => void;
   onToggleMic?: () => void;
