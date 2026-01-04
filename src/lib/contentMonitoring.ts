@@ -15,7 +15,7 @@ export interface ContentCheckResult {
 const CRITICAL_WORDS = [
   'sex', 'pussy', 'dick', 'penis', 'vagina', 'boobs', 'fuck', 'shit', 
   'bastard', 'bitch', 'asshole', 'porn', 'nipple', 'suck', 'nude', 'nudes',
-  'masturbate', 'rape'
+  'masturbate', 'rape', 'hack', 'hacking', 'exploit', 'crack password'
 ];
 
 // Level 2 – High (Flag & Warn)

@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useAuth } from "@/hooks/useAuth";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,11 +34,15 @@ interface Teacher {
 
 const TeacherManagement = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sectorFilter, setSectorFilter] = useState<string>("all");
   const [deleteTeacherId, setDeleteTeacherId] = useState<string | null>(null);
+
+  // Task M: Admin sector filtering - get admin's sector
+  const adminSector = user?.sector;
 
   useEffect(() => {
     loadTeachers();
@@ -112,14 +117,15 @@ const TeacherManagement = () => {
     }
   };
 
-  const handleResetPassword = async (teacherId: string) => {
+  // Task E: Fix password reset - update both profile and show clear instructions
+  const handleResetPassword = async (teacherId: string, teacherEmail: string) => {
     try {
       const { data, error } = await supabase.rpc('generate_default_password');
       if (error) throw error;
 
       const newPassword = data;
 
-      // Update password in profile (user must use forgot password for actual auth reset)
+      // Update password in profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -130,21 +136,33 @@ const TeacherManagement = () => {
 
       if (profileError) throw profileError;
 
-      toast.success(`Password reset! New password: ${newPassword}. Teacher should use this on next login.`, {
-        duration: 10000
-      });
+      // Show the password clearly so admin can share it with teacher
+      toast.success(
+        `Password reset successful!\n\nNew Password: ${newPassword}\n\nShare this password with the teacher. They will be required to change it on next login.`,
+        {
+          duration: 15000,
+          description: `Email: ${teacherEmail}\nPassword: ${newPassword}`
+        }
+      );
     } catch (error) {
       console.error('Error resetting password:', error);
       toast.error("Failed to reset password");
     }
   };
 
+  // Task M: Filter by admin's sector first, then by user-selected filter
   const filteredTeachers = teachers.filter(teacher => {
     const matchesSearch = teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       teacher.teacher_id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSector = sectorFilter === "all" || teacher.sector === sectorFilter;
-    return matchesSearch && matchesSector;
+    
+    // If admin has a sector, only show teachers from that sector
+    const matchesAdminSector = !adminSector || adminSector === 'both' || teacher.sector === adminSector;
+    
+    // Then apply user's filter selection
+    const matchesSectorFilter = sectorFilter === "all" || teacher.sector === sectorFilter;
+    
+    return matchesSearch && matchesAdminSector && matchesSectorFilter;
   });
 
   if (isLoading) {
@@ -206,7 +224,7 @@ const TeacherManagement = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Department</TableHead>
+                  <TableHead>Sector</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -219,13 +237,13 @@ const TeacherManagement = () => {
                     <TableCell className="font-medium">{teacher.name}</TableCell>
                     <TableCell>{teacher.email}</TableCell>
                     <TableCell>{teacher.phone || "N/A"}</TableCell>
-                    <TableCell>{teacher.department || "N/A"}</TableCell>
+                    <TableCell className="capitalize">{teacher.sector || "N/A"}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleResetPassword(teacher.id)}
+                          onClick={() => handleResetPassword(teacher.id, teacher.email)}
                         >
                           <Key className="h-4 w-4" />
                         </Button>

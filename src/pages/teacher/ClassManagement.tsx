@@ -141,11 +141,20 @@ const ClassManagement = () => {
         setClasses(classesData || []);
       }
 
-      // Load students from profiles
+      // Task B: Load ALL students from profiles (even without email confirmation)
+      // Get student role users first
+      const { data: studentRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'student');
+
+      const studentUserIds = (studentRoles || []).map(r => r.user_id);
+
+      // Load student profiles - include all students with role, not just those with admission_no
       const { data: studentsData, error: studentsError } = await supabase
         .from('profiles')
         .select('id, name, admission_no, class_grade, is_suspended')
-        .not('admission_no', 'is', null)
+        .in('id', studentUserIds)
         .order('name', { ascending: true });
 
       if (studentsError) {
@@ -154,7 +163,7 @@ const ClassManagement = () => {
         setStudents((studentsData || []).map(s => ({
           id: s.id,
           name: s.name || 'Unknown',
-          admission_no: s.admission_no || '',
+          admission_no: s.admission_no || 'Pending',
           class_grade: s.class_grade || '',
           is_suspended: s.is_suspended || false
         })));
@@ -233,8 +242,24 @@ const ClassManagement = () => {
   };
 
   const handleCreateStudent = async () => {
+    // Task A: Required fields - name, email, class, admission_no, DOB, gender
     if (!newStudent.name || !newStudent.email || !newStudent.class_grade) {
       toast.error("Please fill in name, email, and class");
+      return;
+    }
+
+    if (!newStudent.admission_no.trim()) {
+      toast.error("Please enter the student's admission number");
+      return;
+    }
+
+    if (!newStudent.date_of_birth) {
+      toast.error("Please enter the student's date of birth");
+      return;
+    }
+
+    if (!newStudent.gender) {
+      toast.error("Please select the student's gender");
       return;
     }
 
@@ -250,8 +275,8 @@ const ClassManagement = () => {
       };
 
       const tempPassword = generatePassword();
-      // Use provided admission number or generate one
-      const admissionNo = newStudent.admission_no.trim() || `ADM${Date.now().toString().slice(-6)}`;
+      // Task C: Use admission number provided by class teacher (required)
+      const admissionNo = newStudent.admission_no.trim();
 
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -491,7 +516,17 @@ const ClassManagement = () => {
     return students.filter(s => studentIds.includes(s.id));
   };
 
+  // Helper to determine if a class is in a sector
+  const getClassSector = (classLevel: string): string => {
+    const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'];
+    return primaryClasses.includes(classLevel) ? 'primary' : 'secondary';
+  };
+
+  // Task M: For admins, filter by their sector
+  const adminSector = user?.role === 'admin' ? (user as any).sector : null;
+
   // For class teachers, filter to only show their assigned class
+  // For admins, filter by their sector
   const filteredClasses = classes.filter(cls => {
     const matchesSearch = cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cls.class_level.toLowerCase().includes(searchTerm.toLowerCase());
@@ -500,10 +535,18 @@ const ClassManagement = () => {
     if (user?.role === 'teacher' && teacherAssignedClass) {
       return matchesSearch && cls.class_level === teacherAssignedClass;
     }
+    
+    // If admin with sector, filter by sector
+    if (user?.role === 'admin' && adminSector && adminSector !== 'both') {
+      const classSector = getClassSector(cls.class_level);
+      return matchesSearch && classSector === adminSector;
+    }
+    
     return matchesSearch;
   });
 
   // For class teachers, only show students in their class
+  // For admins, filter by their sector
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.admission_no.toLowerCase().includes(searchTerm.toLowerCase());
@@ -511,6 +554,13 @@ const ClassManagement = () => {
     if (user?.role === 'teacher' && teacherAssignedClass) {
       return matchesSearch && student.class_grade === teacherAssignedClass;
     }
+    
+    // If admin with sector, filter by sector
+    if (user?.role === 'admin' && adminSector && adminSector !== 'both') {
+      const studentSector = getClassSector(student.class_grade);
+      return matchesSearch && studentSector === adminSector;
+    }
+    
     return matchesSearch;
   });
 
@@ -650,11 +700,11 @@ const ClassManagement = () => {
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label>Admission Number</Label>
+                      <Label>Admission Number *</Label>
                       <Input
                         value={newStudent.admission_no}
                         onChange={(e) => setNewStudent(prev => ({ ...prev, admission_no: e.target.value }))}
-                        placeholder="e.g., ADM001 (optional - will auto-generate)"
+                        placeholder="e.g., ADM001 (required)"
                       />
                     </div>
                     <div className="col-span-2">
@@ -689,10 +739,10 @@ const ClassManagement = () => {
                       )}
                     </div>
                     <div>
-                      <Label>Gender</Label>
+                      <Label>Gender *</Label>
                       <Select value={newStudent.gender} onValueChange={(v) => setNewStudent(prev => ({ ...prev, gender: v }))}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select" />
+                          <SelectValue placeholder="Select gender" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="male">Male</SelectItem>
@@ -701,7 +751,7 @@ const ClassManagement = () => {
                       </Select>
                     </div>
                     <div>
-                      <Label>Date of Birth</Label>
+                      <Label>Date of Birth *</Label>
                       <Input
                         type="date"
                         value={newStudent.date_of_birth}

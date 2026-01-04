@@ -9,6 +9,8 @@ export interface User {
   role: 'student' | 'teacher' | 'admin';
   avatar?: string;
   lastLogin?: number;
+  sector?: string;
+  is_super_admin?: boolean;
 }
 
 export interface AuthState {
@@ -30,10 +32,10 @@ export const useAuth = () => {
 
   const fetchUserProfile = useCallback(async (userId: string, session: Session) => {
     try {
-      // Fetch profile data
+      // Fetch profile data including sector and super admin status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('name, avatar')
+        .select('name, avatar, sector, is_super_admin')
         .eq('id', userId)
         .single();
 
@@ -53,7 +55,9 @@ export const useAuth = () => {
             email: session.user.email || '',
             role: roleData.role as 'student' | 'teacher' | 'admin',
             avatar: profile?.avatar,
-            lastLogin: Date.now()
+            lastLogin: Date.now(),
+            sector: profile?.sector || undefined,
+            is_super_admin: profile?.is_super_admin || false
           },
           session,
           sessionId: session.access_token,
