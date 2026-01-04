@@ -263,17 +263,11 @@ const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Simulate real-time presence
+  // Task L: Remove random online status - only show online for actual real-time presence
+  // For now, don't randomly assign online status since we don't have real-time presence tracking
   useEffect(() => {
-    const interval = setInterval(() => {
-      const newOnline = new Set<string>();
-      users.forEach(u => {
-        if (Math.random() > 0.5) newOnline.add(u.id);
-      });
-      setOnlineUsers(newOnline);
-    }, 15000);
-
-    return () => clearInterval(interval);
+    // Clear any online users - in production this would be connected to a real presence system
+    setOnlineUsers(new Set());
   }, [users]);
 
   // Load messages when user is selected
@@ -489,6 +483,34 @@ const Messages = () => {
     }
   };
 
+  // Task G: Delete individual message (soft delete for security)
+  const handleDeleteSingleMessage = async (messageId: string) => {
+    if (!user) return;
+
+    try {
+      const message = messages.find(m => m.id === messageId);
+      if (!message) return;
+
+      if (message.sender_id === user.id) {
+        await supabase
+          .from('chat_messages')
+          .update({ is_deleted_by_sender: true })
+          .eq('id', messageId);
+      } else {
+        await supabase
+          .from('chat_messages')
+          .update({ is_deleted_by_receiver: true })
+          .eq('id', messageId);
+      }
+
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      toast.success('Message deleted');
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
+    }
+  };
+
   const startCall = (type: 'audio' | 'video') => {
     if (!selectedUser || !user) return;
     
@@ -504,20 +526,22 @@ const Messages = () => {
       status: 'calling'
     });
 
-    // After 1 second, if user is online show "Ringing", else create missed call
+    // Task F: No auto end call - only update status based on online state
+    // User controls when to end the call manually
     setTimeout(() => {
       if (isReceiverOnline) {
         setActiveCall(prev => prev ? { ...prev, status: 'ringing' } : null);
       } else {
-        // Record missed call
+        // Record missed call but do NOT auto-end the call
         supabase.from('missed_calls').insert({
           caller_id: user?.id,
           receiver_id: selectedUser.id,
           call_type: type
         }).then(() => {
           toast.info(`${selectedUser.name} is offline. They will see a missed call notification.`);
-          setActiveCall(null);
         });
+        // Keep showing calling status - user can manually end the call
+        setActiveCall(prev => prev ? { ...prev, status: 'calling' } : null);
       }
     }, 2000);
   };
@@ -1451,34 +1475,57 @@ const Messages = () => {
               <p>No messages yet. Start the conversation!</p>
             </div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-              >
+            messages.map((message) => {
+              // Task H: Check if this is a missed call indicator
+              const isMissedCallMessage = message.content.startsWith('📞 Missed') || message.content.startsWith('📹 Missed');
+              
+              return (
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                    message.sender_id === user.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground'
-                  }`}
+                  key={message.id}
+                  className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm">{message.content}</p>
-                  <div className={`flex items-center justify-end gap-1 mt-1 ${
-                    message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                  }`}>
-                    <span className="text-xs">
-                      {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    {message.sender_id === user.id && (
-                      message.is_read 
-                        ? <CheckCheck className="h-3 w-3" />
-                        : <Check className="h-3 w-3" />
-                    )}
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <div
+                        className={`max-w-[75%] rounded-2xl px-4 py-2 cursor-pointer ${
+                          message.sender_id === user.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-foreground'
+                        } ${isMissedCallMessage ? 'bg-destructive/20 text-destructive border border-destructive/30' : ''}`}
+                      >
+                        {isMissedCallMessage && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <PhoneMissed className="h-4 w-4" />
+                          </div>
+                        )}
+                        <p className="text-sm">{message.content}</p>
+                        <div className={`flex items-center justify-end gap-1 mt-1 ${
+                          message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        }`}>
+                          <span className="text-xs">
+                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          {message.sender_id === user.id && !isMissedCallMessage && (
+                            message.is_read 
+                              ? <CheckCheck className="h-3 w-3" />
+                              : <Check className="h-3 w-3" />
+                          )}
+                        </div>
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteSingleMessage(message.id)}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Message
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
           <div ref={messagesEndRef} />
         </div>
