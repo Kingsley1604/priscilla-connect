@@ -250,7 +250,8 @@ const ClassManagement = () => {
       };
 
       const tempPassword = generatePassword();
-      const admissionNo = `ADM${Date.now().toString().slice(-6)}`;
+      // Use provided admission number or generate one
+      const admissionNo = newStudent.admission_no.trim() || `ADM${Date.now().toString().slice(-6)}`;
 
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -646,6 +647,14 @@ const ClassManagement = () => {
                         value={newStudent.name}
                         onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Student's full name"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label>Admission Number</Label>
+                      <Input
+                        value={newStudent.admission_no}
+                        onChange={(e) => setNewStudent(prev => ({ ...prev, admission_no: e.target.value }))}
+                        placeholder="e.g., ADM001 (optional - will auto-generate)"
                       />
                     </div>
                     <div className="col-span-2">

@@ -33,13 +33,13 @@ const Landing = ({ onSelectRole }: LandingProps) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-hero flex flex-col items-center justify-center px-4 sm:px-6 py-8">
+    <div className="min-h-screen bg-gradient-hero dark:bg-gradient-hero flex flex-col items-center justify-center px-4 sm:px-6 py-8">
       <div className="absolute top-4 right-4">
         <ThemeToggle />
       </div>
       
       <div className="text-center mb-8 sm:mb-12 animate-fade-in max-w-4xl">
-        <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
+        <div className="inline-flex items-center justify-center p-4 bg-white/20 dark:bg-white/20 rounded-full mb-6 backdrop-blur-sm">
           <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 sm:h-20 sm:w-20 object-contain" />
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
@@ -58,7 +58,7 @@ const Landing = ({ onSelectRole }: LandingProps) => {
           <Card
             key={role.id}
             onClick={() => onSelectRole(role.id)}
-            className="group cursor-pointer bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-xl p-6 text-center animate-fade-in"
+            className="group cursor-pointer bg-white/10 dark:bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 hover:shadow-xl p-6 text-center animate-fade-in"
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <div className={`inline-flex items-center justify-center p-4 rounded-full mb-4 bg-gradient-to-br ${role.color}`}>

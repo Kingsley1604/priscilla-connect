@@ -10,13 +10,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus } from "lucide-react";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import FileUpload from '@/components/chat/FileUpload';
 import CallInterface from '@/components/chat/CallInterface';
 import { useNotificationSystem } from '@/hooks/useNotificationSystem';
+import { checkContent, getLevelColor, getLevelLabel } from '@/lib/contentMonitoring';
 
 interface ChatUser {
   id: string;
@@ -84,17 +85,9 @@ interface GroupMessage {
   created_at: string;
 }
 
-// Content monitoring - inappropriate words
-const INAPPROPRIATE_WORDS = [
-  'stupid', 'idiot', 'dumb', 'loser', 'freak', 'ugly', 'fat', 'retard',
-  'kill yourself', 'nobody likes you', 'you suck', 'worthless', 'pathetic',
-  'sex', 'sexy', 'porn', 'naked', 'nude',
-  'scam', 'steal', 'hack', 'password'
-];
-
 const Messages = () => {
   const { user } = useAuth();
-  const { notifyContentAlert } = useNotificationSystem();
+  const { notifyContentAlert, notifyCall, notifyMessage } = useNotificationSystem();
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -106,7 +99,7 @@ const Messages = () => {
   const [activeCall, setActiveCall] = useState<{
     contact: ChatUser;
     type: 'audio' | 'video';
-    status: 'connecting' | 'ringing' | 'active' | 'ended';
+    status: 'calling' | 'ringing' | 'active' | 'ended';
   } | null>(null);
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
   const [missedCalls, setMissedCalls] = useState<MissedCall[]>([]);
@@ -123,44 +116,58 @@ const Messages = () => {
   const [newGroupDescription, setNewGroupDescription] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [showManageMembers, setShowManageMembers] = useState(false);
+  const [showAddMembers, setShowAddMembers] = useState(false);
+  const [addMemberSearch, setAddMemberSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all users from the system - FIXED to actually get users
+  // Fetch all users from the system - Get ALL users with profiles
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
       
       try {
-        // Get all profiles except current user
-        const { data: profiles, error } = await supabase
+        // First get all user roles
+        const { data: allRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role');
+
+        if (rolesError) throw rolesError;
+
+        if (!allRoles || allRoles.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Get all profiles for users with roles
+        const userIds = allRoles.map(r => r.user_id).filter(id => id !== user.id);
+        
+        if (userIds.length === 0) {
+          setUsers([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, name, avatar, phone')
-          .neq('id', user.id)
-          .not('name', 'is', null);
+          .select('id, name, avatar')
+          .in('id', userIds);
 
-        if (error) throw error;
+        if (profilesError) throw profilesError;
 
-        // Get roles for each profile
+        // Combine profiles with roles
         const usersWithRoles: ChatUser[] = [];
         
-        if (profiles && profiles.length > 0) {
-          for (const profile of profiles) {
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', profile.id)
-              .single();
-
-            if (roleData) {
-              usersWithRoles.push({
-                id: profile.id,
-                name: profile.name || 'Unknown User',
-                email: '',
-                avatar: profile.avatar || undefined,
-                role: roleData.role || 'student',
-                isOnline: false
-              });
-            }
+        for (const profile of profiles || []) {
+          const roleData = allRoles.find(r => r.user_id === profile.id);
+          if (roleData && profile.name) {
+            usersWithRoles.push({
+              id: profile.id,
+              name: profile.name,
+              email: '',
+              avatar: profile.avatar || undefined,
+              role: roleData.role || 'student',
+              isOnline: false
+            });
           }
         }
 
@@ -181,7 +188,6 @@ const Messages = () => {
     if (!user) return;
 
     try {
-      // Get groups where user is a member
       const { data: memberData, error: memberError } = await supabase
         .from('chat_group_members')
         .select('group_id, is_admin')
@@ -199,7 +205,6 @@ const Messages = () => {
 
         if (groupsError) throw groupsError;
 
-        // Get members for each group
         const groupsWithMembers: ChatGroup[] = [];
         for (const group of groupsData || []) {
           const { data: members } = await supabase
@@ -235,7 +240,6 @@ const Messages = () => {
 
         if (error) throw error;
         
-        // Get caller names
         const missedCallsWithNames: MissedCall[] = [];
         for (const call of data || []) {
           const caller = users.find(u => u.id === call.caller_id);
@@ -255,7 +259,6 @@ const Messages = () => {
     }
   }, [user, users]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -279,7 +282,6 @@ const Messages = () => {
       if (!selectedUser || !user) return;
 
       try {
-        // Try to load from Supabase first
         const { data, error } = await supabase
           .from('chat_messages')
           .select('*')
@@ -288,17 +290,10 @@ const Messages = () => {
 
         if (error) {
           console.error('Error loading messages:', error);
-          // Fallback to localStorage
-          const storedMessages = localStorage.getItem(`chat_${user.id}_${selectedUser.id}`);
-          if (storedMessages) {
-            setMessages(JSON.parse(storedMessages));
-          } else {
-            setMessages([]);
-          }
+          setMessages([]);
           return;
         }
 
-        // Filter out deleted messages for current user
         const filteredMessages: Message[] = (data || []).filter((msg: any) => {
           if (msg.sender_id === user.id && msg.is_deleted_by_sender) return false;
           if (msg.receiver_id === user.id && msg.is_deleted_by_receiver) return false;
@@ -318,21 +313,35 @@ const Messages = () => {
     loadMessages();
   }, [selectedUser, user]);
 
-  // Content monitoring function
-  const checkContent = useCallback((content: string): boolean => {
-    const lowerContent = content.toLowerCase();
-    const foundWords = INAPPROPRIATE_WORDS.filter(word => 
-      lowerContent.includes(word.toLowerCase())
-    );
+  // Content monitoring function with 4-level classification
+  const checkMessageContent = useCallback((content: string): boolean => {
+    const result = checkContent(content);
 
-    if (foundWords.length > 0) {
-      setContentWarning(`Message contains inappropriate content: "${foundWords.join(', ')}". This has been flagged.`);
-      
-      // Send notification to admin
-      notifyContentAlert(user?.name || 'Unknown', foundWords.join(', '));
-      
+    if (result.isBlocked) {
+      setContentWarning(result.message);
+      notifyContentAlert(user?.name || 'Unknown', result.foundWords.join(', '), 'Critical');
       return false;
     }
+
+    if (result.level === 'high') {
+      setContentWarning(result.message);
+      notifyContentAlert(user?.name || 'Unknown', result.foundWords.join(', '), 'High');
+      // Still allow sending but show warning
+      return true;
+    }
+
+    if (result.level === 'moderate') {
+      setContentWarning(result.message);
+      notifyContentAlert(user?.name || 'Unknown', result.foundWords.join(', '), 'Moderate');
+      return true;
+    }
+
+    if (result.level === 'sensitive') {
+      setContentWarning(result.message);
+      notifyContentAlert(user?.name || 'Unknown', result.foundWords.join(', '), 'Sensitive');
+      return true;
+    }
+
     return true;
   }, [user, notifyContentAlert]);
 
@@ -340,10 +349,20 @@ const Messages = () => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser || !user) return;
 
-    // Check content before sending
-    if (!checkContent(newMessage)) {
+    const contentResult = checkContent(newMessage);
+    
+    // Block critical content
+    if (contentResult.isBlocked) {
+      setContentWarning(contentResult.message);
+      notifyContentAlert(user.name || 'Unknown', contentResult.foundWords.join(', '), 'Critical');
       toast.error('Message blocked due to inappropriate content');
       return;
+    }
+
+    // Show warning for other levels but allow sending
+    if (contentResult.level) {
+      setContentWarning(contentResult.message);
+      notifyContentAlert(user.name || 'Unknown', contentResult.foundWords.join(', '), getLevelLabel(contentResult.level));
     }
 
     const message: Message = {
@@ -356,7 +375,6 @@ const Messages = () => {
       created_at: new Date().toISOString()
     };
 
-    // Store in Supabase
     try {
       await supabase.from('chat_messages').insert({
         id: message.id,
@@ -366,6 +384,9 @@ const Messages = () => {
         message_type: message.message_type,
         is_read: false
       });
+
+      // Send notification
+      notifyMessage(user.name || 'User', selectedUser.name);
     } catch (error) {
       console.error('Error saving message:', error);
     }
@@ -373,9 +394,7 @@ const Messages = () => {
     const updatedMessages = [...messages, message];
     setMessages(updatedMessages);
     setNewMessage('');
-    setContentWarning(null);
 
-    // Simulate delivery
     setTimeout(() => {
       setMessages(prev => prev.map(m => 
         m.id === message.id ? { ...m, is_read: true } : m
@@ -449,7 +468,6 @@ const Messages = () => {
     if (!selectedUser || !user) return;
 
     try {
-      // Soft delete - mark messages as deleted for current user
       await supabase
         .from('chat_messages')
         .update({ is_deleted_by_sender: true })
@@ -472,30 +490,36 @@ const Messages = () => {
   };
 
   const startCall = (type: 'audio' | 'video') => {
-    if (!selectedUser) return;
+    if (!selectedUser || !user) return;
     
-    // Check if user is online
-    if (!onlineUsers.has(selectedUser.id)) {
-      // Create missed call record
-      supabase.from('missed_calls').insert({
-        caller_id: user?.id,
-        receiver_id: selectedUser.id,
-        call_type: type
-      }).then(() => {
-        toast.info(`${selectedUser.name} is offline. They will see a missed call notification.`);
-      });
-      return;
-    }
-
+    // Notify about the call
+    notifyCall(user.name || 'User', selectedUser.name, type);
+    
+    // Check if user is online - show "Calling..." or "Ringing..."
+    const isReceiverOnline = onlineUsers.has(selectedUser.id);
+    
     setActiveCall({
       contact: selectedUser,
       type,
-      status: 'connecting'
+      status: 'calling'
     });
 
+    // After 1 second, if user is online show "Ringing", else create missed call
     setTimeout(() => {
-      setActiveCall(prev => prev ? { ...prev, status: 'ringing' } : null);
-    }, 1000);
+      if (isReceiverOnline) {
+        setActiveCall(prev => prev ? { ...prev, status: 'ringing' } : null);
+      } else {
+        // Record missed call
+        supabase.from('missed_calls').insert({
+          caller_id: user?.id,
+          receiver_id: selectedUser.id,
+          call_type: type
+        }).then(() => {
+          toast.info(`${selectedUser.name} is offline. They will see a missed call notification.`);
+          setActiveCall(null);
+        });
+      }
+    }, 2000);
   };
 
   const answerCall = () => {
@@ -515,7 +539,6 @@ const Messages = () => {
   const declineCall = async () => {
     if (!incomingCall || !user) return;
 
-    // Record as missed call
     try {
       await supabase.from('missed_calls').insert({
         caller_id: incomingCall.callerId,
@@ -573,7 +596,6 @@ const Messages = () => {
     }
 
     try {
-      // Create the group
       const { data: groupData, error: groupError } = await supabase
         .from('chat_groups')
         .insert({
@@ -586,14 +608,12 @@ const Messages = () => {
 
       if (groupError) throw groupError;
 
-      // Add creator as admin member
       await supabase.from('chat_group_members').insert({
         group_id: groupData.id,
         user_id: user.id,
         is_admin: true
       });
 
-      // Add selected members
       for (const memberId of selectedMembers) {
         await supabase.from('chat_group_members').insert({
           group_id: groupData.id,
@@ -614,10 +634,44 @@ const Messages = () => {
     }
   };
 
+  const handleAddMemberToGroup = async (memberId: string) => {
+    if (!selectedGroup || !user) return;
+
+    // Check if current user is admin
+    const currentUserMember = selectedGroup.members.find(m => m.user_id === user.id);
+    const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
+
+    if (!isAdmin) {
+      toast.error('Only group admins can add members');
+      return;
+    }
+
+    // Check if already member
+    if (selectedGroup.members.some(m => m.user_id === memberId)) {
+      toast.error('User is already a member');
+      return;
+    }
+
+    try {
+      await supabase.from('chat_group_members').insert({
+        group_id: selectedGroup.id,
+        user_id: memberId,
+        is_admin: false
+      });
+
+      toast.success('Member added successfully');
+      setShowAddMembers(false);
+      setAddMemberSearch('');
+      fetchGroups();
+    } catch (error) {
+      console.error('Error adding member:', error);
+      toast.error('Failed to add member');
+    }
+  };
+
   const handleRemoveMember = async (memberId: string, groupId: string) => {
     if (!user) return;
 
-    // Check if current user is admin
     const group = groups.find(g => g.id === groupId);
     const currentUserMember = group?.members.find(m => m.user_id === user.id);
     const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
@@ -645,7 +699,6 @@ const Messages = () => {
   const handleMakeAdmin = async (memberId: string, groupId: string) => {
     if (!user) return;
 
-    // Check if current user is admin
     const group = groups.find(g => g.id === groupId);
     const currentUserMember = group?.members.find(m => m.user_id === user.id);
     const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
@@ -680,7 +733,6 @@ const Messages = () => {
 
       if (error) throw error;
 
-      // Get sender names
       const messagesWithNames: GroupMessage[] = [];
       for (const msg of data || []) {
         const sender = users.find(u => u.id === msg.sender_id);
@@ -700,10 +752,19 @@ const Messages = () => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedGroup || !user) return;
 
-    // Check content before sending
-    if (!checkContent(newMessage)) {
+    // Content monitoring for group chat
+    const contentResult = checkContent(newMessage);
+    
+    if (contentResult.isBlocked) {
+      setContentWarning(contentResult.message);
+      notifyContentAlert(user.name || 'Unknown', contentResult.foundWords.join(', '), 'Critical');
       toast.error('Message blocked due to inappropriate content');
       return;
+    }
+
+    if (contentResult.level) {
+      setContentWarning(contentResult.message);
+      notifyContentAlert(user.name || 'Unknown', contentResult.foundWords.join(', '), getLevelLabel(contentResult.level));
     }
 
     try {
@@ -717,11 +778,22 @@ const Messages = () => {
       if (error) throw error;
 
       setNewMessage('');
+      setContentWarning(null);
       loadGroupMessages(selectedGroup.id);
     } catch (error) {
       console.error('Error sending group message:', error);
       toast.error('Failed to send message');
     }
+  };
+
+  // Get available users for adding to group
+  const getAvailableUsersForGroup = () => {
+    if (!selectedGroup) return [];
+    const memberIds = selectedGroup.members.map(m => m.user_id);
+    return users.filter(u => 
+      !memberIds.includes(u.id) && 
+      u.name.toLowerCase().includes(addMemberSearch.toLowerCase())
+    );
   };
 
   if (!user) {
@@ -742,6 +814,25 @@ const Messages = () => {
           <p>Loading Priscilla Chat...</p>
         </div>
       </div>
+    );
+  }
+
+  // Active Call View
+  if (activeCall) {
+    return (
+      <CallInterface
+        contact={{
+          id: activeCall.contact.id,
+          name: activeCall.contact.name,
+          phone: '',
+          avatar: activeCall.contact.avatar
+        }}
+        callType={activeCall.type}
+        callStatus={activeCall.status}
+        onEndCall={endCall}
+        onToggleMic={() => {}}
+        onToggleVideo={() => {}}
+      />
     );
   }
 
@@ -769,7 +860,6 @@ const Messages = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                {/* Create Group Button */}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -780,7 +870,6 @@ const Messages = () => {
                   <span className="hidden sm:inline">New Group</span>
                 </Button>
 
-                {/* Missed Calls Button */}
                 {missedCalls.length > 0 && (
                   <Button
                     variant="ghost"
@@ -814,7 +903,7 @@ const Messages = () => {
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="chats" className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4" />
-                  Chats
+                  Chats ({users.length})
                 </TabsTrigger>
                 <TabsTrigger value="groups" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
@@ -966,6 +1055,7 @@ const Messages = () => {
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-sm">{u.name}</span>
+                        <Badge variant="outline" className="text-xs">{u.role}</Badge>
                       </div>
                       <input
                         type="checkbox"
@@ -993,7 +1083,7 @@ const Messages = () => {
 
         {/* Missed Calls Dialog */}
         <Dialog open={showMissedCalls} onOpenChange={setShowMissedCalls}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <PhoneMissed className="h-5 w-5 text-destructive" />
@@ -1068,12 +1158,17 @@ const Messages = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Manage Members
                 </DropdownMenuItem>
+                {isGroupAdmin && (
+                  <DropdownMenuItem onClick={() => setShowAddMembers(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Members
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
 
-        {/* Content Warning */}
         {contentWarning && (
           <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -1089,7 +1184,6 @@ const Messages = () => {
           </div>
         )}
 
-        {/* Group Messages */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {groupMessages.length === 0 ? (
@@ -1129,7 +1223,6 @@ const Messages = () => {
           </div>
         </ScrollArea>
 
-        {/* Group Message Input */}
         <div className="border-t p-4">
           <form onSubmit={handleSendGroupMessage} className="flex space-x-2">
             <Input
@@ -1217,15 +1310,61 @@ const Messages = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Add Members Dialog */}
+        <Dialog open={showAddMembers} onOpenChange={setShowAddMembers}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Add Members
+              </DialogTitle>
+              <DialogDescription>Add new members to this group</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="Search users..."
+                value={addMemberSearch}
+                onChange={(e) => setAddMemberSearch(e.target.value)}
+              />
+              <ScrollArea className="h-60">
+                <div className="space-y-2">
+                  {getAvailableUsersForGroup().length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4">No users available to add</p>
+                  ) : (
+                    getAvailableUsersForGroup().map((u) => (
+                      <div key={u.id} className="flex items-center justify-between p-2 bg-muted rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs">
+                              {u.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{u.name}</p>
+                            <Badge variant="outline" className="text-xs">{u.role}</Badge>
+                          </div>
+                        </div>
+                        <Button size="sm" onClick={() => handleAddMemberToGroup(u.id)}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddMembers(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
 
-  // Chat view - only show if selectedUser exists
-  if (!selectedUser) {
-    return null; // Should not reach here, but just in case
-  }
-  
+  // Chat view with selected user
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="bg-gradient-hero text-white py-4 px-6 shadow-medium sticky top-0 z-50">
@@ -1239,20 +1378,20 @@ const Messages = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <Avatar className="h-10 w-10">
-            <AvatarImage src={selectedUser.avatar} />
+            <AvatarImage src={selectedUser?.avatar} />
             <AvatarFallback>
-              {selectedUser.name.split(' ').map(n => n[0]).join('')}
+              {selectedUser?.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h2 className="font-semibold">{selectedUser.name}</h2>
-              <Badge className={getRoleBadgeColor(selectedUser.role)} variant="secondary">
-                {selectedUser.role}
+              <h2 className="font-semibold">{selectedUser?.name}</h2>
+              <Badge className={getRoleBadgeColor(selectedUser?.role || '')} variant="secondary">
+                {selectedUser?.role}
               </Badge>
             </div>
             <p className="text-sm text-white/80">
-              {onlineUsers.has(selectedUser.id) ? 'Online' : 'Offline'}
+              {selectedUser && onlineUsers.has(selectedUser.id) ? 'Online' : 'Offline'}
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -1289,7 +1428,6 @@ const Messages = () => {
         </div>
       </header>
 
-      {/* Content Warning */}
       {contentWarning && (
         <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -1305,7 +1443,6 @@ const Messages = () => {
         </div>
       )}
 
-      {/* Messages */}
       <ScrollArea className="flex-1 p-4">
         <div className="space-y-4">
           {messages.length === 0 ? (
@@ -1347,7 +1484,6 @@ const Messages = () => {
         </div>
       </ScrollArea>
 
-      {/* Message Input */}
       <div className="border-t p-4">
         {showVoiceRecorder && (
           <div className="mb-3">
@@ -1434,10 +1570,10 @@ const Messages = () => {
                   {incomingCall.callerName.split(' ').map(n => n[0]).join('')}
                 </AvatarFallback>
               </Avatar>
-              <p className="text-xl font-semibold">{incomingCall.callerName}</p>
-              <p className="text-muted-foreground">{incomingCall.callType === 'video' ? 'Video' : 'Audio'} call</p>
+              <h3 className="text-xl font-semibold">{incomingCall.callerName}</h3>
+              <p className="text-muted-foreground">is calling you...</p>
             </div>
-            <DialogFooter className="flex justify-center gap-4">
+            <div className="flex justify-center gap-6">
               <Button
                 variant="destructive"
                 size="lg"
@@ -1453,24 +1589,9 @@ const Messages = () => {
               >
                 <Phone className="h-6 w-6" />
               </Button>
-            </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
-      )}
-
-      {/* Call Interface */}
-      {activeCall && (
-        <CallInterface
-          contact={{
-            id: activeCall.contact.id,
-            name: activeCall.contact.name,
-            phone: '',
-            avatar: activeCall.contact.avatar
-          }}
-          callType={activeCall.type}
-          callStatus={activeCall.status}
-          onEndCall={endCall}
-        />
       )}
     </div>
   );

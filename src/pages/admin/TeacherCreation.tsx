@@ -27,7 +27,7 @@ const TeacherCreation = () => {
     email: "",
     phone: "",
     teacherType: "subject", // "class" or "subject"
-    sector: "" // "primary" or "secondary"
+    sector: "" // "primary", "secondary", or "both" (for subject teachers)
   });
 
   const handleCopy = (text: string, field: string) => {
@@ -76,7 +76,7 @@ const TeacherCreation = () => {
       const { data: teacherId, error: idError } = await supabase.rpc('generate_teacher_id');
       if (idError) throw idError;
 
-      // Update the profile with teacher details
+      // Update the profile with teacher details including sector
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -84,7 +84,8 @@ const TeacherCreation = () => {
           phone: formData.phone,
           teacher_id: teacherId,
           default_password: defaultPassword,
-          must_change_password: true
+          must_change_password: true,
+          sector: formData.sector // Save sector to profile
         })
         .eq('id', authData.user.id);
 
@@ -281,12 +282,17 @@ const TeacherCreation = () => {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="primary">Primary Section</SelectItem>
-                    <SelectItem value="secondary">Secondary Section</SelectItem>
+                    <SelectItem value="primary">Primary Section Only</SelectItem>
+                    <SelectItem value="secondary">Secondary Section Only</SelectItem>
+                    {formData.teacherType === 'subject' && (
+                      <SelectItem value="both">Both Primary & Secondary</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Teacher will only be visible and manageable within their assigned sector.
+                  {formData.teacherType === 'subject' 
+                    ? 'Subject teachers can be assigned to primary, secondary, or both sectors.'
+                    : 'Teacher will only be visible and manageable within their assigned sector.'}
                 </p>
               </div>
 
