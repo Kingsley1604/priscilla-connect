@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 interface ClassInfo {
   id: string;
@@ -24,7 +25,7 @@ interface ClassInfo {
   teacher_name?: string;
 }
 
-const classLevels = [
+const ALL_CLASS_LEVELS = [
   "Nursery 1", "Nursery 2",
   "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
   "JSS 1", "JSS 2", "JSS 3",
@@ -34,10 +35,14 @@ const classLevels = [
 const sections = ["A", "B", "C", "D"];
 
 const CreateClass = () => {
+  const { filterClassLevels, canManageClassLevel, adminSector } = useAdminSector();
   const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Filter class levels based on admin's sector
+  const classLevels = filterClassLevels(ALL_CLASS_LEVELS);
   
   // Form state
   const [className, setClassName] = useState("");
@@ -74,7 +79,12 @@ const CreateClass = () => {
         })
       );
 
-      setClasses(classesWithTeachers);
+      // Filter classes based on admin's sector
+      const filteredClasses = classesWithTeachers.filter(cls => 
+        canManageClassLevel(cls.class_level)
+      );
+
+      setClasses(filteredClasses);
     } catch (error: any) {
       console.error("Error loading classes:", error);
       toast.error("Failed to load classes");
@@ -391,7 +401,7 @@ const CreateClass = () => {
                 <li>After creating classes, go to <strong>Teacher Assignments</strong> to assign class teachers</li>
                 <li>Only teachers assigned as class teachers will have access to Class Management</li>
                 <li>Class teachers can add/remove students from their assigned classes</li>
-                <li>Subject teachers will only be able to upload results for their assigned subjects</li>
+                <li>Only assigned class teachers can create and upload results for their class</li>
               </ul>
             </CardContent>
           </Card>

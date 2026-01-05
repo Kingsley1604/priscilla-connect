@@ -52,8 +52,8 @@ const Reports = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center space-x-3 sm:space-x-4">
               <Link to="/">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 px-2 sm:px-3">
-                  <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 px-2 sm:px-3 flex items-center gap-2">
+                  <ArrowLeft className="h-4 w-4" />
                   <span className="hidden sm:inline">Back to Dashboard</span>
                 </Button>
               </Link>

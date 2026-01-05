@@ -211,13 +211,8 @@ const SystemSettings = () => {
                       {!isSuperAdmin && <Lock className="h-3 w-3 text-muted-foreground" />}
                     </div>
                     <p className="text-sm text-slate-500">
-                      Put the system into maintenance mode (blocks all users except super admin)
+                      Put the system into maintenance mode (blocks all users)
                     </p>
-                    {!isSuperAdmin && (
-                      <p className="text-xs text-amber-600">
-                        Only the super admin can toggle this setting
-                      </p>
-                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Switch
