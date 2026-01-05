@@ -9,9 +9,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 const TeacherCreation = () => {
   const navigate = useNavigate();
+  const { adminSector, getAllowedSectors, isSuperAdmin } = useAdminSector();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdTeacher, setCreatedTeacher] = useState<{
     teacherId: string;
@@ -282,9 +284,13 @@ const TeacherCreation = () => {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="primary">Primary Section Only</SelectItem>
-                    <SelectItem value="secondary">Secondary Section Only</SelectItem>
-                    {formData.teacherType === 'subject' && (
+                    {/* Show only sectors the admin can manage */}
+                    {getAllowedSectors().map(sector => (
+                      <SelectItem key={sector.value} value={sector.value}>
+                        {sector.label} Section Only
+                      </SelectItem>
+                    ))}
+                    {formData.teacherType === 'subject' && (isSuperAdmin || !adminSector || adminSector === 'both') && (
                       <SelectItem value="both">Both Primary & Secondary</SelectItem>
                     )}
                   </SelectContent>

@@ -58,22 +58,22 @@ const DeactivateTeacher = () => {
 
       const teacherIds = roleData.map(r => r.user_id);
 
-      // Get profiles for these teachers
+      // Get profiles for these teachers - get ALL teachers regardless of profile completion
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, name, phone, department, teacher_id, is_profile_complete')
+        .select('id, name, phone, department, sector, teacher_id, is_suspended')
         .in('id', teacherIds);
 
       if (profileError) throw profileError;
 
-      // Format the data
+      // Format the data - show all teachers that have a profile
       const teacherList: Teacher[] = (profileData || []).map(profile => ({
         id: profile.id,
-        name: profile.name || 'Unknown',
-        email: '', // We'll get this from auth if needed
-        teacher_id: profile.teacher_id || '',
-        department: profile.department || 'Not assigned',
-        is_active: profile.is_profile_complete !== false // Assuming inactive teachers have this set to false
+        name: profile.name || 'Teacher',
+        email: '',
+        teacher_id: profile.teacher_id || 'Not assigned',
+        department: profile.sector || profile.department || 'Not assigned',
+        is_active: !profile.is_suspended // Active if not suspended
       }));
 
       setTeachers(teacherList);

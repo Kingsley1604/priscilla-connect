@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus } from "lucide-react";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
@@ -118,6 +118,8 @@ const Messages = () => {
   const [showManageMembers, setShowManageMembers] = useState(false);
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [addMemberSearch, setAddMemberSearch] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch all users from the system - Get ALL users with profiles
@@ -263,12 +265,54 @@ const Messages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Task L: Remove random online status - only show online for actual real-time presence
-  // For now, don't randomly assign online status since we don't have real-time presence tracking
+  // Task M: Real-time presence tracking using Supabase Realtime
   useEffect(() => {
-    // Clear any online users - in production this would be connected to a real presence system
-    setOnlineUsers(new Set());
-  }, [users]);
+    if (!user) return;
+
+    const channel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const onlineIds = new Set<string>();
+        Object.values(state).forEach((presences: any[]) => {
+          presences.forEach((presence: any) => {
+            if (presence.user_id && presence.user_id !== user.id) {
+              onlineIds.add(presence.user_id);
+            }
+          });
+        });
+        setOnlineUsers(onlineIds);
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        newPresences.forEach((presence: any) => {
+          if (presence.user_id && presence.user_id !== user.id) {
+            setOnlineUsers(prev => new Set([...prev, presence.user_id]));
+          }
+        });
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        leftPresences.forEach((presence: any) => {
+          if (presence.user_id) {
+            setOnlineUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(presence.user_id);
+              return newSet;
+            });
+          }
+        });
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user.id,
+            online_at: new Date().toISOString()
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   // Load messages when user is selected
   useEffect(() => {
@@ -503,12 +547,64 @@ const Messages = () => {
           .eq('id', messageId);
       }
 
+      // Remove from UI immediately (silent delete - Task I)
       setMessages(prev => prev.filter(m => m.id !== messageId));
       toast.success('Message deleted');
     } catch (error) {
       console.error('Error deleting message:', error);
       toast.error('Failed to delete message');
     }
+  };
+
+  // Task J: Check if message can be edited (within 10 minutes of sending)
+  const canEditMessage = (message: Message): boolean => {
+    if (message.sender_id !== user?.id) return false;
+    const messageTime = new Date(message.created_at).getTime();
+    const now = Date.now();
+    const tenMinutes = 10 * 60 * 1000;
+    return (now - messageTime) < tenMinutes;
+  };
+
+  // Task J: Handle editing a message
+  const handleStartEdit = (message: Message) => {
+    if (!canEditMessage(message)) return;
+    setEditingMessageId(message.id);
+    setEditedContent(message.content);
+  };
+
+  const handleSaveEdit = async (messageId: string) => {
+    if (!editedContent.trim() || !user) return;
+
+    // Check content monitoring
+    const contentResult = checkContent(editedContent);
+    if (contentResult.isBlocked) {
+      setContentWarning(contentResult.message);
+      toast.error('Message blocked due to inappropriate content');
+      return;
+    }
+
+    try {
+      await supabase
+        .from('chat_messages')
+        .update({ content: editedContent.trim() })
+        .eq('id', messageId)
+        .eq('sender_id', user.id);
+
+      setMessages(prev => prev.map(m => 
+        m.id === messageId ? { ...m, content: editedContent.trim() } : m
+      ));
+      setEditingMessageId(null);
+      setEditedContent('');
+      toast.success('Message updated');
+    } catch (error) {
+      console.error('Error editing message:', error);
+      toast.error('Failed to edit message');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditedContent('');
   };
 
   const startCall = (type: 'audio' | 'video') => {
@@ -1478,51 +1574,79 @@ const Messages = () => {
             messages.map((message) => {
               // Task H: Check if this is a missed call indicator
               const isMissedCallMessage = message.content.startsWith('📞 Missed') || message.content.startsWith('📹 Missed');
+              const isEditable = canEditMessage(message);
+              const isEditing = editingMessageId === message.id;
               
               return (
                 <div
                   key={message.id}
                   className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
                 >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-2 cursor-pointer ${
-                          message.sender_id === user.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground'
-                        } ${isMissedCallMessage ? 'bg-destructive/20 text-destructive border border-destructive/30' : ''}`}
-                      >
-                        {isMissedCallMessage && (
-                          <div className="flex items-center gap-2 mb-1">
-                            <PhoneMissed className="h-4 w-4" />
-                          </div>
-                        )}
-                        <p className="text-sm">{message.content}</p>
-                        <div className={`flex items-center justify-end gap-1 mt-1 ${
-                          message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                        }`}>
-                          <span className="text-xs">
-                            {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {message.sender_id === user.id && !isMissedCallMessage && (
-                            message.is_read 
-                              ? <CheckCheck className="h-3 w-3" />
-                              : <Check className="h-3 w-3" />
-                          )}
-                        </div>
+                  {isEditing ? (
+                    // Edit mode
+                    <div className="max-w-[75%] space-y-2">
+                      <Input
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                        className="min-w-[200px]"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={() => handleSaveEdit(message.id)}>
+                          Save
+                        </Button>
                       </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteSingleMessage(message.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Message
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </div>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div
+                          className={`max-w-[75%] rounded-2xl px-4 py-2 cursor-pointer ${
+                            message.sender_id === user.id
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-foreground'
+                          } ${isMissedCallMessage ? 'bg-destructive/20 text-destructive border border-destructive/30' : ''}`}
+                        >
+                          {isMissedCallMessage && (
+                            <div className="flex items-center gap-2 mb-1">
+                              <PhoneMissed className="h-4 w-4" />
+                            </div>
+                          )}
+                          <p className="text-sm">{message.content}</p>
+                          <div className={`flex items-center justify-end gap-1 mt-1 ${
+                            message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                          }`}>
+                            <span className="text-xs">
+                              {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {message.sender_id === user.id && !isMissedCallMessage && (
+                              message.is_read 
+                                ? <CheckCheck className="h-3 w-3" />
+                                : <Check className="h-3 w-3" />
+                            )}
+                          </div>
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {isEditable && (
+                          <DropdownMenuItem onClick={() => handleStartEdit(message)}>
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit Message
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteSingleMessage(message.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Message
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               );
             })
@@ -1594,7 +1718,7 @@ const Messages = () => {
             <DialogTitle>Delete Chat</DialogTitle>
           </DialogHeader>
           <p className="text-muted-foreground">
-            Are you sure you want to delete this chat? The messages will be hidden from your view but kept for security purposes.
+            Are you sure you want to delete this chat? This action cannot be undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancel</Button>

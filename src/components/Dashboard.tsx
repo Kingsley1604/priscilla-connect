@@ -259,7 +259,7 @@ const Dashboard = ({
             </div>
             <div>
               <h1 className="text-lg sm:text-2xl md:text-3xl font-bold">Priscilla Connect</h1>
-              <p className="text-white/90 text-xs sm:text-sm md:text-base hidden sm:block">Empowering Education Together</p>
+              <p className="text-white/90 text-xs sm:text-sm md:text-base">Empowering Education Together</p>
             </div>
           </div>
           
@@ -342,6 +342,21 @@ const Dashboard = ({
                   setMobileMenuOpen(false);
                   navigate(userRole === 'teacher' ? '/teacher/profile-options' : getProfilePath());
                 }} />
+                  
+                  {/* Notifications for mobile - admins and teachers */}
+                  {(userRole === 'admin' || userRole === 'teacher') && (
+                    <div className="px-4 py-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Bell className="h-5 w-5" />
+                        <span className="font-medium">Notifications</span>
+                      </div>
+                      <div className="ml-8">
+                        {userRole === 'teacher' && <TeacherExamNotifications />}
+                        <AdminNotificationSystem />
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Moon className="h-5 w-5" />
