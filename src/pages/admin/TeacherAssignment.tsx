@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 interface Assignment {
   id: string;
@@ -44,6 +45,7 @@ interface EditingAssignment {
 
 const TeacherAssignment = () => {
   const navigate = useNavigate();
+  const { adminSector, isSuperAdmin, filterClassLevels, PRIMARY_LEVELS, SECONDARY_LEVELS } = useAdminSector();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,13 +63,41 @@ const TeacherAssignment = () => {
     is_class_teacher: false
   });
 
-  const classes = [
+  // Task D & E: Updated class lists
+  const primaryClasses = [
     "Play Group 1", "Play Group 2",
     "Nursery 1", "Nursery 2",
-    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
-    "JSS 1", "JSS 2", "JSS 3",
-    "SSS 1", "SSS 2", "SSS 3"
+    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6"
   ];
+  
+  const secondaryClasses = [
+    "JSS 1", "JSS 2", "JSS 3",
+    "SS 1", "SS 2", "SS 3"
+  ];
+  
+  // Task N: Filter classes based on admin sector
+  const getAllowedClasses = () => {
+    const allClasses = [...primaryClasses, ...secondaryClasses];
+    
+    // Super admin or no sector = see all
+    if (isSuperAdmin || !adminSector || adminSector === 'both') {
+      return allClasses;
+    }
+    
+    // Primary admin sees only primary classes
+    if (adminSector === 'primary') {
+      return primaryClasses;
+    }
+    
+    // Secondary admin sees only secondary classes
+    if (adminSector === 'secondary') {
+      return secondaryClasses;
+    }
+    
+    return allClasses;
+  };
+  
+  const classes = getAllowedClasses();
 
   const subjects = [
     "Mathematics", "English", "Science", "Social Studies",
@@ -120,7 +150,15 @@ const TeacherAssignment = () => {
         .order('assigned_at', { ascending: false });
 
       if (error) throw error;
-      setAssignments(data || []);
+      
+      // Task N: Filter assignments by admin's sector
+      let filteredData = data || [];
+      if (adminSector && adminSector !== 'both' && !isSuperAdmin) {
+        const allowedClasses = getAllowedClasses();
+        filteredData = filteredData.filter(a => allowedClasses.includes(a.class_level));
+      }
+      
+      setAssignments(filteredData);
     } catch (error) {
       console.error('Error fetching assignments:', error);
       toast.error('Failed to load teacher assignments');

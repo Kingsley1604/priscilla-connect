@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2 } from "lucide-react";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
@@ -120,9 +120,12 @@ const Messages = () => {
   const [addMemberSearch, setAddMemberSearch] = useState('');
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState('');
+  const [showDeleteGroupDialog, setShowDeleteGroupDialog] = useState(false);
+  const [groupCallActive, setGroupCallActive] = useState<{ type: 'audio' | 'video' } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all users from the system - Get ALL users with profiles
+  // Task C: Fetch all users from the system - Get ALL users with profiles
+  // Fixed to show all users regardless of their role
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
@@ -133,46 +136,62 @@ const Messages = () => {
           .from('user_roles')
           .select('user_id, role');
 
-        if (rolesError) throw rolesError;
+        if (rolesError) {
+          console.error('Error fetching roles:', rolesError);
+          throw rolesError;
+        }
 
         if (!allRoles || allRoles.length === 0) {
+          console.log('No user roles found');
           setIsLoading(false);
           return;
         }
 
-        // Get all profiles for users with roles
+        // Get all profiles for users with roles (excluding current user)
         const userIds = allRoles.map(r => r.user_id).filter(id => id !== user.id);
         
         if (userIds.length === 0) {
+          console.log('No other users found');
           setUsers([]);
           setIsLoading(false);
           return;
         }
 
+        // Get ALL profiles, including those without names (they might just have IDs)
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, name, avatar')
-          .in('id', userIds);
+          .in('id', userIds)
+          .eq('is_suspended', false); // Only exclude suspended users
 
-        if (profilesError) throw profilesError;
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          throw profilesError;
+        }
 
-        // Combine profiles with roles
+        // Combine profiles with roles - include all users even if profile is incomplete
         const usersWithRoles: ChatUser[] = [];
         
-        for (const profile of profiles || []) {
-          const roleData = allRoles.find(r => r.user_id === profile.id);
-          if (roleData && profile.name) {
+        for (const role of allRoles) {
+          // Skip current user
+          if (role.user_id === user.id) continue;
+          
+          const profile = profiles?.find(p => p.id === role.user_id);
+          
+          // Include user if they have a profile (with or without name)
+          if (profile) {
             usersWithRoles.push({
               id: profile.id,
-              name: profile.name,
+              name: profile.name || 'User',
               email: '',
               avatar: profile.avatar || undefined,
-              role: roleData.role || 'student',
+              role: role.role || 'student',
               isOnline: false
             });
           }
         }
 
+        console.log('Loaded users for chat:', usersWithRoles.length);
         setUsers(usersWithRoles);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -906,6 +925,50 @@ const Messages = () => {
     }
   };
 
+  // Task A: Delete group handler
+  const handleDeleteGroup = async () => {
+    if (!selectedGroup || !user) return;
+    
+    // Only creator can delete
+    if (selectedGroup.created_by !== user.id) {
+      toast.error('Only the group creator can delete this group');
+      return;
+    }
+
+    try {
+      // Delete all members first
+      await supabase.from('chat_group_members').delete().eq('group_id', selectedGroup.id);
+      
+      // Delete all messages
+      await supabase.from('chat_group_messages').delete().eq('group_id', selectedGroup.id);
+      
+      // Delete the group
+      const { error } = await supabase.from('chat_groups').delete().eq('id', selectedGroup.id);
+      
+      if (error) throw error;
+      
+      toast.success('Group deleted successfully');
+      setSelectedGroup(null);
+      setShowDeleteGroupDialog(false);
+      fetchGroups();
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast.error('Failed to delete group');
+    }
+  };
+
+  // Task B: Start group call
+  const startGroupCall = (type: 'audio' | 'video') => {
+    if (!selectedGroup) return;
+    
+    toast.info(`Starting ${type} call with ${selectedGroup.members.length} members...`);
+    setGroupCallActive({ type });
+    
+    // In a real implementation, this would integrate with WebRTC or a calling service
+    // For now, show a notification to all group members
+    notifyCall(user?.name || 'User', selectedGroup.name, type);
+  };
+
   // Get available users for adding to group
   const getAvailableUsersForGroup = () => {
     if (!selectedGroup) return [];
@@ -1278,11 +1341,32 @@ const Messages = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Manage Members
                 </DropdownMenuItem>
-                {isGroupAdmin && (
-                  <DropdownMenuItem onClick={() => setShowAddMembers(true)}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add Members
-                  </DropdownMenuItem>
+              {isGroupAdmin && (
+                  <>
+                    <DropdownMenuItem onClick={() => setShowAddMembers(true)}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Members
+                    </DropdownMenuItem>
+                    {/* Task B: Group calls */}
+                    <DropdownMenuItem onClick={() => startGroupCall('audio')}>
+                      <PhoneCall className="h-4 w-4 mr-2" />
+                      Voice Call
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => startGroupCall('video')}>
+                      <VideoIcon className="h-4 w-4 mr-2" />
+                      Video Call
+                    </DropdownMenuItem>
+                    {/* Task A: Delete group option for creator/admin */}
+                    {selectedGroup.created_by === user.id && (
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => setShowDeleteGroupDialog(true)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Group
+                      </DropdownMenuItem>
+                    )}
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1480,6 +1564,58 @@ const Messages = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Task A: Delete Group Dialog */}
+        <Dialog open={showDeleteGroupDialog} onOpenChange={setShowDeleteGroupDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-destructive flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Delete Group
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{selectedGroup?.name}"? This will remove all messages and members permanently. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteGroupDialog(false)}>Cancel</Button>
+              <Button variant="destructive" onClick={handleDeleteGroup}>Delete Group</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Task B: Group Call Active Indicator */}
+        {groupCallActive && (
+          <Dialog open={!!groupCallActive} onOpenChange={() => setGroupCallActive(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {groupCallActive.type === 'video' ? <VideoIcon className="h-5 w-5" /> : <PhoneCall className="h-5 w-5" />}
+                  Group {groupCallActive.type === 'video' ? 'Video' : 'Voice'} Call
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedGroup?.members.length || 0} participants in this call
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col items-center py-6">
+                <div className="animate-pulse">
+                  <Avatar className="h-24 w-24 bg-primary">
+                    <AvatarFallback className="text-primary-foreground">
+                      <Users className="h-10 w-10" />
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                <h3 className="text-xl font-semibold mt-4">{selectedGroup?.name}</h3>
+                <p className="text-muted-foreground">Call in progress...</p>
+              </div>
+              <DialogFooter className="flex justify-center">
+                <Button variant="destructive" onClick={() => setGroupCallActive(null)} className="rounded-full h-14 w-14">
+                  <X className="h-6 w-6" />
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     );
   }

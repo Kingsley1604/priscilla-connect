@@ -150,14 +150,17 @@ const TeacherManagement = () => {
     }
   };
 
+  // Task I: Filter by Teacher ID, Email, and Phone number
   // Task M: Filter by admin's sector first, then by user-selected filter
   const filteredTeachers = teachers.filter(teacher => {
-    const matchesSearch = teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      teacher.teacher_id.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = 
+      teacher.teacher_id.toLowerCase().includes(searchLower) ||
+      teacher.email.toLowerCase().includes(searchLower) ||
+      (teacher.phone || '').toLowerCase().includes(searchLower);
     
     // If admin has a sector, only show teachers from that sector
-    const matchesAdminSector = !adminSector || adminSector === 'both' || teacher.sector === adminSector;
+    const matchesAdminSector = !adminSector || adminSector === 'both' || teacher.sector === adminSector || teacher.sector === 'both';
     
     // Then apply user's filter selection
     const matchesSectorFilter = sectorFilter === "all" || teacher.sector === sectorFilter;
@@ -207,7 +210,7 @@ const TeacherManagement = () => {
                 <div className="relative w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search teachers..."
+                    placeholder="Search by ID, Email or Phone..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
