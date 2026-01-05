@@ -1,13 +1,15 @@
 import { useAuth } from './useAuth';
 
-// Define which class levels belong to which sector
+// Task D & E: Define which class levels belong to which sector
 const PRIMARY_LEVELS = [
+  'Play Group 1', 'Play Group 2',
   'Nursery 1', 'Nursery 2',
   'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'
 ];
 
 const SECONDARY_LEVELS = [
   'JSS 1', 'JSS 2', 'JSS 3',
+  'SS 1', 'SS 2', 'SS 3',
   'SSS 1', 'SSS 2', 'SSS 3'
 ];
 

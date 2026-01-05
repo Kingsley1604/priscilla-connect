@@ -249,17 +249,17 @@ const Dashboard = ({
       <Icon className="h-5 w-5" />
       <span className="font-medium">{label}</span>
     </button>;
-  return <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-3 sm:px-6 shadow-medium">
+  return <div className="min-h-screen bg-background overflow-x-hidden">
+      {/* Header - Task M: Mobile responsiveness fix */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-3 sm:py-6 px-3 sm:px-6 shadow-medium overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="bg-white/20 p-2 sm:p-3 rounded-lg backdrop-blur-sm py-0 px-0">
-              <img src={priscillaLogo} alt="Priscilla Connect" className="h-8 w-8 sm:h-12 sm:w-12 object-contain" />
+          <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+            <div className="bg-white/20 p-1.5 sm:p-3 rounded-lg backdrop-blur-sm flex-shrink-0">
+              <img src={priscillaLogo} alt="Priscilla Connect" className="h-7 w-7 sm:h-12 sm:w-12 object-contain" />
             </div>
-            <div>
-              <h1 className="text-lg sm:text-2xl md:text-3xl font-bold">Priscilla Connect</h1>
-              <p className="text-white/90 text-xs sm:text-sm md:text-base">Empowering Education Together</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-2xl md:text-3xl font-bold truncate">Priscilla Connect</h1>
+              <p className="text-white/90 text-[10px] sm:text-sm md:text-base truncate">Empowering Education Together</p>
             </div>
           </div>
           
@@ -343,16 +343,18 @@ const Dashboard = ({
                   navigate(userRole === 'teacher' ? '/teacher/profile-options' : getProfilePath());
                 }} />
                   
-                  {/* Notifications for mobile - admins and teachers */}
+                  {/* Task H: Fix mobile notifications - single notification area */}
                   {(userRole === 'admin' || userRole === 'teacher') && (
-                    <div className="px-4 py-3">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Bell className="h-5 w-5" />
-                        <span className="font-medium">Notifications</span>
-                      </div>
-                      <div className="ml-8">
-                        {userRole === 'teacher' && <TeacherExamNotifications />}
-                        <AdminNotificationSystem />
+                    <div className="px-4 py-3 border-t border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Bell className="h-5 w-5" />
+                          <span className="font-medium">Notifications</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {userRole === 'teacher' && <TeacherExamNotifications />}
+                          {userRole === 'admin' && <AdminNotificationSystem />}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -378,14 +380,14 @@ const Dashboard = ({
         </div>
       </header>
 
-      {/* Welcome Section */}
-      <section className="py-4 sm:py-6 md:py-8 px-3 sm:px-4 md:px-6">
+      {/* Welcome Section - Task M: Mobile responsiveness fix */}
+      <section className="py-3 sm:py-6 md:py-8 px-3 sm:px-4 md:px-6 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-6 sm:mb-8">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground mb-2">
+          <div className="text-center mb-4 sm:mb-8">
+            <h2 className="text-base sm:text-xl md:text-2xl font-bold text-foreground mb-1 sm:mb-2 truncate px-2">
               Welcome back, {userName.split(' ')[0]}! 👋
             </h2>
-            <p className="text-muted-foreground text-sm sm:text-base">
+            <p className="text-muted-foreground text-xs sm:text-base">
               {userRole === 'student' && "Ready to learn something amazing today?"}
               {userRole === 'teacher' && "Ready to inspire young minds today?"}
               {userRole === 'admin' && "Let's make education better together."}
@@ -442,28 +444,28 @@ const Dashboard = ({
         </div>
       </section>
 
-      {/* Modules Grid */}
-      <section className="pb-8 sm:pb-10 md:pb-12 px-3 sm:px-4 md:px-6">
+      {/* Modules Grid - Task M: Mobile responsiveness fix */}
+      <section className="pb-6 sm:pb-10 md:pb-12 px-3 sm:px-4 md:px-6 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
-          <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-4 sm:mb-6 text-foreground">Your Dashboard</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+          <h3 className="text-sm sm:text-lg md:text-xl font-semibold mb-3 sm:mb-6 text-foreground">Your Dashboard</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-4 md:gap-6">
             {modules.map((module, index) => <Link key={module.title} to={module.disabled ? "#" : module.path || "#"} className={module.disabled ? "pointer-events-none" : ""}>
-                <Card className={`group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft ${module.disabled ? 'opacity-60' : ''}`}>
-                  <CardHeader className="pb-2 sm:pb-4 p-3 sm:p-4">
+                <Card className={`group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft ${module.disabled ? 'opacity-60' : ''} h-full`}>
+                  <CardHeader className="pb-1 sm:pb-4 p-2 sm:p-4">
                     <div className="flex items-center justify-between">
-                      <div className={`p-2 sm:p-3 rounded-lg ${module.color} shadow-soft ${module.disabled ? 'opacity-70' : ''}`}>
+                      <div className={`p-1.5 sm:p-3 rounded-lg ${module.color} shadow-soft ${module.disabled ? 'opacity-70' : ''}`}>
                         <module.icon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
                       </div>
-                      <Badge variant="outline" className={`text-xs hidden sm:inline-flex ${module.disabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                      <Badge variant="outline" className={`text-[10px] sm:text-xs hidden sm:inline-flex ${module.disabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                         {module.disabled ? "Coming Soon" : "Open"}
                       </Badge>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-4 pt-0">
-                    <CardTitle className={`text-sm sm:text-base md:text-lg mb-1 sm:mb-2 transition-colors line-clamp-1 ${module.disabled ? 'text-muted-foreground' : 'group-hover:text-primary'}`}>
+                  <CardContent className="p-2 sm:p-4 pt-0">
+                    <CardTitle className={`text-xs sm:text-base md:text-lg mb-0.5 sm:mb-2 transition-colors line-clamp-1 ${module.disabled ? 'text-muted-foreground' : 'group-hover:text-primary'}`}>
                       {module.title}
                     </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm line-clamp-2">{module.description}</CardDescription>
+                    <CardDescription className="text-[10px] sm:text-sm line-clamp-2">{module.description}</CardDescription>
                   </CardContent>
                 </Card>
               </Link>)}

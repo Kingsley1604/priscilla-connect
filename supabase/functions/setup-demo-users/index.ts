@@ -6,25 +6,44 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Task J & K: Updated demo users with sector assignments
 const DEMO_USERS = [
   { 
     email: 'demo.student@priscilla.edu', 
     password: 'Demo@Student2025', 
     role: 'student',
-    name: 'Demo Student'
+    name: 'Demo Student',
+    sector: null
   },
   { 
     email: 'demo.teacher@priscilla.edu', 
     password: 'Demo@Teacher2025', 
     role: 'teacher',
-    name: 'Demo Teacher'
+    name: 'Demo Primary Teacher',
+    sector: 'primary'
+  },
+  { 
+    email: 'demo.secondary.teacher@priscilla.edu', 
+    password: 'Demo@SecTeacher2025', 
+    role: 'teacher',
+    name: 'Demo Secondary Teacher',
+    sector: 'secondary'
   },
   { 
     email: 'demo.admin@priscilla.edu', 
     password: 'Demo@Admin2025', 
     role: 'admin',
-    name: 'Demo Admin',
-    department: 'Information Technology Department'
+    name: 'Demo Primary Admin',
+    department: 'Primary Section Administration',
+    sector: 'primary'
+  },
+  { 
+    email: 'demo.secondary.admin@priscilla.edu', 
+    password: 'Demo@SecAdmin2025', 
+    role: 'admin',
+    name: 'Demo Secondary Admin',
+    department: 'Secondary Section Administration',
+    sector: 'secondary'
   },
 ];
 
@@ -52,7 +71,17 @@ serve(async (req) => {
       const existingUser = existingUsers?.users?.find(u => u.email === user.email);
       
       if (existingUser) {
-        results.push({ email: user.email, status: 'already_exists' });
+        // Update existing user's profile with sector
+        await supabaseAdmin
+          .from('profiles')
+          .update({ 
+            name: user.name,
+            sector: user.sector,
+            department: user.department || null
+          })
+          .eq('id', existingUser.id);
+        
+        results.push({ email: user.email, status: 'updated' });
         continue;
       }
 
@@ -64,13 +93,22 @@ serve(async (req) => {
         user_metadata: {
           name: user.name,
           role: user.role,
-          department: user.department || null
+          department: user.department || null,
+          sector: user.sector
         }
       });
 
       if (createError) {
         results.push({ email: user.email, status: 'error', error: createError.message });
         continue;
+      }
+
+      // Update profile with sector
+      if (newUser.user) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ sector: user.sector })
+          .eq('id', newUser.user.id);
       }
 
       results.push({ email: user.email, status: 'created', userId: newUser.user?.id });
