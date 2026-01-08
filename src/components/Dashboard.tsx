@@ -335,26 +335,20 @@ const Dashboard = ({
                 
                 <div className="p-2 space-y-1">
                   <MobileMenuItem icon={User} label="Profile" onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate(getProfilePath());
-                }} />
+                    setMobileMenuOpen(false);
+                    navigate(getProfilePath());
+                  }} />
                   <MobileMenuItem icon={Settings} label="Settings" onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate(userRole === 'teacher' ? '/teacher/profile-options' : getProfilePath());
-                }} />
+                    setMobileMenuOpen(false);
+                    navigate(userRole === 'teacher' ? '/teacher/profile-options' : getProfilePath());
+                  }} />
                   
-                  {/* Task H: Fix mobile notifications - single notification area */}
+                  {/* Task B: Mobile notifications - single bell only, wrapped in clickable area */}
                   {(userRole === 'admin' || userRole === 'teacher') && (
                     <div className="px-4 py-3 border-t border-b">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Bell className="h-5 w-5" />
-                          <span className="font-medium">Notifications</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {userRole === 'teacher' && <TeacherExamNotifications />}
-                          {userRole === 'admin' && <AdminNotificationSystem />}
-                        </div>
+                        <span className="font-medium">Notifications</span>
+                        {userRole === 'teacher' ? <TeacherExamNotifications /> : <AdminNotificationSystem />}
                       </div>
                     </div>
                   )}

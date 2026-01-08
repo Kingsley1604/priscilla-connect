@@ -63,6 +63,7 @@ import HomeworkAssignment from "./pages/teacher/HomeworkAssignment";
 import InventoryManager from "./pages/admin/InventoryManager";
 import ManageStoreEnhanced from "./pages/admin/ManageStoreEnhanced";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import Error404 from "./pages/errors/Error404";
 import Error403 from "./pages/errors/Error403";
 import Error401 from "./pages/errors/Error401";
@@ -132,6 +133,7 @@ const App = () => (
             <Route path="/admin/manage-priscilla-tube" element={<ManagePriscillaTube />} />
             <Route path="/admin/system-settings" element={<SystemSettings />} />
             <Route path="/admin/pass-announcement" element={<PassAnnouncement />} />
+            <Route path="/admin/super-admin" element={<SuperAdminDashboard />} />
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />
             <Route path="/reports/midterm-result" element={<MidtermResult />} />

@@ -4,14 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Send } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 const EnhancedUploadResult = () => {
   const navigate = useNavigate();
+  const { adminSector, canManageClassLevel, isSuperAdmin } = useAdminSector();
+  
   const [formData, setFormData] = useState({
     academicSession: new Date().getFullYear() + "/" + (new Date().getFullYear() + 1),
     totalTimeOpened: "",
@@ -21,39 +22,73 @@ const EnhancedUploadResult = () => {
     grade: ""
   });
 
+  // Task H: Filter class levels based on teacher's sector
+  // Primary teachers can only see Primary classes
+  // Secondary teachers can only see Secondary classes
+  const getClassLevelOptions = () => {
+    if (isSuperAdmin || !adminSector || adminSector === 'both') {
+      return [
+        { value: "Primary", label: "Primary" },
+        { value: "Junior Secondary", label: "Junior Secondary" },
+        { value: "Senior Secondary", label: "Senior Secondary" }
+      ];
+    }
+    
+    if (adminSector === 'primary') {
+      return [{ value: "Primary", label: "Primary" }];
+    }
+    
+    if (adminSector === 'secondary') {
+      return [
+        { value: "Junior Secondary", label: "Junior Secondary" },
+        { value: "Senior Secondary", label: "Senior Secondary" }
+      ];
+    }
+    
+    return [];
+  };
+
   const getGradeOptions = () => {
     const { classLevel } = formData;
     if (classLevel === "Primary") {
-      return ["Play Group 1", "Play Group 2", "Nursery One", "Nursery Two", "First Grade", "Second Grade", "Third Grade", "Fourth Grade", "Fifth Grade", "Sixth Grade"];
+      return [
+        "Play Group 1", "Play Group 2", 
+        "Nursery One", "Nursery Two", 
+        "First Grade", "Second Grade", "Third Grade", 
+        "Fourth Grade", "Fifth Grade", "Sixth Grade"
+      ];
     } else if (classLevel === "Junior Secondary") {
-      return ["Seventh Grade", "Eighth Grade", "Nineth Grade"];
+      return ["Seventh Grade", "Eighth Grade", "Ninth Grade"];
     } else if (classLevel === "Senior Secondary") {
       return ["Tenth Grade", "Eleventh Grade", "Twelfth Grade"];
     }
     return [];
   };
 
+  const classLevelOptions = getClassLevelOptions();
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background p-4 sm:p-6 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        {/* Task A: Fixed heading */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Link to="/reports">
-            <Button variant="outline">
+            <Button variant="outline" size="sm" className="w-fit">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              <span className="hidden sm:inline">Back</span>
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">Upload Result</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold truncate">Upload Result</h1>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Result Information</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-lg sm:text-xl">Result Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <Label>Academic Session</Label>
+                <Label className="text-sm">Academic Session</Label>
                 <Input 
                   value={formData.academicSession} 
                   onChange={(e) => setFormData({...formData, academicSession: e.target.value})}
@@ -61,7 +96,7 @@ const EnhancedUploadResult = () => {
                 />
               </div>
               <div>
-                <Label>Total Time School Opened</Label>
+                <Label className="text-sm">Total Time School Opened</Label>
                 <Input 
                   type="number"
                   placeholder="e.g., 180 days"
@@ -70,7 +105,7 @@ const EnhancedUploadResult = () => {
                 />
               </div>
               <div>
-                <Label>Result Type</Label>
+                <Label className="text-sm">Result Type</Label>
                 <Select value={formData.resultType} onValueChange={(v) => setFormData({...formData, resultType: v})}>
                   <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                   <SelectContent>
@@ -80,7 +115,7 @@ const EnhancedUploadResult = () => {
                 </Select>
               </div>
               <div>
-                <Label>Term</Label>
+                <Label className="text-sm">Term</Label>
                 <Select value={formData.term} onValueChange={(v) => setFormData({...formData, term: v})}>
                   <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
                   <SelectContent>
@@ -91,19 +126,28 @@ const EnhancedUploadResult = () => {
                 </Select>
               </div>
               <div>
-                <Label>Class Level</Label>
-                <Select value={formData.classLevel} onValueChange={(v) => setFormData({...formData, classLevel: v, grade: ""})}>
+                <Label className="text-sm">Class Level</Label>
+                <Select 
+                  value={formData.classLevel} 
+                  onValueChange={(v) => setFormData({...formData, classLevel: v, grade: ""})}
+                >
                   <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Primary">Primary</SelectItem>
-                    <SelectItem value="Junior Secondary">Junior Secondary</SelectItem>
-                    <SelectItem value="Senior Secondary">Senior Secondary</SelectItem>
+                    {classLevelOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Grade</Label>
-                <Select value={formData.grade} onValueChange={(v) => setFormData({...formData, grade: v})} disabled={!formData.classLevel}>
+                <Label className="text-sm">Grade</Label>
+                <Select 
+                  value={formData.grade} 
+                  onValueChange={(v) => setFormData({...formData, grade: v})} 
+                  disabled={!formData.classLevel}
+                >
                   <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
                   <SelectContent>
                     {getGradeOptions().map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
