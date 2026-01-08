@@ -93,6 +93,13 @@ const LoginForm = () => {
 
         const userRole = roleData?.role;
         
+        // Get profile for super admin check
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('name, is_super_admin, sector')
+          .eq('id', data.user.id)
+          .single();
+        
         // Check maintenance mode from database
         const { data: maintenanceData } = await supabase
           .from('system_settings')
@@ -101,8 +108,10 @@ const LoginForm = () => {
           .single();
 
         const maintenanceMode = maintenanceData?.setting_value === 'true';
+        const isSuperAdmin = profileData?.is_super_admin === true;
 
-        if (maintenanceMode && userRole !== 'admin') {
+        // Super admins can always login, even during maintenance
+        if (maintenanceMode && userRole !== 'admin' && !isSuperAdmin) {
           // Sign them out and show error
           await supabase.auth.signOut();
           setErrors({ general: 'System is under maintenance. Please try again later.' });
@@ -110,12 +119,53 @@ const LoginForm = () => {
           return;
         }
 
+        // Send login notification to super admin
+        await sendLoginNotification(data.user.id, profileData?.name || data.user.email || 'Unknown User');
+
         toast.success('Login successful!');
         // The onAuthStateChange listener will handle the redirect
       }
     } catch (error: any) {
       setErrors({ general: 'An unexpected error occurred. Please try again.' });
       setIsSubmitting(false);
+    }
+  };
+
+  // Function to send login notification with device/location info
+  const sendLoginNotification = async (userId: string, userName: string) => {
+    try {
+      // Detect device
+      const userAgent = navigator.userAgent;
+      let device = 'Unknown Device';
+      if (/Android/i.test(userAgent)) device = 'Android Device';
+      else if (/iPhone|iPad|iPod/i.test(userAgent)) device = 'iOS Device';
+      else if (/Windows/i.test(userAgent)) device = 'Windows PC';
+      else if (/Macintosh/i.test(userAgent)) device = 'Mac';
+      else if (/Linux/i.test(userAgent)) device = 'Linux PC';
+
+      // Get approximate location from IP
+      let location = 'Location unavailable';
+      try {
+        const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+        const data = await response.json();
+        if (data.city && data.country_name) {
+          location = `${data.city}, ${data.country_name}`;
+        }
+      } catch {
+        // Location unavailable
+      }
+
+      // Insert notification to admin_notifications table
+      await supabase.from('admin_notifications').insert({
+        title: 'User Login',
+        message: `${userName} logged in from ${device} at ${location}. Time: ${new Date().toLocaleString()}`,
+        type: 'login'
+      });
+    } catch (error) {
+      // Silent fail - don't block login for notification errors
+      if (import.meta.env.DEV) {
+        console.error('Error sending login notification:', error);
+      }
     }
   };
 

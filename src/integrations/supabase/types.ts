@@ -313,12 +313,14 @@ export type Database = {
           approved_by: string | null
           created_at: string
           created_by: string
+          creator_sector: string | null
           date: string
           description: string | null
           id: string
           location: string | null
           status: string
           target_audience: string[] | null
+          target_sectors: string[] | null
           time: string | null
           title: string
           type: string
@@ -329,12 +331,14 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           created_by: string
+          creator_sector?: string | null
           date: string
           description?: string | null
           id?: string
           location?: string | null
           status?: string
           target_audience?: string[] | null
+          target_sectors?: string[] | null
           time?: string | null
           title: string
           type?: string
@@ -345,12 +349,14 @@ export type Database = {
           approved_by?: string | null
           created_at?: string
           created_by?: string
+          creator_sector?: string | null
           date?: string
           description?: string | null
           id?: string
           location?: string | null
           status?: string
           target_audience?: string[] | null
+          target_sectors?: string[] | null
           time?: string | null
           title?: string
           type?: string

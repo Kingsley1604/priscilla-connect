@@ -11,6 +11,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
+// Function to send signup notification
+const sendSignupNotification = async (userId: string, userName: string, email: string) => {
+  try {
+    const userAgent = navigator.userAgent;
+    let device = 'Unknown Device';
+    if (/Android/i.test(userAgent)) device = 'Android Device';
+    else if (/iPhone|iPad|iPod/i.test(userAgent)) device = 'iOS Device';
+    else if (/Windows/i.test(userAgent)) device = 'Windows PC';
+    else if (/Macintosh/i.test(userAgent)) device = 'Mac';
+    else if (/Linux/i.test(userAgent)) device = 'Linux PC';
+
+    let location = 'Location unavailable';
+    try {
+      const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+      const data = await response.json();
+      if (data.city && data.country_name) {
+        location = `${data.city}, ${data.country_name}`;
+      }
+    } catch {}
+
+    await supabase.from('admin_notifications').insert({
+      title: 'New User Signup',
+      message: `${userName} (${email}) created an account from ${device} at ${location}. Time: ${new Date().toLocaleString()}`,
+      type: 'signup'
+    });
+  } catch {}
+};
+
 interface SignupFormProps {
   onSwitchToLogin?: () => void;
 }
@@ -103,10 +131,14 @@ const SignupForm = ({ onSwitchToLogin }: SignupFormProps) => {
       // Check if email confirmation is required
       if (data.session) {
         // User is immediately signed in (email confirmation disabled)
+        // Send signup notification
+        await sendSignupNotification(data.user.id, formData.fullName, formData.email);
         toast.success("Account created successfully!");
         window.location.href = '/student/profile-completion';
       } else {
         // Email confirmation required
+        // Still send notification
+        await sendSignupNotification(data.user.id, formData.fullName, formData.email);
         setSuccessMessage("Account created! Please check your email to verify your account, then sign in.");
         toast.success("Account created! Please check your email to verify your account.");
       }
