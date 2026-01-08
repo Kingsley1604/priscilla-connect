@@ -6,14 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Task J & K: Updated demo users with sector assignments
+// Task F, J, K: Complete demo users with all sectors including secondary student
 const DEMO_USERS = [
+  // Primary sector demo users
   { 
     email: 'demo.student@priscilla.edu', 
     password: 'Demo@Student2025', 
     role: 'student',
-    name: 'Demo Student',
-    sector: null
+    name: 'Demo Primary Student',
+    sector: 'primary',
+    class_grade: 'Primary 3'
   },
   { 
     email: 'demo.teacher@priscilla.edu', 
@@ -23,19 +25,28 @@ const DEMO_USERS = [
     sector: 'primary'
   },
   { 
-    email: 'demo.secondary.teacher@priscilla.edu', 
-    password: 'Demo@SecTeacher2025', 
-    role: 'teacher',
-    name: 'Demo Secondary Teacher',
-    sector: 'secondary'
-  },
-  { 
     email: 'demo.admin@priscilla.edu', 
     password: 'Demo@Admin2025', 
     role: 'admin',
     name: 'Demo Primary Admin',
     department: 'Primary Section Administration',
     sector: 'primary'
+  },
+  // Secondary sector demo users
+  { 
+    email: 'demo.secondary.student@priscilla.edu', 
+    password: 'Demo@SecStudent2025', 
+    role: 'student',
+    name: 'Demo Secondary Student',
+    sector: 'secondary',
+    class_grade: 'JSS 2'
+  },
+  { 
+    email: 'demo.secondary.teacher@priscilla.edu', 
+    password: 'Demo@SecTeacher2025', 
+    role: 'teacher',
+    name: 'Demo Secondary Teacher',
+    sector: 'secondary'
   },
   { 
     email: 'demo.secondary.admin@priscilla.edu', 
@@ -77,7 +88,8 @@ serve(async (req) => {
           .update({ 
             name: user.name,
             sector: user.sector,
-            department: user.department || null
+            department: user.department || null,
+            class_grade: user.class_grade || null
           })
           .eq('id', existingUser.id);
         
@@ -103,11 +115,14 @@ serve(async (req) => {
         continue;
       }
 
-      // Update profile with sector
+      // Update profile with sector and class_grade
       if (newUser.user) {
         await supabaseAdmin
           .from('profiles')
-          .update({ sector: user.sector })
+          .update({ 
+            sector: user.sector,
+            class_grade: user.class_grade || null
+          })
           .eq('id', newUser.user.id);
       }
 
