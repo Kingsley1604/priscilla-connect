@@ -52,10 +52,29 @@ const CalendarPage = () => {
   
   const canManageEvents = userRole === 'admin' || userRole === 'teacher';
 
+  // Get current user's sector for filtering
+  const [userSector, setUserSector] = useState<string | null>(null);
+
+  // Load user sector
+  useEffect(() => {
+    const loadUserSector = async () => {
+      if (!user?.id) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('sector')
+        .eq('id', user.id)
+        .single();
+      
+      setUserSector(profile?.sector || null);
+    };
+    loadUserSector();
+  }, [user?.id]);
+
   // Load events from database
   useEffect(() => {
     loadEvents();
-  }, [user]);
+  }, [user, userSector]);
 
   const loadEvents = async () => {
     if (!user) return;
@@ -129,7 +148,9 @@ const CalendarPage = () => {
         type: newEvent.type,
         created_by: user.id,
         status: userRole === 'admin' ? 'approved' : 'pending',
-        target_audience: newEvent.target_audience
+        target_audience: newEvent.target_audience,
+        creator_sector: userSector || null,  // Add sector for filtering
+        target_sectors: userSector ? [userSector] : []  // Target same sector users
       };
 
       const { data, error } = await supabase
@@ -252,17 +273,42 @@ const CalendarPage = () => {
     }
   };
 
-  // Filter events based on user role, status, and target audience
+  // Filter events based on user role, status, target audience, AND sector
   const visibleEvents = events.filter(event => {
+    // Admins see all events
     if (userRole === 'admin') return true;
+    
+    // Users see their own events
     if (event.created_by === user?.id) return true;
+    
+    // Only approved events are visible to non-admins
     if (event.status !== 'approved') return false;
     
     // Check target audience
     const targetAudience = (event as any).target_audience || ['student', 'teacher'];
-    if (userRole === 'student' && targetAudience.includes('student')) return true;
-    if (userRole === 'teacher' && targetAudience.includes('teacher')) return true;
-    return false;
+    const isInTargetAudience = (userRole === 'student' && targetAudience.includes('student')) ||
+                               (userRole === 'teacher' && targetAudience.includes('teacher'));
+    
+    if (!isInTargetAudience) return false;
+    
+    // SECTOR FILTERING: Check if event creator's sector matches the user's sector
+    const eventCreatorSector = (event as any).creator_sector;
+    const eventTargetSectors = (event as any).target_sectors || [];
+    
+    // If user has a sector, check if event is for their sector
+    if (userSector) {
+      // If event has a creator sector, it must match user's sector
+      if (eventCreatorSector && eventCreatorSector !== userSector) {
+        return false;
+      }
+      
+      // If event has target sectors, user's sector must be included
+      if (eventTargetSectors.length > 0 && !eventTargetSectors.includes(userSector)) {
+        return false;
+      }
+    }
+    
+    return true;
   });
 
   const pendingEvents = events.filter(event => event.status === 'pending');
