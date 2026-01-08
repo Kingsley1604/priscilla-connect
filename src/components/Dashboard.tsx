@@ -263,11 +263,13 @@ const Dashboard = ({
             </div>
           </div>
           
-          {/* Desktop Navigation - Hidden on mobile */}
+          {/* Desktop Navigation - Completely hidden on mobile screens */}
           <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
             <ThemeToggle />
-            {userRole === 'teacher' && <TeacherExamNotifications />}
-            {userRole === 'admin' && <AdminNotificationSystem />}
+            <div className="hidden sm:block">
+              {userRole === 'teacher' && <TeacherExamNotifications />}
+              {userRole === 'admin' && <AdminNotificationSystem />}
+            </div>
             {onLogout && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
