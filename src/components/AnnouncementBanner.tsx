@@ -3,12 +3,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, Megaphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Announcement {
   id: string;
   title: string;
   content: string;
   created_at: string;
+  creator_sector?: string;
 }
 
 interface AnnouncementBannerProps {
@@ -16,18 +18,38 @@ interface AnnouncementBannerProps {
 }
 
 const AnnouncementBanner = ({ userRole }: AnnouncementBannerProps) => {
+  const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [dismissedAnnouncements, setDismissedAnnouncements] = useState<string[]>([]);
+  const [userSector, setUserSector] = useState<string | null>(null);
+
+  // Load user sector
+  useEffect(() => {
+    const loadUserSector = async () => {
+      if (!user?.id) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('sector')
+        .eq('id', user.id)
+        .single();
+      
+      setUserSector(profile?.sector || null);
+    };
+    loadUserSector();
+  }, [user?.id]);
 
   useEffect(() => {
-    fetchAnnouncements();
-  }, [userRole]);
+    if (userSector !== null || !user?.id) {
+      fetchAnnouncements();
+    }
+  }, [userRole, userSector, user?.id]);
 
   const fetchAnnouncements = async () => {
     try {
       const { data, error } = await supabase
         .from('announcements')
-        .select('id, title, content, created_at, target_roles')
+        .select('id, title, content, created_at, target_roles, creator_sector')
         .eq('is_active', true)
         .contains('target_roles', [userRole])
         .order('created_at', { ascending: false })
@@ -35,8 +57,19 @@ const AnnouncementBanner = ({ userRole }: AnnouncementBannerProps) => {
 
       if (error) throw error;
       
+      // Filter announcements by sector
+      let filteredData = data || [];
+      if (userSector && filteredData.length > 0) {
+        filteredData = filteredData.filter(announcement => {
+          // If announcement has no sector, show to everyone
+          if (!announcement.creator_sector) return true;
+          // Otherwise, only show if sector matches
+          return announcement.creator_sector === userSector;
+        });
+      }
+      
       // If no announcements, show demo announcement
-      if (!data || data.length === 0) {
+      if (filteredData.length === 0) {
         setAnnouncements([{
           id: 'demo-announcement',
           title: '🎉 Welcome to Priscilla Connect!',
@@ -44,7 +77,7 @@ const AnnouncementBanner = ({ userRole }: AnnouncementBannerProps) => {
           created_at: new Date().toISOString()
         }]);
       } else {
-        setAnnouncements(data);
+        setAnnouncements(filteredData);
       }
     } catch (error) {
       console.error('Error fetching announcements:', error);

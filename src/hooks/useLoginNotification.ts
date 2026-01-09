@@ -13,22 +13,34 @@ export const useLoginNotification = () => {
       else if (/Macintosh/i.test(userAgent)) device = 'Mac';
       else if (/Linux/i.test(userAgent)) device = 'Linux PC';
 
-      // Get approximate location from IP
+      // Get browser info
+      let browser = 'Unknown Browser';
+      if (/Chrome/i.test(userAgent) && !/Edg/i.test(userAgent)) browser = 'Chrome';
+      else if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) browser = 'Safari';
+      else if (/Firefox/i.test(userAgent)) browser = 'Firefox';
+      else if (/Edg/i.test(userAgent)) browser = 'Edge';
+      else if (/Opera|OPR/i.test(userAgent)) browser = 'Opera';
+
+      // Get IP and location info
       let location = 'Location unavailable';
+      let ipAddress = 'IP unavailable';
       try {
-        const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+        const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
         const data = await response.json();
+        if (data.ip) ipAddress = data.ip;
         if (data.city && data.country_name) {
-          location = `${data.city}, ${data.country_name}`;
+          location = `${data.city}, ${data.region || ''}, ${data.country_name}`.replace(', ,', ',');
         }
       } catch {
-        // Location unavailable
+        // Location/IP unavailable - continue anyway
       }
 
-      // Insert notification to admin_notifications table
+      // Insert notification to admin_notifications table for super admin
+      const message = `${userName} logged in.\n📱 Device: ${device}\n🌐 Browser: ${browser}\n📍 Location: ${location}\n🔗 IP: ${ipAddress}\n⏰ Time: ${new Date().toLocaleString()}`;
+      
       await supabase.from('admin_notifications').insert({
-        title: 'User Login',
-        message: `${userName} logged in from ${device} at ${location}. Time: ${new Date().toLocaleString()}`,
+        title: '🔐 User Login',
+        message: message,
         type: 'login'
       });
     } catch (error) {
@@ -50,22 +62,34 @@ export const useLoginNotification = () => {
       else if (/Macintosh/i.test(userAgent)) device = 'Mac';
       else if (/Linux/i.test(userAgent)) device = 'Linux PC';
 
-      // Get approximate location from IP
+      // Get browser info
+      let browser = 'Unknown Browser';
+      if (/Chrome/i.test(userAgent) && !/Edg/i.test(userAgent)) browser = 'Chrome';
+      else if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) browser = 'Safari';
+      else if (/Firefox/i.test(userAgent)) browser = 'Firefox';
+      else if (/Edg/i.test(userAgent)) browser = 'Edge';
+      else if (/Opera|OPR/i.test(userAgent)) browser = 'Opera';
+
+      // Get IP and location info
       let location = 'Location unavailable';
+      let ipAddress = 'IP unavailable';
       try {
-        const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(3000) });
+        const response = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
         const data = await response.json();
+        if (data.ip) ipAddress = data.ip;
         if (data.city && data.country_name) {
-          location = `${data.city}, ${data.country_name}`;
+          location = `${data.city}, ${data.region || ''}, ${data.country_name}`.replace(', ,', ',');
         }
       } catch {
-        // Location unavailable
+        // Location/IP unavailable
       }
 
-      // Insert notification to admin_notifications table
+      // Insert notification to admin_notifications table for super admin
+      const message = `${userName} (${email}) created an account.\n📱 Device: ${device}\n🌐 Browser: ${browser}\n📍 Location: ${location}\n🔗 IP: ${ipAddress}\n⏰ Time: ${new Date().toLocaleString()}`;
+      
       await supabase.from('admin_notifications').insert({
-        title: 'New User Signup',
-        message: `${userName} (${email}) created an account from ${device} at ${location}. Time: ${new Date().toLocaleString()}`,
+        title: '🆕 New User Signup',
+        message: message,
         type: 'signup'
       });
     } catch (error) {
