@@ -47,6 +47,7 @@ const PassAnnouncement = () => {
         content: formData.content,
         target_roles: formData.target_roles,
         created_by: (await supabase.auth.getUser()).data.user?.id,
+        creator_sector: adminSector || null, // Add sector for filtering
       };
 
       const { error } = await supabase

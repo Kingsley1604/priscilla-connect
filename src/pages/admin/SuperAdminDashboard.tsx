@@ -318,6 +318,10 @@ const SuperAdminDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Button variant="outline" className="justify-start" onClick={() => navigate('/admin/manage-admins')}>
+                <Shield className="h-4 w-4 mr-2" />
+                Manage Admins
+              </Button>
               <Button variant="outline" className="justify-start" onClick={() => navigate('/admin/system-settings')}>
                 <Settings className="h-4 w-4 mr-2" />
                 System Settings

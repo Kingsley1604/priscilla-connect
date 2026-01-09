@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, AlertTriangle, X, MapPin, Monitor, ShoppingCart, MessageSquare, UserPlus, LogIn } from 'lucide-react';
+import { Bell, AlertTriangle, X, ShoppingCart, MessageSquare, UserPlus, LogIn, Eye, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,11 +18,24 @@ interface Notification {
   related_order_id?: string;
 }
 
+interface OrderDetails {
+  id: string;
+  items: any[];
+  total_amount: number;
+  status: string;
+  delivery_address: string | null;
+  phone_number: string | null;
+  notes: string | null;
+  order_date: string;
+}
+
 const AdminNotificationSystem = () => {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
+  const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
     if (!user || user.role !== 'admin') return;
@@ -146,6 +160,33 @@ const AdminNotificationSystem = () => {
     }
   };
 
+  const viewOrderDetails = async (orderId: string, notificationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('store_orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching order:', error);
+        return;
+      }
+
+      // Cast items to array
+      const orderData: OrderDetails = {
+        ...data,
+        items: Array.isArray(data.items) ? data.items : []
+      };
+
+      setSelectedOrder(orderData);
+      setIsOrderDialogOpen(true);
+      markAsRead(notificationId);
+    } catch (error) {
+      console.error('Error viewing order:', error);
+    }
+  };
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'order':
@@ -203,100 +244,214 @@ const AdminNotificationSystem = () => {
   }
 
   return (
-    <div className="relative">
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="relative"
-      >
-        <Bell className="h-5 w-5" />
-        {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-destructive text-destructive-foreground flex items-center justify-center">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </Badge>
-        )}
-      </Button>
+    <>
+      <div className="relative">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => setIsOpen(!isOpen)} 
+          className="relative text-white hover:bg-white/20"
+        >
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-destructive text-destructive-foreground flex items-center justify-center">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Badge>
+          )}
+        </Button>
 
-      {isOpen && (
-        <Card className="absolute top-12 right-0 w-80 sm:w-96 max-w-[calc(100vw-2rem)] z-50 shadow-lg border bg-background">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">Notifications</CardTitle>
-              <div className="flex items-center gap-1">
-                {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-7">
-                    Mark all read
+        {isOpen && (
+          <Card className="absolute top-12 right-0 w-80 sm:w-96 max-w-[calc(100vw-2rem)] z-[100] shadow-lg border bg-background">
+            <CardHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold">Notifications</CardTitle>
+                <div className="flex items-center gap-1">
+                  {unreadCount > 0 && (
+                    <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-7">
+                      Mark all read
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7">
+                    <X className="h-4 w-4" />
                   </Button>
-                )}
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7">
-                  <X className="h-4 w-4" />
-                </Button>
+                </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[400px]">
-              {isLoading ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  Loading notifications...
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No notifications yet</p>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {notifications.map(notification => (
-                    <div 
-                      key={notification.id} 
-                      className={`p-3 hover:bg-muted/50 transition-colors ${!notification.is_read ? 'bg-primary/5' : ''}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`flex-shrink-0 p-2 rounded-full ${getTypeColor(notification.type)}`}>
-                          {getTypeIcon(notification.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <h4 className="text-sm font-medium truncate">{notification.title}</h4>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {formatTime(notification.created_at)}
-                            </span>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[400px]">
+                {isLoading ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    Loading notifications...
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No notifications yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {notifications.map(notification => (
+                      <div 
+                        key={notification.id} 
+                        className={`p-3 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.is_read ? 'bg-primary/5' : ''}`}
+                        onClick={() => {
+                          if (notification.related_order_id) {
+                            viewOrderDetails(notification.related_order_id, notification.id);
+                          } else {
+                            markAsRead(notification.id);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`flex-shrink-0 p-2 rounded-full ${getTypeColor(notification.type)}`}>
+                            {getTypeIcon(notification.type)}
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                          
-                          <div className="flex items-center gap-2 mt-2">
-                            {!notification.is_read && (
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className="text-sm font-medium truncate">{notification.title}</h4>
+                              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                {formatTime(notification.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                            
+                            {notification.related_order_id && (
+                              <Button 
+                                variant="link" 
+                                size="sm" 
+                                className="h-6 px-0 text-xs text-primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  viewOrderDetails(notification.related_order_id!, notification.id);
+                                }}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View Order Details
+                              </Button>
+                            )}
+                            
+                            <div className="flex items-center gap-2 mt-2">
+                              {!notification.is_read && !notification.related_order_id && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    markAsRead(notification.id);
+                                  }} 
+                                  className="h-6 px-2 text-xs"
+                                >
+                                  Mark read
+                                </Button>
+                              )}
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={() => markAsRead(notification.id)} 
-                                className="h-6 px-2 text-xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification.id);
+                                }} 
+                                className="h-6 px-2 text-xs text-destructive hover:text-destructive"
                               >
-                                Mark read
+                                Delete
                               </Button>
-                            )}
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => deleteNotification(notification.id)} 
-                              className="h-6 px-2 text-xs text-destructive hover:text-destructive"
-                            >
-                              Delete
-                            </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Order Details Dialog */}
+      <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Order Details
+            </DialogTitle>
+            <DialogDescription>
+              View order information and delivery preferences
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Order ID</p>
+                  <p className="font-medium text-xs truncate">{selectedOrder.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={selectedOrder.status === 'completed' ? 'default' : 'secondary'}>
+                    {selectedOrder.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Order Date</p>
+                  <p className="font-medium">{new Date(selectedOrder.order_date).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="font-bold text-primary">₦{selectedOrder.total_amount.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-2">Delivery Information</p>
+                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Delivery Type</p>
+                    <Badge variant={selectedOrder.delivery_address ? 'default' : 'outline'}>
+                      {selectedOrder.delivery_address ? '🏠 Home Delivery' : '🏫 School Pickup'}
+                    </Badge>
+                  </div>
+                  {selectedOrder.delivery_address && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Address</p>
+                      <p className="text-sm">{selectedOrder.delivery_address}</p>
+                    </div>
+                  )}
+                  {selectedOrder.phone_number && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Phone</p>
+                      <p className="text-sm">{selectedOrder.phone_number}</p>
+                    </div>
+                  )}
+                  {selectedOrder.notes && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Notes</p>
+                      <p className="text-sm">{selectedOrder.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-2">Items Ordered</p>
+                <div className="space-y-2">
+                  {(Array.isArray(selectedOrder.items) ? selectedOrder.items : []).map((item: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{item.name || 'Item'}</span>
+                        <Badge variant="outline" className="text-xs">x{item.quantity || 1}</Badge>
+                      </div>
+                      <span className="text-sm">₦{(item.price || 0).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

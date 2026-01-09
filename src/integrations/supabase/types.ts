@@ -60,6 +60,7 @@ export type Database = {
           content: string
           created_at: string
           created_by: string
+          creator_sector: string | null
           id: string
           is_active: boolean
           target_roles: string[]
@@ -70,6 +71,7 @@ export type Database = {
           content: string
           created_at?: string
           created_by: string
+          creator_sector?: string | null
           id?: string
           is_active?: boolean
           target_roles?: string[]
@@ -80,6 +82,7 @@ export type Database = {
           content?: string
           created_at?: string
           created_by?: string
+          creator_sector?: string | null
           id?: string
           is_active?: boolean
           target_roles?: string[]
