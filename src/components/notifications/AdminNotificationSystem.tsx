@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, AlertTriangle, X, ShoppingCart, MessageSquare, UserPlus, LogIn, Eye, ExternalLink } from 'lucide-react';
+import { Bell, AlertTriangle, X, ShoppingCart, MessageSquare, UserPlus, LogIn, Eye, User, Phone, MapPin, Package, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -18,15 +19,26 @@ interface Notification {
   related_order_id?: string;
 }
 
+interface OrderItem {
+  id?: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image_url?: string;
+}
+
 interface OrderDetails {
   id: string;
-  items: any[];
+  items: OrderItem[];
   total_amount: number;
   status: string;
   delivery_address: string | null;
   phone_number: string | null;
   notes: string | null;
   order_date: string;
+  user_id: string;
+  customer_name?: string;
+  customer_email?: string;
 }
 
 const AdminNotificationSystem = () => {
@@ -37,8 +49,11 @@ const AdminNotificationSystem = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
 
+  // Allow both admin and teacher to see notifications
+  const canViewNotifications = user?.role === 'admin' || user?.role === 'teacher';
+
   const fetchNotifications = useCallback(async () => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || !canViewNotifications) return;
     
     setIsLoading(true);
     try {
@@ -59,7 +74,7 @@ const AdminNotificationSystem = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, canViewNotifications]);
 
   useEffect(() => {
     fetchNotifications();
@@ -173,10 +188,40 @@ const AdminNotificationSystem = () => {
         return;
       }
 
-      // Cast items to array
+      // Get customer profile info
+      let customerName = 'Unknown Customer';
+      let customerEmail = '';
+      
+      if (data.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.user_id)
+          .single();
+        
+        if (profile?.name) {
+          customerName = profile.name;
+        }
+      }
+
+      // Cast items to array with proper typing
+      const rawItems = Array.isArray(data.items) ? data.items : [];
+      const parsedItems: OrderItem[] = rawItems.map((item: unknown) => {
+        const i = item as Record<string, unknown>;
+        return {
+          id: (i.id as string) || '',
+          name: (i.name as string) || 'Unknown Item',
+          price: typeof i.price === 'number' ? i.price : 0,
+          quantity: typeof i.quantity === 'number' ? i.quantity : 1,
+          image_url: (i.image_url as string) || undefined
+        };
+      });
+
       const orderData: OrderDetails = {
         ...data,
-        items: Array.isArray(data.items) ? data.items : []
+        items: parsedItems,
+        customer_name: customerName,
+        customer_email: customerEmail
       };
 
       setSelectedOrder(orderData);
@@ -238,8 +283,8 @@ const AdminNotificationSystem = () => {
     return date.toLocaleDateString();
   };
 
-  // Only render for admin users
-  if (!user || user.role !== 'admin') {
+  // Render for admin and teacher users
+  if (!user || !canViewNotifications) {
     return null;
   }
 
@@ -368,83 +413,144 @@ const AdminNotificationSystem = () => {
         )}
       </div>
 
-      {/* Order Details Dialog */}
+      {/* Order Details Dialog - Full Details */}
       <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Order Details
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <ShoppingCart className="h-6 w-6 text-primary" />
+              Complete Order Details
             </DialogTitle>
             <DialogDescription>
-              View order information and delivery preferences
+              Full order information including customer details and delivery preferences
             </DialogDescription>
           </DialogHeader>
           {selectedOrder && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Order ID</p>
-                  <p className="font-medium text-xs truncate">{selectedOrder.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={selectedOrder.status === 'completed' ? 'default' : 'secondary'}>
-                    {selectedOrder.status}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Order Date</p>
-                  <p className="font-medium">{new Date(selectedOrder.order_date).toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
-                  <p className="font-bold text-primary">₦{selectedOrder.total_amount.toLocaleString()}</p>
+            <div className="space-y-6">
+              {/* Customer Information */}
+              <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Customer Information
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Customer Name</p>
+                    <p className="font-medium">{selectedOrder.customer_name || 'Unknown'}</p>
+                  </div>
+                  {selectedOrder.phone_number && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Phone Number</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedOrder.phone_number}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-2">Delivery Information</p>
-                <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Delivery Type</p>
-                    <Badge variant={selectedOrder.delivery_address ? 'default' : 'outline'}>
+              {/* Order Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Order ID</p>
+                  <p className="font-mono text-xs truncate">{selectedOrder.id.slice(0, 8)}...</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Status</p>
+                  <Badge variant={selectedOrder.status === 'completed' ? 'default' : selectedOrder.status === 'pending' ? 'secondary' : 'outline'} className="text-xs">
+                    {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                  </Badge>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Order Date</p>
+                  <p className="text-xs font-medium flex items-center justify-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(selectedOrder.order_date).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="bg-primary/10 rounded-lg p-3 text-center">
+                  <p className="text-xs text-muted-foreground mb-1">Total Amount</p>
+                  <p className="font-bold text-primary text-lg">₦{selectedOrder.total_amount.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Delivery Information */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Delivery Information
+                </h3>
+                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Delivery Method:</span>
+                    <Badge variant={selectedOrder.delivery_address ? 'default' : 'outline'} className="text-sm">
                       {selectedOrder.delivery_address ? '🏠 Home Delivery' : '🏫 School Pickup'}
                     </Badge>
                   </div>
+                  
                   {selectedOrder.delivery_address && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Address</p>
-                      <p className="text-sm">{selectedOrder.delivery_address}</p>
+                    <div className="border-t pt-3">
+                      <p className="text-xs text-muted-foreground mb-1">Delivery Address</p>
+                      <p className="text-sm bg-background p-2 rounded border">{selectedOrder.delivery_address}</p>
                     </div>
                   )}
-                  {selectedOrder.phone_number && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Phone</p>
-                      <p className="text-sm">{selectedOrder.phone_number}</p>
+                  
+                  {!selectedOrder.delivery_address && (
+                    <div className="border-t pt-3">
+                      <p className="text-sm text-green-600 font-medium">
+                        ✅ Customer will pick up order at school
+                      </p>
                     </div>
                   )}
+                  
                   {selectedOrder.notes && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Notes</p>
-                      <p className="text-sm">{selectedOrder.notes}</p>
+                    <div className="border-t pt-3">
+                      <p className="text-xs text-muted-foreground mb-1">Special Instructions / Notes</p>
+                      <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded border border-yellow-200 dark:border-yellow-800">
+                        {selectedOrder.notes}
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-2">Items Ordered</p>
-                <div className="space-y-2">
-                  {(Array.isArray(selectedOrder.items) ? selectedOrder.items : []).map((item: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between bg-muted/50 rounded-lg p-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.name || 'Item'}</span>
-                        <Badge variant="outline" className="text-xs">x{item.quantity || 1}</Badge>
+              <Separator />
+
+              {/* Items Ordered */}
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Items Ordered ({selectedOrder.items.length} item{selectedOrder.items.length !== 1 ? 's' : ''})
+                </h3>
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {selectedOrder.items.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between bg-muted/50 rounded-lg p-3 border">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-2 rounded">
+                          <Package className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">Unit Price: ₦{item.price.toLocaleString()}</p>
+                        </div>
                       </div>
-                      <span className="text-sm">₦{(item.price || 0).toLocaleString()}</span>
+                      <div className="text-right">
+                        <Badge variant="outline" className="mb-1">Qty: {item.quantity}</Badge>
+                        <p className="font-semibold text-sm">₦{(item.price * item.quantity).toLocaleString()}</p>
+                      </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Order Total Summary */}
+              <div className="bg-gradient-to-r from-green-500/10 to-green-500/5 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold">Order Total:</span>
+                  <span className="text-2xl font-bold text-green-600">₦{selectedOrder.total_amount.toLocaleString()}</span>
                 </div>
               </div>
             </div>

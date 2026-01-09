@@ -275,8 +275,16 @@ const CalendarPage = () => {
 
   // Filter events based on user role, status, target audience, AND sector
   const visibleEvents = events.filter(event => {
-    // Admins see all events
-    if (userRole === 'admin') return true;
+    // Admins see all events from their sector or that they created
+    if (userRole === 'admin') {
+      const eventCreatorSector = (event as any).creator_sector;
+      // Super admin sees everything, or if no sector filtering needed
+      if (!userSector) return true;
+      // Admin sees their own sector's events or events they created
+      if (event.created_by === user?.id) return true;
+      if (!eventCreatorSector || eventCreatorSector === userSector) return true;
+      return false;
+    }
     
     // Users see their own events
     if (event.created_by === user?.id) return true;
@@ -284,7 +292,7 @@ const CalendarPage = () => {
     // Only approved events are visible to non-admins
     if (event.status !== 'approved') return false;
     
-    // Check target audience
+    // Check target audience - teachers and students should be in the target audience
     const targetAudience = (event as any).target_audience || ['student', 'teacher'];
     const isInTargetAudience = (userRole === 'student' && targetAudience.includes('student')) ||
                                (userRole === 'teacher' && targetAudience.includes('teacher'));
@@ -302,7 +310,8 @@ const CalendarPage = () => {
         return false;
       }
       
-      // If event has target sectors, user's sector must be included
+      // If event has target sectors and they exist, user's sector must be included
+      // Empty target_sectors means visible to all sectors
       if (eventTargetSectors.length > 0 && !eventTargetSectors.includes(userSector)) {
         return false;
       }
