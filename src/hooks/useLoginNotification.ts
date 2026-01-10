@@ -2,6 +2,23 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useLoginNotification = () => {
+  // Helper to send email notification via edge function
+  const sendEmailNotification = async (type: 'login' | 'signup' | 'order', subject: string, message: string, details?: Record<string, string>) => {
+    try {
+      await supabase.functions.invoke('send-email-notification', {
+        body: {
+          type,
+          recipientType: 'super_admin',
+          subject,
+          message,
+          details
+        }
+      });
+    } catch {
+      // Silent fail - email is optional enhancement
+    }
+  };
+
   const sendLoginNotification = useCallback(async (userId: string, userName: string) => {
     try {
       // Detect device
@@ -42,6 +59,16 @@ export const useLoginNotification = () => {
         title: '🔐 User Login',
         message: message,
         type: 'login'
+      });
+
+      // Task I: Send email notification for login
+      await sendEmailNotification('login', 'User Login Detected', `${userName} has logged in to Priscilla Connect`, {
+        'User Name': userName,
+        'Device': device,
+        'Browser': browser,
+        'Location': location,
+        'IP Address': ipAddress,
+        'Login Time': new Date().toLocaleString()
       });
     } catch (error) {
       // Silent fail - don't block login for notification errors
@@ -92,6 +119,17 @@ export const useLoginNotification = () => {
         message: message,
         type: 'signup'
       });
+
+      // Task I: Send email notification for signup
+      await sendEmailNotification('signup', 'New User Signup', `${userName} has created an account on Priscilla Connect`, {
+        'User Name': userName,
+        'Email': email,
+        'Device': device,
+        'Browser': browser,
+        'Location': location,
+        'IP Address': ipAddress,
+        'Signup Time': new Date().toLocaleString()
+      });
     } catch (error) {
       // Silent fail
       if (import.meta.env.DEV) {
@@ -100,5 +138,33 @@ export const useLoginNotification = () => {
     }
   }, []);
 
-  return { sendLoginNotification, sendSignupNotification };
+  // Task J: Send order notification (for admins)
+  const sendOrderNotification = useCallback(async (orderId: string, customerName: string, totalAmount: number, itemCount: number) => {
+    try {
+      const message = `${customerName} placed an order (${itemCount} items) for ₦${totalAmount.toLocaleString()}`;
+      
+      // Insert to admin_notifications
+      await supabase.from('admin_notifications').insert({
+        title: '🛒 New Store Order',
+        message: message,
+        type: 'order',
+        related_order_id: orderId
+      });
+
+      // Send email notification
+      await sendEmailNotification('order', 'New Store Order Placed', message, {
+        'Customer': customerName,
+        'Order ID': orderId.slice(0, 8) + '...',
+        'Items': itemCount.toString(),
+        'Total Amount': `₦${totalAmount.toLocaleString()}`,
+        'Order Time': new Date().toLocaleString()
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error sending order notification:', error);
+      }
+    }
+  }, []);
+
+  return { sendLoginNotification, sendSignupNotification, sendOrderNotification };
 };

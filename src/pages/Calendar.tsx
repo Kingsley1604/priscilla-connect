@@ -274,6 +274,7 @@ const CalendarPage = () => {
   };
 
   // Filter events based on user role, status, target audience, AND sector
+  // Task C & F: Fixed to properly show events to teachers within their sector
   const visibleEvents = events.filter(event => {
     // Admins see all events from their sector or that they created
     if (userRole === 'admin') {
@@ -286,10 +287,10 @@ const CalendarPage = () => {
       return false;
     }
     
-    // Users see their own events
+    // Users see their own events (both pending and approved)
     if (event.created_by === user?.id) return true;
     
-    // Only approved events are visible to non-admins
+    // Only approved events are visible to non-admin users
     if (event.status !== 'approved') return false;
     
     // Check target audience - teachers and students should be in the target audience
@@ -314,6 +315,15 @@ const CalendarPage = () => {
       // Empty target_sectors means visible to all sectors
       if (eventTargetSectors.length > 0 && !eventTargetSectors.includes(userSector)) {
         return false;
+      }
+    }
+    
+    // If user has no sector (e.g., not set up yet), show events without sector restrictions
+    // or events that have no sector filtering
+    if (!userSector) {
+      // Only show events without sector restrictions or with empty target sectors
+      if (eventCreatorSector) {
+        return false; // Event is for a specific sector, user has no sector
       }
     }
     

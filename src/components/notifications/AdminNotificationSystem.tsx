@@ -306,8 +306,8 @@ const AdminNotificationSystem = () => {
         </Button>
 
         {isOpen && (
-          <Card className="absolute top-12 right-0 w-80 sm:w-96 max-w-[calc(100vw-2rem)] z-[100] shadow-lg border bg-background">
-            <CardHeader className="pb-3 border-b">
+          <Card className="fixed sm:absolute top-16 sm:top-12 right-2 sm:right-0 left-2 sm:left-auto w-auto sm:w-96 max-w-[calc(100vw-1rem)] z-[9999] shadow-2xl border-2 bg-background">
+            <CardHeader className="pb-3 border-b bg-muted/30">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-semibold">Notifications</CardTitle>
                 <div className="flex items-center gap-1">
@@ -323,7 +323,7 @@ const AdminNotificationSystem = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[60vh] sm:h-[400px]">
                 {isLoading ? (
                   <div className="p-4 text-center text-muted-foreground">
                     Loading notifications...

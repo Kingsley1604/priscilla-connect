@@ -124,8 +124,8 @@ const Messages = () => {
   const [groupCallActive, setGroupCallActive] = useState<{ type: 'audio' | 'video' } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Task C: Fetch all users from the system - Get ALL users with profiles
-  // Fixed to show all users regardless of their role
+  // Task G: Fetch all users from the system - Get ALL users with profiles
+  // Fixed to show all users regardless of their role - includes users without profiles
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
@@ -147,51 +147,43 @@ const Messages = () => {
           return;
         }
 
-        // Get all profiles for users with roles (excluding current user)
-        const userIds = allRoles.map(r => r.user_id).filter(id => id !== user.id);
-        
-        if (userIds.length === 0) {
-          console.log('No other users found');
-          setUsers([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Get ALL profiles, including those without names (they might just have IDs)
-        const { data: profiles, error: profilesError } = await supabase
+        // Get all profiles (don't filter by id to avoid issues)
+        const { data: allProfiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, name, avatar')
-          .in('id', userIds)
-          .eq('is_suspended', false); // Only exclude suspended users
+          .select('id, name, avatar, is_suspended');
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
           throw profilesError;
         }
 
-        // Combine profiles with roles - include all users even if profile is incomplete
+        // Create a map of profiles for quick lookup
+        const profileMap = new Map(allProfiles?.map(p => [p.id, p]) || []);
+
+        // Combine profiles with roles - include all users
         const usersWithRoles: ChatUser[] = [];
         
         for (const role of allRoles) {
           // Skip current user
           if (role.user_id === user.id) continue;
           
-          const profile = profiles?.find(p => p.id === role.user_id);
+          const profile = profileMap.get(role.user_id);
           
-          // Include user if they have a profile (with or without name)
-          if (profile) {
-            usersWithRoles.push({
-              id: profile.id,
-              name: profile.name || 'User',
-              email: '',
-              avatar: profile.avatar || undefined,
-              role: role.role || 'student',
-              isOnline: false
-            });
-          }
+          // Skip suspended users
+          if (profile?.is_suspended === true) continue;
+          
+          // Include user even if profile is missing or incomplete
+          usersWithRoles.push({
+            id: role.user_id,
+            name: profile?.name || 'User',
+            email: '',
+            avatar: profile?.avatar || undefined,
+            role: role.role || 'student',
+            isOnline: false
+          });
         }
 
-        console.log('Loaded users for chat:', usersWithRoles.length);
+        console.log('Loaded users for chat:', usersWithRoles.length, 'from', allRoles.length, 'roles');
         setUsers(usersWithRoles);
       } catch (error) {
         console.error('Error fetching users:', error);
