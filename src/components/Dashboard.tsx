@@ -9,25 +9,32 @@ import TeacherExamNotifications from "@/components/notifications/TeacherExamNoti
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import StudentDashboardWidget from "@/components/student/StudentDashboardWidget";
 import SystemHealthCard from "@/components/dashboard/SystemHealthCard";
-import { BookOpen, Users, Trophy, Calendar, MessageSquare, BarChart3, Bell, Settings, PlayCircle, Brain, Package, FileText, GamepadIcon, ShoppingBag, Menu, X, User, LogOut, Moon, UserX, GraduationCap, ClipboardList } from "lucide-react";
+import { BookOpen, Users, Trophy, Calendar, MessageSquare, BarChart3, Bell, Settings, PlayCircle, Brain, Package, FileText, GamepadIcon, ShoppingBag, Menu, X, User, LogOut, Moon, UserX, GraduationCap, ClipboardList, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Link, useNavigate } from "react-router-dom";
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
 interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
   userName: string;
   userAvatar?: string;
   onLogout?: () => void;
+  isSuperAdmin?: boolean;
 }
 const Dashboard = ({
   userRole,
   userName,
   userAvatar,
-  onLogout
+  onLogout,
+  isSuperAdmin
 }: DashboardProps) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user: authUser } = useAuth();
+  
+  // Check if user is super admin from auth context or props
+  const isUserSuperAdmin = isSuperAdmin || authUser?.is_super_admin;
   const getProfilePath = () => {
     if (userRole === 'teacher') return '/teacher/profile-options';
     if (userRole === 'admin') return '/admin/profile-settings';
@@ -230,9 +237,35 @@ const Dashboard = ({
       color: "bg-gradient-primary",
       path: "/admin/inventory-manager"
     }];
+    
+    // Add super admin modules
+    const superAdminModules: Array<{
+      title: string;
+      description: string;
+      icon: any;
+      color: string;
+      path: string;
+      disabled?: boolean;
+    }> = [{
+      title: "Manage Admins",
+      description: "Manage all admin accounts",
+      icon: Shield,
+      color: "bg-gradient-to-r from-purple-600 to-indigo-600",
+      path: "/admin/manage-admins"
+    }, {
+      title: "Super Admin Panel",
+      description: "System-wide controls",
+      icon: Shield,
+      color: "bg-gradient-to-r from-indigo-600 to-purple-600",
+      path: "/admin/super-admin"
+    }];
     if (userRole === 'student') return [...baseModules, ...studentModules];
     if (userRole === 'teacher') return [...baseModules, ...teacherModules];
-    return [...baseModules, ...adminModules];
+    // Admin modules with super admin modules if applicable
+    const adminAllModules = isUserSuperAdmin 
+      ? [...baseModules, ...superAdminModules, ...adminModules]
+      : [...baseModules, ...adminModules];
+    return adminAllModules;
   };
   const modules = getModulesForRole();
   const MobileMenuItem = ({

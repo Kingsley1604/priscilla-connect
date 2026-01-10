@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { storeOrderSchema } from "@/lib/validation";
 import { useNotificationSystem } from "@/hooks/useNotificationSystem";
+import { useLoginNotification } from "@/hooks/useLoginNotification";
 
 interface CartItem {
   id: string;
@@ -35,6 +36,7 @@ interface ShoppingCartProps {
 const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem }: ShoppingCartProps) => {
   const { user } = useAuth();
   const { notifyOrderPlaced } = useNotificationSystem();
+  const { sendOrderNotification } = useLoginNotification();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [deliveryOption, setDeliveryOption] = useState<'pickup' | 'delivery'>('pickup');
   const [paymentMethod, setPaymentMethod] = useState<'online' | 'delivery'>('online');
@@ -108,6 +110,14 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
       // Create notification for admins via hook
       if (orderResult) {
         notifyOrderPlaced(user.name || 'Customer', total, orderResult.id);
+        
+        // Task J: Send email notification for orders to admins
+        await sendOrderNotification(
+          orderResult.id, 
+          user.name || 'Customer', 
+          total, 
+          cartItems.length
+        );
         
         // Also store in database for persistence
         await supabase.from('admin_notifications').insert({
