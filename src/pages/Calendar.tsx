@@ -274,14 +274,14 @@ const CalendarPage = () => {
   };
 
   // Filter events based on user role, status, target audience, AND sector
-  // Task C & F: Fixed to properly show events to teachers within their sector
+  // Task F: Fixed to properly show ALL approved events to teachers (removed sector restriction for approved events)
   const visibleEvents = events.filter(event => {
-    // Admins see all events from their sector or that they created
+    // Admins see all events
     if (userRole === 'admin') {
       const eventCreatorSector = (event as any).creator_sector;
-      // Super admin sees everything, or if no sector filtering needed
+      // Super admin sees everything
       if (!userSector) return true;
-      // Admin sees their own sector's events or events they created
+      // Admin sees their own sector's events, events they created, or events with no sector
       if (event.created_by === user?.id) return true;
       if (!eventCreatorSector || eventCreatorSector === userSector) return true;
       return false;
@@ -300,33 +300,22 @@ const CalendarPage = () => {
     
     if (!isInTargetAudience) return false;
     
-    // SECTOR FILTERING: Check if event creator's sector matches the user's sector
-    const eventCreatorSector = (event as any).creator_sector;
+    // TASK F FIX: For teachers and students, show ALL approved events
+    // that match their target audience - don't filter by sector for approved events
+    // This ensures teachers see school-wide events created by any admin
+    
+    // Only apply sector filtering if the user has a sector AND the event has target sectors
     const eventTargetSectors = (event as any).target_sectors || [];
     
-    // If user has a sector, check if event is for their sector
-    if (userSector) {
-      // If event has a creator sector, it must match user's sector
-      if (eventCreatorSector && eventCreatorSector !== userSector) {
-        return false;
-      }
-      
-      // If event has target sectors and they exist, user's sector must be included
-      // Empty target_sectors means visible to all sectors
-      if (eventTargetSectors.length > 0 && !eventTargetSectors.includes(userSector)) {
+    // If event specifically targets sectors and user has a sector, check match
+    if (userSector && eventTargetSectors.length > 0) {
+      // User's sector must be in target sectors
+      if (!eventTargetSectors.includes(userSector)) {
         return false;
       }
     }
     
-    // If user has no sector (e.g., not set up yet), show events without sector restrictions
-    // or events that have no sector filtering
-    if (!userSector) {
-      // Only show events without sector restrictions or with empty target sectors
-      if (eventCreatorSector) {
-        return false; // Event is for a specific sector, user has no sector
-      }
-    }
-    
+    // Show the event - approved events with matching audience are visible
     return true;
   });
 

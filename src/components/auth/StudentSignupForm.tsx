@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, User, Mail, Lock, ArrowLeft, GraduationCap } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, User, Mail, Lock, ArrowLeft, GraduationCap, School } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
     email: '',
     password: '',
     confirmPassword: '',
+    schoolSection: '', // Task F: New field for school section
     agreeToTerms: false
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +47,13 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
 
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
+
+    // Task F: Validate school section selection
+    if (!formData.schoolSection) {
+      setError('Please select your school section (Primary or Secondary)');
       setIsLoading(false);
       return;
     }
@@ -74,7 +83,8 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
         options: {
           data: {
             name: formData.fullName.trim(),
-            role: 'student'
+            role: 'student',
+            sector: formData.schoolSection // Task F: Include sector in signup
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -94,6 +104,17 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
         setError('Failed to create account. Please try again.');
         setIsLoading(false);
         return;
+      }
+
+      // Task F: Update profile with sector information
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            sector: formData.schoolSection,
+            is_profile_complete: false 
+          })
+          .eq('id', data.user.id);
       }
 
       if (data.session) {
@@ -162,7 +183,27 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
                 >
                   Go to Sign In
                 </Button>
-              </div>
+                </div>
+
+                {/* Task F: School Section Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="schoolSection" className="text-white">School Section *</Label>
+                  <div className="relative">
+                    <School className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60 z-10" />
+                    <Select
+                      value={formData.schoolSection}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, schoolSection: value }))}
+                    >
+                      <SelectTrigger className="pl-10 bg-white/20 border-white/30 text-white focus:bg-white/30">
+                        <SelectValue placeholder="Select your section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="primary">Primary School (Nursery - Primary 6)</SelectItem>
+                        <SelectItem value="secondary">Secondary School (JSS 1 - SS 3)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
