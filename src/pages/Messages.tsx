@@ -125,7 +125,7 @@ const Messages = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Task G: Fetch all users from the system - Get ALL users with profiles
-  // Fixed to show all users regardless of their role - includes users without profiles
+  // Fixed to show ALL users (students, teachers, admins) to everyone for chat
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user) return;
@@ -147,7 +147,7 @@ const Messages = () => {
           return;
         }
 
-        // Get all profiles (don't filter by id to avoid issues)
+        // Get all profiles
         const { data: allProfiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, name, avatar, is_suspended');
@@ -160,19 +160,20 @@ const Messages = () => {
         // Create a map of profiles for quick lookup
         const profileMap = new Map(allProfiles?.map(p => [p.id, p]) || []);
 
-        // Combine profiles with roles - include all users
+        // Task G FIX: Combine profiles with roles - include ALL users regardless of role
+        // Students, teachers, and admins should all be able to see each other
         const usersWithRoles: ChatUser[] = [];
         
         for (const role of allRoles) {
-          // Skip current user
+          // Skip current user (they don't need to chat with themselves)
           if (role.user_id === user.id) continue;
           
           const profile = profileMap.get(role.user_id);
           
-          // Skip suspended users
+          // Skip suspended users - they shouldn't appear in chat
           if (profile?.is_suspended === true) continue;
           
-          // Include user even if profile is missing or incomplete
+          // Include ALL users with valid roles (student, teacher, admin)
           usersWithRoles.push({
             id: role.user_id,
             name: profile?.name || 'User',
@@ -183,10 +184,11 @@ const Messages = () => {
           });
         }
 
-        console.log('Loaded users for chat:', usersWithRoles.length, 'from', allRoles.length, 'roles');
+        console.log('Priscilla Chat - Loaded users:', usersWithRoles.length, 'users (excluding current user and suspended)');
         setUsers(usersWithRoles);
       } catch (error) {
         console.error('Error fetching users:', error);
+        toast.error('Failed to load users');
       } finally {
         setIsLoading(false);
       }

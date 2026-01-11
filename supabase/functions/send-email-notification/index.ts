@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,7 +8,7 @@ const corsHeaders = {
 };
 
 interface EmailNotificationRequest {
-  type: 'signup' | 'login' | 'order' | 'content_alert';
+  type: 'signup' | 'login' | 'order' | 'content_alert' | 'deactivation';
   recipientType: 'super_admin' | 'admin' | 'all_admins';
   subject: string;
   message: string;
@@ -34,7 +35,64 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Initialize Supabase client to fetch admin emails
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const { type, recipientType, subject, message, details }: EmailNotificationRequest = await req.json();
+
+    // Fetch admin emails from database based on recipient type
+    let adminEmails: string[] = [];
+    
+    if (recipientType === 'super_admin') {
+      // Get super admin emails
+      const { data: superAdmins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_super_admin', true);
+      
+      if (superAdmins && superAdmins.length > 0) {
+        // Get emails from auth.users
+        const { data: authUsers } = await supabase.auth.admin.listUsers();
+        if (authUsers?.users) {
+          const superAdminIds = superAdmins.map(sa => sa.id);
+          adminEmails = authUsers.users
+            .filter(u => superAdminIds.includes(u.id) && u.email)
+            .map(u => u.email!);
+        }
+      }
+    } else if (recipientType === 'admin' || recipientType === 'all_admins') {
+      // Get all admin role users
+      const { data: adminRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin');
+      
+      if (adminRoles && adminRoles.length > 0) {
+        const { data: authUsers } = await supabase.auth.admin.listUsers();
+        if (authUsers?.users) {
+          const adminIds = adminRoles.map(ar => ar.user_id);
+          adminEmails = authUsers.users
+            .filter(u => adminIds.includes(u.id) && u.email)
+            .map(u => u.email!);
+        }
+      }
+    }
+
+    // If no admin emails found, log and return
+    if (adminEmails.length === 0) {
+      console.log("No admin emails found for notification type:", recipientType);
+      return new Response(
+        JSON.stringify({ success: false, message: "No admin emails configured" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log(`Sending ${type} notification to ${adminEmails.length} admin(s)`);
 
     // Build email HTML
     let detailsHtml = '';
@@ -51,6 +109,16 @@ const handler = async (req: Request): Promise<Response> => {
       detailsHtml += '</table>';
     }
 
+    const typeColors: Record<string, { bg: string; text: string }> = {
+      signup: { bg: '#dcfce7', text: '#166534' },
+      login: { bg: '#dbeafe', text: '#1e40af' },
+      order: { bg: '#fef3c7', text: '#92400e' },
+      content_alert: { bg: '#fee2e2', text: '#991b1b' },
+      deactivation: { bg: '#fef3c7', text: '#b45309' }
+    };
+
+    const colors = typeColors[type] || { bg: '#e5e7eb', text: '#374151' };
+
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -62,10 +130,6 @@ const handler = async (req: Request): Promise<Response> => {
           .content { background: #ffffff; padding: 20px; border: 1px solid #e5e7eb; }
           .footer { background: #f3f4f6; padding: 15px; text-align: center; border-radius: 0 0 8px 8px; font-size: 12px; color: #6b7280; }
           .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-          .badge-signup { background: #dcfce7; color: #166534; }
-          .badge-login { background: #dbeafe; color: #1e40af; }
-          .badge-order { background: #fef3c7; color: #92400e; }
-          .badge-alert { background: #fee2e2; color: #991b1b; }
         </style>
       </head>
       <body>
@@ -75,7 +139,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="margin: 5px 0 0 0; opacity: 0.9;">${subject}</p>
           </div>
           <div class="content">
-            <span class="badge badge-${type}">${type.toUpperCase()}</span>
+            <span class="badge" style="background: ${colors.bg}; color: ${colors.text};">${type.toUpperCase()}</span>
             <p style="margin-top: 15px;">${message}</p>
             ${detailsHtml}
           </div>
@@ -88,29 +152,34 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // For now, send to a configured admin email or log
-    // In production, you would fetch admin emails from the database
-    const adminEmail = Deno.env.get("ADMIN_EMAIL") || "admin@priscillaschool.com";
-
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Priscilla Connect <notifications@resend.dev>",
-        to: [adminEmail],
-        subject: `[Priscilla Connect] ${subject}`,
-        html: emailHtml,
-      }),
+    // Send email to all admins
+    const emailPromises = adminEmails.map(async (email) => {
+      try {
+        const response = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${resendApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Priscilla Connect <notifications@resend.dev>",
+            to: [email],
+            subject: `[Priscilla Connect] ${subject}`,
+            html: emailHtml,
+          }),
+        });
+        return response.json();
+      } catch (err) {
+        console.error(`Failed to send email to ${email}:`, err);
+        return { error: err };
+      }
     });
 
-    const result = await emailResponse.json();
-    console.log("Email sent:", result);
+    const results = await Promise.all(emailPromises);
+    console.log("Email results:", results);
 
     return new Response(
-      JSON.stringify({ success: true, result }),
+      JSON.stringify({ success: true, sent: adminEmails.length, results }),
       {
         status: 200,
         headers: { "Content-Type": "application/json", ...corsHeaders },

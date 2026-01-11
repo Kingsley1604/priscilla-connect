@@ -33,20 +33,31 @@ export const useAuth = () => {
   const fetchUserProfile = useCallback(async (userId: string, session: Session) => {
     try {
       // Fetch profile data including sector and super admin status
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('name, avatar, sector, is_super_admin')
         .eq('id', userId)
         .single();
 
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+      }
+
       // Fetch user role
-      const { data: roleData } = await supabase
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .single();
 
+      if (roleError) {
+        console.error('Error fetching role:', roleError);
+      }
+
       if (roleData) {
+        // Explicitly check is_super_admin - ensure it's a boolean true check
+        const isSuperAdmin = profile?.is_super_admin === true;
+        
         setAuthState({
           isAuthenticated: true,
           user: {
@@ -57,12 +68,17 @@ export const useAuth = () => {
             avatar: profile?.avatar,
             lastLogin: Date.now(),
             sector: profile?.sector || undefined,
-            is_super_admin: profile?.is_super_admin || false
+            is_super_admin: isSuperAdmin
           },
           session,
           sessionId: session.access_token,
           isLoading: false
         });
+        
+        // Debug log for super admin
+        if (isSuperAdmin) {
+          console.log('Super admin authenticated:', userId);
+        }
       } else {
         // User exists but no role - might be during signup
         setAuthState({
@@ -74,6 +90,7 @@ export const useAuth = () => {
         });
       }
     } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
       setAuthState({
         isAuthenticated: false,
         user: null,

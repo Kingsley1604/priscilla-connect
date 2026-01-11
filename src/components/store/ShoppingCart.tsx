@@ -107,6 +107,24 @@ const ShoppingCart = ({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveIt
 
       if (error) throw error;
 
+      // Task B: Auto-deduct stock from store_items when order is placed
+      for (const item of cartItems) {
+        // Fetch current stock and update
+        const { data: currentItem } = await supabase
+          .from('store_items')
+          .select('stock')
+          .eq('id', item.id)
+          .single();
+        
+        if (currentItem) {
+          const newStock = Math.max(0, currentItem.stock - item.quantity);
+          await supabase
+            .from('store_items')
+            .update({ stock: newStock, updated_at: new Date().toISOString() })
+            .eq('id', item.id);
+        }
+      }
+
       // Create notification for admins via hook
       if (orderResult) {
         notifyOrderPlaced(user.name || 'Customer', total, orderResult.id);
