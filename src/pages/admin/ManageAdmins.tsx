@@ -36,9 +36,17 @@ const ManageAdmins = () => {
   const [newSector, setNewSector] = useState<string>('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  // Check if user is super admin
+  // Check if user is super admin - wait for loading to complete
   useEffect(() => {
-    if (!user?.is_super_admin) {
+    // Debug log for super admin access
+    console.log('[ManageAdmins] Checking super admin access:', {
+      user_id: user?.id,
+      is_super_admin: user?.is_super_admin,
+      role: user?.role
+    });
+    
+    // Only redirect if we have user data AND they're not a super admin
+    if (user && !user.is_super_admin) {
       toast.error('Access denied. Super admin privileges required.');
       navigate('/');
     }
@@ -161,8 +169,32 @@ const ManageAdmins = () => {
     return <Badge variant="secondary">{sector}</Badge>;
   };
 
-  if (!user?.is_super_admin) {
-    return null;
+  // Show loading state while checking super admin status
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+  
+  if (!user.is_super_admin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-8 text-center">
+            <Shield className="h-16 w-16 mx-auto text-destructive mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-4">
+              Super admin privileges required to access this page.
+            </p>
+            <Link to="/">
+              <Button>Back to Dashboard</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

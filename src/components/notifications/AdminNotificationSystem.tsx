@@ -290,7 +290,7 @@ const AdminNotificationSystem = () => {
 
   return (
     <>
-      <div className="relative">
+      <div className="relative z-[100]">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -305,111 +305,119 @@ const AdminNotificationSystem = () => {
           )}
         </Button>
 
+        {/* Task J FIX: Notification dropdown - ensure proper z-index and positioning for desktop */}
         {isOpen && (
-          <Card className="fixed sm:absolute top-16 sm:top-12 right-2 sm:right-0 left-2 sm:left-auto w-auto sm:w-96 max-w-[calc(100vw-1rem)] z-[9999] shadow-2xl border-2 bg-background">
-            <CardHeader className="pb-3 border-b bg-muted/30">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-semibold">Notifications</CardTitle>
-                <div className="flex items-center gap-1">
-                  {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-7">
-                      Mark all read
+          <>
+            {/* Backdrop overlay to catch clicks and ensure dropdown is above other content */}
+            <div 
+              className="fixed inset-0 z-[998]" 
+              onClick={() => setIsOpen(false)}
+            />
+            <Card className="fixed sm:absolute top-16 sm:top-12 right-2 sm:right-0 left-2 sm:left-auto w-auto sm:w-[400px] max-w-[calc(100vw-1rem)] z-[999] shadow-2xl border-2 bg-background overflow-visible">
+              <CardHeader className="pb-3 border-b bg-muted/30 sticky top-0 z-10">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base font-semibold">Notifications</CardTitle>
+                  <div className="flex items-center gap-1">
+                    {unreadCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-7">
+                        Mark all read
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7">
+                      <X className="h-4 w-4" />
                     </Button>
-                  )}
-                  <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="h-7 w-7">
-                    <X className="h-4 w-4" />
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-[60vh] sm:h-[400px]">
-                {isLoading ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    Loading notifications...
-                  </div>
-                ) : notifications.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No notifications yet</p>
-                  </div>
-                ) : (
-                  <div className="divide-y">
-                    {notifications.map(notification => (
-                      <div 
-                        key={notification.id} 
-                        className={`p-3 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.is_read ? 'bg-primary/5' : ''}`}
-                        onClick={() => {
-                          if (notification.related_order_id) {
-                            viewOrderDetails(notification.related_order_id, notification.id);
-                          } else {
-                            markAsRead(notification.id);
-                          }
-                        }}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`flex-shrink-0 p-2 rounded-full ${getTypeColor(notification.type)}`}>
-                            {getTypeIcon(notification.type)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h4 className="text-sm font-medium truncate">{notification.title}</h4>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                {formatTime(notification.created_at)}
-                              </span>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[60vh] sm:h-[450px]">
+                  {isLoading ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      Loading notifications...
+                    </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No notifications yet</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {notifications.map(notification => (
+                        <div 
+                          key={notification.id} 
+                          className={`p-3 hover:bg-muted/50 transition-colors cursor-pointer ${!notification.is_read ? 'bg-primary/5' : ''}`}
+                          onClick={() => {
+                            if (notification.related_order_id) {
+                              viewOrderDetails(notification.related_order_id, notification.id);
+                            } else {
+                              markAsRead(notification.id);
+                            }
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`flex-shrink-0 p-2 rounded-full ${getTypeColor(notification.type)}`}>
+                              {getTypeIcon(notification.type)}
                             </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                            
-                            {notification.related_order_id && (
-                              <Button 
-                                variant="link" 
-                                size="sm" 
-                                className="h-6 px-0 text-xs text-primary"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  viewOrderDetails(notification.related_order_id!, notification.id);
-                                }}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View Order Details
-                              </Button>
-                            )}
-                            
-                            <div className="flex items-center gap-2 mt-2">
-                              {!notification.is_read && !notification.related_order_id && (
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <h4 className="text-sm font-medium truncate">{notification.title}</h4>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {formatTime(notification.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                              
+                              {notification.related_order_id && (
+                                <Button 
+                                  variant="link" 
+                                  size="sm" 
+                                  className="h-6 px-0 text-xs text-primary"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    viewOrderDetails(notification.related_order_id!, notification.id);
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  View Order Details
+                                </Button>
+                              )}
+                              
+                              <div className="flex items-center gap-2 mt-2">
+                                {!notification.is_read && !notification.related_order_id && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      markAsRead(notification.id);
+                                    }} 
+                                    className="h-6 px-2 text-xs"
+                                  >
+                                    Mark read
+                                  </Button>
+                                )}
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    markAsRead(notification.id);
+                                    deleteNotification(notification.id);
                                   }} 
-                                  className="h-6 px-2 text-xs"
+                                  className="h-6 px-2 text-xs text-destructive hover:text-destructive"
                                 >
-                                  Mark read
+                                  Delete
                                 </Button>
-                              )}
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteNotification(notification.id);
-                                }} 
-                                className="h-6 px-2 text-xs text-destructive hover:text-destructive"
-                              >
-                                Delete
-                              </Button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </>
         )}
       </div>
 

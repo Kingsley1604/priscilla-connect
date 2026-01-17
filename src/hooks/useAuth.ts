@@ -55,8 +55,18 @@ export const useAuth = () => {
       }
 
       if (roleData) {
-        // Explicitly check is_super_admin - ensure it's a boolean true check
-        const isSuperAdmin = profile?.is_super_admin === true;
+        // Task B FIX: Explicitly check is_super_admin with proper boolean handling
+        // Handle all falsy cases: null, undefined, false
+        const isSuperAdmin = Boolean(profile?.is_super_admin);
+        
+        console.log('[useAuth] Profile data:', {
+          userId,
+          is_super_admin_raw: profile?.is_super_admin,
+          isSuperAdmin_computed: isSuperAdmin,
+          name: profile?.name,
+          sector: profile?.sector,
+          role: roleData.role
+        });
         
         setAuthState({
           isAuthenticated: true,
@@ -77,10 +87,11 @@ export const useAuth = () => {
         
         // Debug log for super admin
         if (isSuperAdmin) {
-          console.log('Super admin authenticated:', userId);
+          console.log('[useAuth] Super admin authenticated:', userId);
         }
       } else {
         // User exists but no role - might be during signup
+        console.log('[useAuth] No role found for user:', userId);
         setAuthState({
           isAuthenticated: false,
           user: null,
