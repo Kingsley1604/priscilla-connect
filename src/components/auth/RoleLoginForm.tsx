@@ -10,6 +10,7 @@ import PrivacyNotice from '@/components/privacy/PrivacyNotice';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useLoginNotification } from '@/hooks/useLoginNotification';
 import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
 
 interface RoleLoginFormProps {
@@ -55,6 +56,7 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { sendLoginNotification } = useLoginNotification();
   const config = roleConfig[role];
   const Icon = config.icon;
 
@@ -149,6 +151,15 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
             return;
           }
         }
+
+        // Task D&E: Send login notification to super admin
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', data.user.id)
+          .single();
+        
+        sendLoginNotification(data.user.id, profileData?.name || data.user.email || 'User');
 
         toast.success('Login successful!');
         

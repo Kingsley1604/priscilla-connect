@@ -43,22 +43,36 @@ const DeactivateTeacher = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Task E: Only super admin can deactivate teachers
+  // Task C: Allow all admins to access deactivate teacher page
+  // But sector admins can only see teachers in their sector
+  // Super admin can see all teachers
   useEffect(() => {
-    if (!user?.is_super_admin) {
-      toast.error("Only Super Admin can deactivate teacher accounts");
+    if (user && user.role !== 'admin') {
+      toast.error("Admin access required");
       navigate('/dashboard');
     }
   }, [user, navigate]);
 
   useEffect(() => {
-    if (user?.is_super_admin) {
+    if (user && user.role === 'admin') {
       loadTeachers();
     }
   }, [user]);
 
   const loadTeachers = async () => {
     try {
+      // Get current admin's sector
+      let adminSector: string | null = null;
+      
+      if (!user?.is_super_admin && user?.id) {
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('sector')
+          .eq('id', user.id)
+          .single();
+        adminSector = adminProfile?.sector || null;
+      }
+
       // Get all teachers from user_roles
       const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
@@ -75,7 +89,7 @@ const DeactivateTeacher = () => {
 
       const teacherIds = roleData.map(r => r.user_id);
 
-      // Get profiles for these teachers - get ALL teachers regardless of profile completion
+      // Get profiles for these teachers
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, name, phone, department, sector, teacher_id, is_suspended')
@@ -83,16 +97,23 @@ const DeactivateTeacher = () => {
 
       if (profileError) throw profileError;
 
-      // Format the data - show all teachers that have a profile
+      // Task C & D FIX: Filter teachers by sector
       // Super admin sees ALL teachers
-      const teacherList: Teacher[] = (profileData || []).map(profile => ({
+      // Sector admins only see teachers in their sector
+      let filteredProfiles = profileData || [];
+      
+      if (!user?.is_super_admin && adminSector) {
+        filteredProfiles = filteredProfiles.filter(p => p.sector === adminSector);
+      }
+
+      const teacherList: Teacher[] = filteredProfiles.map(profile => ({
         id: profile.id,
         name: profile.name || 'Teacher',
         email: '',
         teacher_id: profile.teacher_id || 'Not assigned',
         department: profile.department || 'Not assigned',
         sector: profile.sector || null,
-        is_active: !profile.is_suspended // Active if not suspended
+        is_active: !profile.is_suspended
       }));
 
       setTeachers(teacherList);
@@ -181,7 +202,8 @@ const DeactivateTeacher = () => {
     return <Badge variant="secondary">{sector}</Badge>;
   };
 
-  if (!user?.is_super_admin) {
+  // Task C FIX: All admins can access this page
+  if (!user || user.role !== 'admin') {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -189,7 +211,7 @@ const DeactivateTeacher = () => {
             <Shield className="h-16 w-16 mx-auto text-destructive mb-4" />
             <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
             <p className="text-muted-foreground mb-4">
-              Only Super Admin can deactivate teacher accounts.
+              Admin access required to manage teacher accounts.
             </p>
             <Link to="/dashboard">
               <Button>Back to Dashboard</Button>
@@ -218,8 +240,10 @@ const DeactivateTeacher = () => {
               <UserX className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Deactivate Teacher Account</h1>
-              <p className="text-white/80">Super Admin Only - Manage teacher account status</p>
+              <h1 className="text-2xl font-bold">Manage Teacher Accounts</h1>
+              <p className="text-white/80">
+                {user?.is_super_admin ? 'Super Admin - All Teachers' : 'Manage teachers in your sector'}
+              </p>
             </div>
           </div>
         </div>
