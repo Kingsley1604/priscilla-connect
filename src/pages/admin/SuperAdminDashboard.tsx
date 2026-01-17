@@ -55,11 +55,33 @@ const SuperAdminDashboard = () => {
     activeToday: 0
   });
 
-  // Check if user is super admin
+  // Check if user is super admin - only redirect after auth is loaded and confirmed not super admin
+  const [accessChecked, setAccessChecked] = useState(false);
+  
   useEffect(() => {
-    if (!user?.is_super_admin) {
-      toast.error('Access denied. Super admin privileges required.');
-      navigate('/');
+    // Wait for user to be loaded
+    if (user === null) return;
+    
+    // Check super admin status
+    if (user.is_super_admin === true) {
+      setAccessChecked(true);
+    } else {
+      // Double-check by fetching from database directly
+      const checkSuperAdmin = async () => {
+        const { data } = await supabase
+          .from('profiles')
+          .select('is_super_admin')
+          .eq('id', user.id)
+          .single();
+        
+        if (data?.is_super_admin === true) {
+          setAccessChecked(true);
+        } else {
+          toast.error('Access denied. Super admin privileges required.');
+          navigate('/');
+        }
+      };
+      checkSuperAdmin();
     }
   }, [user, navigate]);
 
@@ -192,8 +214,15 @@ const SuperAdminDashboard = () => {
     u.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (!user?.is_super_admin) {
-    return null;
+  if (!accessChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Verifying super admin access...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

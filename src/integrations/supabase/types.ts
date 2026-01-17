@@ -1105,6 +1105,261 @@ export type Database = {
         }
         Relationships: []
       }
+      secondary_affective_traits: {
+        Row: {
+          attendance: number | null
+          attitude_to_school: number | null
+          created_at: string
+          honesty: number | null
+          id: string
+          neatness: number | null
+          punctuality: number | null
+          relationship_with_staff: number | null
+          relationship_with_students: number | null
+          reliability: number | null
+          report_card_id: string
+          self_control: number | null
+        }
+        Insert: {
+          attendance?: number | null
+          attitude_to_school?: number | null
+          created_at?: string
+          honesty?: number | null
+          id?: string
+          neatness?: number | null
+          punctuality?: number | null
+          relationship_with_staff?: number | null
+          relationship_with_students?: number | null
+          reliability?: number | null
+          report_card_id: string
+          self_control?: number | null
+        }
+        Update: {
+          attendance?: number | null
+          attitude_to_school?: number | null
+          created_at?: string
+          honesty?: number | null
+          id?: string
+          neatness?: number | null
+          punctuality?: number | null
+          relationship_with_staff?: number | null
+          relationship_with_students?: number | null
+          reliability?: number | null
+          report_card_id?: string
+          self_control?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_affective_traits_report_card_id_fkey"
+            columns: ["report_card_id"]
+            isOneToOne: true
+            referencedRelation: "secondary_report_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_psychomotor_skills: {
+        Row: {
+          created_at: string
+          creative_arts: number | null
+          general_reasoning: number | null
+          handwriting: number | null
+          id: string
+          musical_skills: number | null
+          physical_education: number | null
+          reading: number | null
+          report_card_id: string
+          verbal_fluency: number | null
+        }
+        Insert: {
+          created_at?: string
+          creative_arts?: number | null
+          general_reasoning?: number | null
+          handwriting?: number | null
+          id?: string
+          musical_skills?: number | null
+          physical_education?: number | null
+          reading?: number | null
+          report_card_id: string
+          verbal_fluency?: number | null
+        }
+        Update: {
+          created_at?: string
+          creative_arts?: number | null
+          general_reasoning?: number | null
+          handwriting?: number | null
+          id?: string
+          musical_skills?: number | null
+          physical_education?: number | null
+          reading?: number | null
+          report_card_id?: string
+          verbal_fluency?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_psychomotor_skills_report_card_id_fkey"
+            columns: ["report_card_id"]
+            isOneToOne: true
+            referencedRelation: "secondary_report_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      secondary_report_cards: {
+        Row: {
+          academic_session: string
+          admission_no: string
+          age: number | null
+          approved_at: string | null
+          approved_by: string | null
+          arm: string | null
+          class_average: number | null
+          class_level: string
+          class_teacher_remark: string | null
+          created_at: string
+          created_by: string
+          days_absent: number | null
+          days_present: number | null
+          days_school_opened: number | null
+          gender: string | null
+          highest_average: number | null
+          id: string
+          lowest_average: number | null
+          next_term_begins: string | null
+          position_in_class: number | null
+          principal_remark: string | null
+          published_at: string | null
+          rejection_reason: string | null
+          status: string | null
+          student_average: number | null
+          student_id: string
+          student_name: string
+          student_total_score: number | null
+          submitted_at: string | null
+          term: string
+          total_students: number | null
+          updated_at: string
+        }
+        Insert: {
+          academic_session: string
+          admission_no: string
+          age?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          arm?: string | null
+          class_average?: number | null
+          class_level: string
+          class_teacher_remark?: string | null
+          created_at?: string
+          created_by: string
+          days_absent?: number | null
+          days_present?: number | null
+          days_school_opened?: number | null
+          gender?: string | null
+          highest_average?: number | null
+          id?: string
+          lowest_average?: number | null
+          next_term_begins?: string | null
+          position_in_class?: number | null
+          principal_remark?: string | null
+          published_at?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          student_average?: number | null
+          student_id: string
+          student_name: string
+          student_total_score?: number | null
+          submitted_at?: string | null
+          term: string
+          total_students?: number | null
+          updated_at?: string
+        }
+        Update: {
+          academic_session?: string
+          admission_no?: string
+          age?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          arm?: string | null
+          class_average?: number | null
+          class_level?: string
+          class_teacher_remark?: string | null
+          created_at?: string
+          created_by?: string
+          days_absent?: number | null
+          days_present?: number | null
+          days_school_opened?: number | null
+          gender?: string | null
+          highest_average?: number | null
+          id?: string
+          lowest_average?: number | null
+          next_term_begins?: string | null
+          position_in_class?: number | null
+          principal_remark?: string | null
+          published_at?: string | null
+          rejection_reason?: string | null
+          status?: string | null
+          student_average?: number | null
+          student_id?: string
+          student_name?: string
+          student_total_score?: number | null
+          submitted_at?: string | null
+          term?: string
+          total_students?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      secondary_report_subjects: {
+        Row: {
+          ca1_score: number | null
+          ca2_score: number | null
+          class_average: number | null
+          created_at: string
+          exam_score: number | null
+          grade: string | null
+          id: string
+          report_card_id: string
+          subject_name: string
+          teacher_remark: string | null
+          total_score: number | null
+        }
+        Insert: {
+          ca1_score?: number | null
+          ca2_score?: number | null
+          class_average?: number | null
+          created_at?: string
+          exam_score?: number | null
+          grade?: string | null
+          id?: string
+          report_card_id: string
+          subject_name: string
+          teacher_remark?: string | null
+          total_score?: number | null
+        }
+        Update: {
+          ca1_score?: number | null
+          ca2_score?: number | null
+          class_average?: number | null
+          created_at?: string
+          exam_score?: number | null
+          grade?: string | null
+          id?: string
+          report_card_id?: string
+          subject_name?: string
+          teacher_remark?: string | null
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "secondary_report_subjects_report_card_id_fkey"
+            columns: ["report_card_id"]
+            isOneToOne: false
+            referencedRelation: "secondary_report_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_items: {
         Row: {
           category: string
