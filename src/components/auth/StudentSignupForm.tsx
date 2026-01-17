@@ -183,27 +183,7 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
                 >
                   Go to Sign In
                 </Button>
-                </div>
-
-                {/* Task F: School Section Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="schoolSection" className="text-white">School Section *</Label>
-                  <div className="relative">
-                    <School className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60 z-10" />
-                    <Select
-                      value={formData.schoolSection}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, schoolSection: value }))}
-                    >
-                      <SelectTrigger className="pl-10 bg-white/20 border-white/30 text-white focus:bg-white/30">
-                        <SelectValue placeholder="Select your section" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="primary">Primary School (Nursery - Primary 6)</SelectItem>
-                        <SelectItem value="secondary">Secondary School (JSS 1 - SS 3)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                 <div className="space-y-2">
@@ -235,6 +215,26 @@ const StudentSignupForm = ({ onBack, onSwitchToLogin }: StudentSignupFormProps) 
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       required
                     />
+                  </div>
+                </div>
+
+                {/* Task F: School Section Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="schoolSection" className="text-white">School Section *</Label>
+                  <div className="relative">
+                    <School className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60 z-10" />
+                    <Select
+                      value={formData.schoolSection}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, schoolSection: value }))}
+                    >
+                      <SelectTrigger className="pl-10 bg-white/20 border-white/30 text-white focus:bg-white/30">
+                        <SelectValue placeholder="Select your section" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="primary">Primary School (Nursery - Primary 6)</SelectItem>
+                        <SelectItem value="secondary">Secondary School (JSS 1 - SS 3)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
