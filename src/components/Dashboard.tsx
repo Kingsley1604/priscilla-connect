@@ -398,10 +398,31 @@ const Dashboard = ({
                   
                   <div className="border-t my-2" />
                   
-                  {onLogout && <MobileMenuItem icon={LogOut} label="Logout" onClick={() => {
-                  setMobileMenuOpen(false);
-                  onLogout();
-                }} variant="destructive" />}
+                  {onLogout && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                          <LogOut className="h-5 w-5" />
+                          <span className="font-medium">Logout</span>
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            You will be signed out of Priscilla Connect.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>No, I want to stay</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => {
+                            setMobileMenuOpen(false);
+                            onLogout();
+                          }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, I do want to leave</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>

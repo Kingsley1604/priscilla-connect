@@ -412,7 +412,7 @@ const ManageAdmins = () => {
 
       {/* Edit Sector Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md z-[1000]">
           <DialogHeader>
             <DialogTitle>Edit Admin Sector</DialogTitle>
             <DialogDescription>
@@ -427,12 +427,12 @@ const ManageAdmins = () => {
               </div>
               <div>
                 <Label htmlFor="sector">School Sector</Label>
-                <Select value={newSector} onValueChange={setNewSector}>
+                <Select value={newSector || 'none'} onValueChange={(v) => setNewSector(v === 'none' ? '' : v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No Sector (Super Access)</SelectItem>
+                  <SelectContent className="z-[1001]">
+                    <SelectItem value="none">No Sector (Super Access)</SelectItem>
                     <SelectItem value="primary">Primary School</SelectItem>
                     <SelectItem value="secondary">Secondary School</SelectItem>
                   </SelectContent>
@@ -440,7 +440,7 @@ const ManageAdmins = () => {
                 <p className="text-xs text-muted-foreground mt-1">
                   {newSector === 'primary' && 'This admin will only manage Play Group to Primary 6'}
                   {newSector === 'secondary' && 'This admin will only manage JSS 1 to SSS 3'}
-                  {!newSector && 'This admin will have access to both sectors'}
+                  {(!newSector || newSector === 'none') && 'This admin will have access to both sectors'}
                 </p>
               </div>
             </div>

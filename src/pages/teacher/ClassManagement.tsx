@@ -70,6 +70,8 @@ const ClassManagement = () => {
   const [selectedExistingStudent, setSelectedExistingStudent] = useState<Student | null>(null);
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [teacherAssignedClass, setTeacherAssignedClass] = useState<string | null>(null);
+  const [selectedStudentsToAssign, setSelectedStudentsToAssign] = useState<Set<string>>(new Set());
+  const [isAssigning, setIsAssigning] = useState(false);
 
   const [newClass, setNewClass] = useState({
     name: "",
@@ -862,6 +864,16 @@ const ClassManagement = () => {
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="classes">Classes</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
+            {isClassTeacher && (
+              <TabsTrigger value="assign">
+                Assign Students
+                {students.filter(s => !s.class_grade || s.class_grade === '').length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {students.filter(s => !s.class_grade || s.class_grade === '').length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
             {(user?.role === 'admin' || suspensionRequests.length > 0) && (
               <TabsTrigger value="suspensions">
                 Suspensions
@@ -991,6 +1003,147 @@ const ClassManagement = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Assign Students Tab - For Class Teachers */}
+          {isClassTeacher && (
+            <TabsContent value="assign">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                      <CardTitle>Assign Unassigned Students to Your Class</CardTitle>
+                      <CardDescription>
+                        Select students without a class assignment and add them to {teacherAssignedClass}
+                      </CardDescription>
+                    </div>
+                    {selectedStudentsToAssign.size > 0 && (
+                      <Button 
+                        onClick={async () => {
+                          if (!teacherAssignedClass) return;
+                          setIsAssigning(true);
+                          try {
+                            // Find the class for the teacher's assigned class
+                            const targetClass = classes.find(c => c.class_level === teacherAssignedClass);
+                            
+                            for (const studentId of selectedStudentsToAssign) {
+                              // Update student's class_grade
+                              await supabase
+                                .from('profiles')
+                                .update({ class_grade: teacherAssignedClass })
+                                .eq('id', studentId);
+                              
+                              // Add to class_students if class exists
+                              if (targetClass) {
+                                await supabase
+                                  .from('class_students')
+                                  .insert({
+                                    class_id: targetClass.id,
+                                    student_id: studentId,
+                                    enrolled_by: user?.id
+                                  });
+                              }
+                            }
+                            
+                            toast.success(`${selectedStudentsToAssign.size} student(s) assigned to ${teacherAssignedClass}`);
+                            setSelectedStudentsToAssign(new Set());
+                            loadData();
+                          } catch (error: any) {
+                            console.error('Error assigning students:', error);
+                            toast.error('Failed to assign students');
+                          } finally {
+                            setIsAssigning(false);
+                          }
+                        }}
+                        disabled={isAssigning}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Assign {selectedStudentsToAssign.size} Selected to {teacherAssignedClass}
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const unassignedStudents = students.filter(s => 
+                      (!s.class_grade || s.class_grade === '') && !s.is_suspended
+                    );
+                    
+                    if (unassignedStudents.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Users className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                          <p>No unassigned students found</p>
+                          <p className="text-sm">All students have been assigned to a class</p>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (selectedStudentsToAssign.size === unassignedStudents.length) {
+                                setSelectedStudentsToAssign(new Set());
+                              } else {
+                                setSelectedStudentsToAssign(new Set(unassignedStudents.map(s => s.id)));
+                              }
+                            }}
+                          >
+                            {selectedStudentsToAssign.size === unassignedStudents.length ? 'Deselect All' : 'Select All'}
+                          </Button>
+                          <span className="text-sm text-muted-foreground">
+                            {unassignedStudents.length} unassigned student(s)
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {unassignedStudents.map(student => (
+                            <div
+                              key={student.id}
+                              onClick={() => {
+                                const newSet = new Set(selectedStudentsToAssign);
+                                if (newSet.has(student.id)) {
+                                  newSet.delete(student.id);
+                                } else {
+                                  newSet.add(student.id);
+                                }
+                                setSelectedStudentsToAssign(newSet);
+                              }}
+                              className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                                selectedStudentsToAssign.has(student.id) 
+                                  ? 'border-primary bg-primary/10' 
+                                  : 'hover:border-primary/50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-4 h-4 rounded border ${
+                                  selectedStudentsToAssign.has(student.id) 
+                                    ? 'bg-primary border-primary' 
+                                    : 'border-muted-foreground'
+                                } flex items-center justify-center`}>
+                                  {selectedStudentsToAssign.has(student.id) && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{student.name}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {student.admission_no || 'No Admission #'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
           {/* Suspensions Tab */}
           <TabsContent value="suspensions">
