@@ -184,9 +184,14 @@ const EnhancedUploadResult = () => {
               else if (formData.resultType === "Examination Result" && formData.classLevel === "Primary" && formData.grade === "Nursery Two") {
                 navigate(`/teacher/nursery-two-exam?${params}`);
               }
-              // Secondary School Examination Results
+              // Secondary School Examination Results - Navigate to SecondaryResultUpload
               else if (formData.resultType === "Examination Result" && (formData.classLevel === "Junior Secondary" || formData.classLevel === "Senior Secondary")) {
-                navigate(`/teacher/secondary-exam-result?${params}`);
+                navigate(`/teacher/secondary-result-upload?${params}`);
+              }
+              // Secondary School Midterm Results - Under development
+              else if (formData.resultType === "MidTerm Result" && (formData.classLevel === "Junior Secondary" || formData.classLevel === "Senior Secondary")) {
+                toast.info("Secondary Midterm Result System is under development");
+                return;
               }
               // Default to regular report card
               else {
