@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import AdminNotificationSystem from "@/components/notifications/AdminNotificationSystem";
-import TeacherExamNotifications from "@/components/notifications/TeacherExamNotifications";
+import UnifiedNotifications from "@/components/notifications/UnifiedNotifications";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import StudentDashboardWidget from "@/components/student/StudentDashboardWidget";
 import SystemHealthCard from "@/components/dashboard/SystemHealthCard";
@@ -284,7 +284,7 @@ const Dashboard = ({
     </button>;
   return <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header - Task M: Mobile responsiveness fix */}
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-3 sm:py-6 px-3 sm:px-6 shadow-medium overflow-hidden">
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-3 sm:py-6 px-3 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
             <div className="bg-white/20 p-1.5 sm:p-3 rounded-lg backdrop-blur-sm flex-shrink-0">
@@ -300,7 +300,8 @@ const Dashboard = ({
           <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
             <ThemeToggle />
             <div className="hidden sm:block">
-              {userRole === 'teacher' && <TeacherExamNotifications />}
+              {userRole === 'student' && <UnifiedNotifications userRole="student" />}
+              {userRole === 'teacher' && <UnifiedNotifications userRole="teacher" />}
               {userRole === 'admin' && <AdminNotificationSystem />}
             </div>
             {onLogout && (
@@ -378,12 +379,12 @@ const Dashboard = ({
                     navigate(userRole === 'teacher' ? '/teacher/profile-options' : getProfilePath());
                   }} />
                   
-                  {/* Task B: Mobile notifications - single bell only, wrapped in clickable area */}
-                  {(userRole === 'admin' || userRole === 'teacher') && (
+                  {/* Task B: Mobile notifications - unified for all users */}
+                  {(userRole === 'admin' || userRole === 'teacher' || userRole === 'student') && (
                     <div className="px-4 py-3 border-t border-b">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">Notifications</span>
-                        {userRole === 'teacher' ? <TeacherExamNotifications /> : <AdminNotificationSystem />}
+                        {userRole === 'admin' ? <AdminNotificationSystem /> : <UnifiedNotifications userRole={userRole} />}
                       </div>
                     </div>
                   )}
