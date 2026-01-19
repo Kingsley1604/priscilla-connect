@@ -56,6 +56,7 @@ import AdminProfileSettings from "./pages/admin/AdminProfileSettings";
 import EnhancedUploadResult from "./pages/teacher/EnhancedUploadResult";
 import StudentReportCardSystem from "./pages/teacher/StudentReportCardSystem";
 import DraftResults from "./pages/teacher/DraftResults";
+import SecondaryResultUpload from "./pages/teacher/SecondaryResultUpload";
 import ExamOverview from "./pages/teacher/ExamOverview";
 import ExamSetup from "./pages/teacher/ExamSetup";
 import CreateQuestions from "./pages/teacher/CreateQuestions";
@@ -104,6 +105,7 @@ const App = () => (
             <Route path="/teacher/nursery-two-exam" element={<NurseryTwoExamResult />} />
             <Route path="/teacher/nursery-midterm-report" element={<NurseryMidtermReport />} />
             <Route path="/teacher/secondary-exam-result" element={<SecondaryExamResult />} />
+            <Route path="/teacher/secondary-result-upload" element={<SecondaryResultUpload />} />
             <Route path="/teacher/report-card" element={<StudentReportCardSystem />} />
             <Route path="/teacher/draft-results" element={<DraftResults />} />
             <Route path="/teacher/exam-overview" element={<ExamOverview />} />
