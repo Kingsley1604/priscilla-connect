@@ -283,8 +283,11 @@ const Dashboard = ({
       <span className="font-medium">{label}</span>
     </button>;
   return <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Header - Task M: Mobile responsiveness fix */}
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-3 sm:py-6 px-3 sm:px-6 shadow-medium">
+      {/* Spacer to prevent content from going under fixed header */}
+      <div className="h-[72px] sm:h-[104px]" />
+      
+      {/* Header - Task A: Fixed position for dashboard heading */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-hero text-white py-3 sm:py-6 px-3 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
             <div className="bg-white/20 p-1.5 sm:p-3 rounded-lg backdrop-blur-sm flex-shrink-0">

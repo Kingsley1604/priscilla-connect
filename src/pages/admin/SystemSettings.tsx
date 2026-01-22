@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Settings, Database, Mail, Shield, Bell, Users, Loader2, AlertTriangle, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -125,12 +126,25 @@ const SystemSettings = () => {
     toast.success(`${category} settings saved successfully`);
   };
 
+  // Task H: Only super admin can reset database with confirmation
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  
   const handleResetDatabase = () => {
-    toast.error('Database reset is not available in demo mode');
+    if (!isSuperAdmin) {
+      toast.error('Only the super admin can reset the database');
+      return;
+    }
+    setShowResetConfirm(true);
+  };
+
+  const confirmDatabaseReset = async () => {
+    // Task I: Confirmation for database reset
+    toast.error('Database reset has been disabled for safety. Contact technical support for data recovery.');
+    setShowResetConfirm(false);
   };
 
   const handleBackupDatabase = () => {
-    toast.success('Database backup initiated');
+    toast.success('Database backup initiated. Auto-backup runs every 24 hours.');
   };
 
   return (
@@ -477,6 +491,33 @@ const SystemSettings = () => {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Task I: Confirmation dialog for database reset */}
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">⚠️ CRITICAL ACTION - Reset Database</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="font-bold">Are you absolutely sure you want to reset the database?</p>
+              <p>This action is <span className="text-destructive font-semibold">IRREVERSIBLE</span> and will:</p>
+              <ul className="list-disc ml-4 space-y-1">
+                <li>Delete ALL student records</li>
+                <li>Delete ALL teacher accounts</li>
+                <li>Delete ALL exam results and reports</li>
+                <li>Delete ALL chat messages and groups</li>
+                <li>Reset ALL system settings</li>
+              </ul>
+              <p className="text-destructive font-semibold mt-4">Priscilla School's data is extremely important. Please ensure you have a backup before proceeding.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel - Keep Data Safe</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDatabaseReset} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              I Understand - Reset Database
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

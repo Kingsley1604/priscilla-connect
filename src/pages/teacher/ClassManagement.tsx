@@ -683,7 +683,8 @@ const ClassManagement = () => {
               <DialogTrigger asChild>
                 <Button variant="secondary">
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Create Student
+                  {/* Task O: Renamed button */}
+                  Create Student Account
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">

@@ -427,20 +427,19 @@ const ManageAdmins = () => {
               </div>
               <div>
                 <Label htmlFor="sector">School Sector</Label>
-                <Select value={newSector || 'none'} onValueChange={(v) => setNewSector(v === 'none' ? '' : v)}>
+                <Select value={newSector || 'primary'} onValueChange={(v) => setNewSector(v)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent className="z-[1001]">
-                    <SelectItem value="none">No Sector (Super Access)</SelectItem>
-                    <SelectItem value="primary">Primary School</SelectItem>
-                    <SelectItem value="secondary">Secondary School</SelectItem>
+                    {/* Task D: Removed super admin option - only 1 super admin allowed */}
+                    <SelectItem value="primary">Primary Section Only</SelectItem>
+                    <SelectItem value="secondary">Secondary Section Only</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
                   {newSector === 'primary' && 'This admin will only manage Play Group to Primary 6'}
                   {newSector === 'secondary' && 'This admin will only manage JSS 1 to SSS 3'}
-                  {(!newSector || newSector === 'none') && 'This admin will have access to both sectors'}
                 </p>
               </div>
             </div>

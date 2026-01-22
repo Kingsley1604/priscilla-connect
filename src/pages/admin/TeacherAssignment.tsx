@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users, Crown, Pencil } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, UserCheck, Search, Users, Crown, Pencil, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -299,26 +300,27 @@ const TeacherAssignment = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+      {/* Sticky Header - Task M: Mobile responsive with menu */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-3 sm:px-6 shadow-medium overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20 flex-shrink-0 px-2 sm:px-4">
+                <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Back</span>
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                  <UserCheck className="h-8 w-8" />
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="bg-white/20 p-1.5 sm:p-2 rounded-lg backdrop-blur-sm flex-shrink-0">
+                  <UserCheck className="h-5 w-5 sm:h-8 sm:w-8" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold">Teacher Assignments</h1>
-                  <p className="text-white/80">Assign teachers to classes and subjects</p>
+                <div className="min-w-0">
+                  <h1 className="text-lg sm:text-2xl font-bold truncate">Teacher Assignments</h1>
+                  <p className="text-white/80 text-xs sm:text-base hidden sm:block">Assign teachers to classes and subjects</p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2">
+            {/* Desktop buttons */}
+            <div className="hidden md:flex gap-2">
               <Button variant="secondary" onClick={() => navigate('/admin/teacher-creation')} className="bg-white/20 hover:bg-white/30 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Teacher
@@ -339,6 +341,35 @@ const TeacherAssignment = () => {
                 New Assignment
               </Button>
             </div>
+            {/* Mobile menu button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                  <MoreVertical className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => navigate('/admin/teacher-creation')}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Teacher
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/admin/teacher-management')}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Manage Teachers
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  if (teachers.length === 0) {
+                    toast.error("Please create a teacher first");
+                    navigate('/admin/teacher-creation');
+                    return;
+                  }
+                  setShowForm(!showForm);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Assignment
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
