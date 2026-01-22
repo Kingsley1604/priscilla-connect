@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle, FileText } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle, FileText, Calculator, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -50,6 +51,8 @@ const ExamInterface = () => {
   const [examCompleted, setExamCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [warningCount, setWarningCount] = useState(0);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [calcDisplay, setCalcDisplay] = useState('0');
   const timerRef = useRef<NodeJS.Timeout>();
   const examContainerRef = useRef<HTMLDivElement>(null);
 
@@ -656,6 +659,25 @@ const ExamInterface = () => {
     }
   };
 
+  // Task K: Calculator functions
+  const handleCalcClick = (value: string) => {
+    if (value === 'C') {
+      setCalcDisplay('0');
+    } else if (value === '=') {
+      try {
+        // Safe evaluation using Function constructor
+        const result = Function(`'use strict'; return (${calcDisplay})`)();
+        setCalcDisplay(String(result));
+      } catch {
+        setCalcDisplay('Error');
+      }
+    } else if (value === '⌫') {
+      setCalcDisplay(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
+    } else {
+      setCalcDisplay(prev => prev === '0' || prev === 'Error' ? value : prev + value);
+    }
+  };
+
   if (examCompleted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
@@ -667,7 +689,9 @@ const ExamInterface = () => {
             <div className="p-6 bg-accent/50 rounded-lg">
               <p className="text-lg leading-relaxed">{getCompletionMessage()}</p>
             </div>
+            {/* Task K: Back to dashboard button */}
             <Button onClick={() => navigate("/dashboard")} className="w-full">
+              <Home className="h-4 w-4 mr-2" />
               Return to Dashboard
             </Button>
           </CardContent>
@@ -763,8 +787,42 @@ const ExamInterface = () => {
                   </Alert>
                 )}
               </div>
-              <div className="text-sm text-muted-foreground">
-                Question {currentQuestion + 1} of {questions.length}
+              <div className="flex items-center gap-3">
+                {/* Task K: Calculator button */}
+                <Popover open={showCalculator} onOpenChange={setShowCalculator}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Calculator className="h-4 w-4 mr-2" />
+                      Calculator
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-2" align="end">
+                    <div className="space-y-2">
+                      <div className="bg-muted p-3 rounded text-right text-xl font-mono overflow-hidden">
+                        {calcDisplay}
+                      </div>
+                      <div className="grid grid-cols-4 gap-1">
+                        {['7', '8', '9', '/'].map(btn => (
+                          <Button key={btn} variant="outline" size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
+                        ))}
+                        {['4', '5', '6', '*'].map(btn => (
+                          <Button key={btn} variant="outline" size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
+                        ))}
+                        {['1', '2', '3', '-'].map(btn => (
+                          <Button key={btn} variant="outline" size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
+                        ))}
+                        {['0', '.', '=', '+'].map(btn => (
+                          <Button key={btn} variant={btn === '=' ? 'default' : 'outline'} size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
+                        ))}
+                        <Button variant="destructive" size="sm" className="col-span-2" onClick={() => handleCalcClick('C')}>Clear</Button>
+                        <Button variant="outline" size="sm" className="col-span-2" onClick={() => handleCalcClick('⌫')}>⌫</Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <div className="text-sm text-muted-foreground">
+                  Question {currentQuestion + 1} of {questions.length}
+                </div>
               </div>
             </div>
             <Progress value={progress} className="mt-2" />

@@ -211,7 +211,8 @@ const SuperAdminDashboard = () => {
 
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.role.toLowerCase().includes(searchTerm.toLowerCase())
+    u.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (u.sector && u.sector.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (!accessChecked) {
@@ -444,14 +445,25 @@ const SuperAdminDashboard = () => {
                     <CardTitle className="text-lg sm:text-xl">User Management</CardTitle>
                     <CardDescription>Manage all users across the platform</CardDescription>
                   </div>
-                  <div className="relative w-full sm:w-64">
+                </div>
+                {/* Task E: Enhanced search with filter buttons */}
+                <div className="mt-4 space-y-3">
+                  <div className="relative w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search users..."
+                      placeholder="Search users by name, role, or sector..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-9"
                     />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className={searchTerm === '' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('')}>All</Button>
+                    <Button variant="outline" size="sm" className={searchTerm === 'student' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('student')}>Students</Button>
+                    <Button variant="outline" size="sm" className={searchTerm === 'teacher' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('teacher')}>Teachers</Button>
+                    <Button variant="outline" size="sm" className={searchTerm === 'admin' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('admin')}>Admins</Button>
+                    <Button variant="outline" size="sm" className={searchTerm === 'primary' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('primary')}>Primary</Button>
+                    <Button variant="outline" size="sm" className={searchTerm === 'secondary' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('secondary')}>Secondary</Button>
                   </div>
                 </div>
               </CardHeader>

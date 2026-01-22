@@ -202,26 +202,27 @@ const HomeworkAssignment = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
+      {/* Task N: Overflow hidden for mobile screen */}
+      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-3 sm:px-6 shadow-medium overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20 flex-shrink-0 px-2 sm:px-4">
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-lg">
-                <ClipboardList className="h-8 w-8" />
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="bg-white/20 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                <ClipboardList className="h-5 w-5 sm:h-8 sm:w-8" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">Assign Homework</h1>
-                <p className="text-white/80">Create and manage homework for students</p>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold truncate">Assign Homework</h1>
+                <p className="text-white/80 text-xs sm:text-base hidden sm:block truncate">Create and manage homework for students</p>
               </div>
             </div>
           </div>
-          <Button onClick={() => setShowForm(!showForm)} className="bg-white/20 hover:bg-white/30">
-            <Plus className="h-4 w-4 mr-2" />
-            New Homework
+          <Button onClick={() => setShowForm(!showForm)} className="bg-white/20 hover:bg-white/30 flex-shrink-0">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">New Homework</span>
           </Button>
         </div>
       </header>

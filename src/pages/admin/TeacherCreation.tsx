@@ -284,12 +284,9 @@ const TeacherCreation = () => {
                     <SelectValue placeholder="Select sector" />
                   </SelectTrigger>
                   <SelectContent>
-                    {/* Show only sectors the admin can manage */}
-                    {getAllowedSectors().map(sector => (
-                      <SelectItem key={sector.value} value={sector.value}>
-                        {sector.label} Section Only
-                      </SelectItem>
-                    ))}
+                    {/* Task F: Fixed - Show only 3 sector options */}
+                    <SelectItem value="primary">Primary Section Only</SelectItem>
+                    <SelectItem value="secondary">Secondary Section Only</SelectItem>
                     {formData.teacherType === 'subject' && (isSuperAdmin || !adminSector || adminSector === 'both') && (
                       <SelectItem value="both">Both Primary & Secondary</SelectItem>
                     )}
