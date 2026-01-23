@@ -129,9 +129,10 @@ const SystemSettings = () => {
   // Task H: Only super admin can reset database with confirmation
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   
+  // Task F: Don't show any error message, just silently do nothing if not super admin
   const handleResetDatabase = () => {
     if (!isSuperAdmin) {
-      toast.error('Only the super admin can reset the database');
+      // Silently do nothing - no error message shown to regular admins
       return;
     }
     setShowResetConfirm(true);
@@ -285,23 +286,26 @@ const SystemSettings = () => {
                     </CardContent>
                   </Card>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg text-red-600">Reset Database</CardTitle>
-                      <CardDescription>
-                        Reset all data (use with extreme caution)
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button 
-                        variant="destructive" 
-                        onClick={handleResetDatabase}
-                        className="w-full"
-                      >
-                        Reset Database
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  {/* Task F: Only show Reset Database card to super admin */}
+                  {isSuperAdmin && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg text-red-600">Reset Database</CardTitle>
+                        <CardDescription>
+                          Reset all data (use with extreme caution)
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button 
+                          variant="destructive" 
+                          onClick={handleResetDatabase}
+                          className="w-full"
+                        >
+                          Reset Database
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
 
                 <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">

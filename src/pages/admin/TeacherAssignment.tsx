@@ -35,6 +35,7 @@ interface Teacher {
   id: string;
   name: string;
   email: string;
+  sector?: string;
 }
 
 interface EditingAssignment {
@@ -118,13 +119,34 @@ const TeacherAssignment = () => {
     }
   }, [searchTerm]);
 
+  // Task B: Fetch teachers filtered by admin's sector
   const fetchTeachers = async () => {
     try {
       const { data, error } = await supabase.rpc('search_teachers', { 
         search_term: '' 
       });
       if (error) throw error;
-      setTeachers(data || []);
+      
+      // Get teachers with their sectors
+      const teachersWithSector: Teacher[] = [];
+      for (const teacher of data || []) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('sector')
+          .eq('id', teacher.id)
+          .single();
+        
+        // Filter based on admin sector
+        if (isSuperAdmin || !adminSector || adminSector === 'both') {
+          teachersWithSector.push({ ...teacher, sector: profile?.sector });
+        } else if (adminSector === 'primary' && (!profile?.sector || profile.sector === 'primary' || profile.sector === 'both')) {
+          teachersWithSector.push({ ...teacher, sector: profile?.sector });
+        } else if (adminSector === 'secondary' && (!profile?.sector || profile.sector === 'secondary' || profile.sector === 'both')) {
+          teachersWithSector.push({ ...teacher, sector: profile?.sector });
+        }
+      }
+      
+      setTeachers(teachersWithSector);
     } catch (error) {
       console.error('Error fetching teachers:', error);
     }
@@ -136,7 +158,26 @@ const TeacherAssignment = () => {
         search_term: term 
       });
       if (error) throw error;
-      setTeachers(data || []);
+      
+      // Filter by sector for search results too
+      const teachersWithSector: Teacher[] = [];
+      for (const teacher of data || []) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('sector')
+          .eq('id', teacher.id)
+          .single();
+        
+        if (isSuperAdmin || !adminSector || adminSector === 'both') {
+          teachersWithSector.push({ ...teacher, sector: profile?.sector });
+        } else if (adminSector === 'primary' && (!profile?.sector || profile.sector === 'primary' || profile.sector === 'both')) {
+          teachersWithSector.push({ ...teacher, sector: profile?.sector });
+        } else if (adminSector === 'secondary' && (!profile?.sector || profile.sector === 'secondary' || profile.sector === 'both')) {
+          teachersWithSector.push({ ...teacher, sector: profile?.sector });
+        }
+      }
+      
+      setTeachers(teachersWithSector);
     } catch (error) {
       console.error('Error searching teachers:', error);
     }

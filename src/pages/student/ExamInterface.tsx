@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle, FileText, Calculator, Home } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -820,6 +821,35 @@ const ExamInterface = () => {
                     </div>
                   </PopoverContent>
                 </Popover>
+                
+                {/* Task C & D: Back to Dashboard button with confirmation during exam */}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Home className="h-4 w-4 mr-2" />
+                      Back to Dashboard
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Leave Exam?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to submit your exam and go back to your dashboard? 
+                        This action will submit all your current answers and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Continue Exam</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => {
+                        submitExam();
+                        navigate("/dashboard");
+                      }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Submit & Leave
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
                 <div className="text-sm text-muted-foreground">
                   Question {currentQuestion + 1} of {questions.length}
                 </div>

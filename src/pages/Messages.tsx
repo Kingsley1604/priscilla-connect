@@ -122,6 +122,9 @@ const Messages = () => {
   const [editedContent, setEditedContent] = useState('');
   const [showDeleteGroupDialog, setShowDeleteGroupDialog] = useState(false);
   const [groupCallActive, setGroupCallActive] = useState<{ type: 'audio' | 'video' } | null>(null);
+  const [showGroupVoiceRecorder, setShowGroupVoiceRecorder] = useState(false);
+  const [showGroupFileUpload, setShowGroupFileUpload] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Task G: Fetch all users from the system - Get ALL users with profiles
@@ -196,7 +199,35 @@ const Messages = () => {
 
     fetchUsers();
     fetchGroups();
+    // Task E: Fetch unread counts
+    fetchUnreadCounts();
   }, [user]);
+
+  // Task E: Fetch unread message counts for each user
+  const fetchUnreadCounts = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('sender_id')
+        .eq('receiver_id', user.id)
+        .eq('is_read', false)
+        .eq('is_deleted_by_receiver', false);
+      
+      if (error) throw error;
+      
+      // Count unread messages per sender
+      const counts: Record<string, number> = {};
+      (data || []).forEach(msg => {
+        counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+      });
+      
+      setUnreadCounts(counts);
+    } catch (error) {
+      console.error('Error fetching unread counts:', error);
+    }
+  };
 
   // Fetch groups
   const fetchGroups = async () => {
@@ -355,6 +386,25 @@ const Messages = () => {
         }));
 
         setMessages(filteredMessages);
+        
+        // Task E: Mark messages as read when chat is opened and clear unread count
+        const unreadMessageIds = (data || [])
+          .filter((msg: any) => msg.receiver_id === user.id && !msg.is_read)
+          .map((msg: any) => msg.id);
+        
+        if (unreadMessageIds.length > 0) {
+          await supabase
+            .from('chat_messages')
+            .update({ is_read: true })
+            .in('id', unreadMessageIds);
+          
+          // Clear unread count for this user
+          setUnreadCounts(prev => {
+            const newCounts = { ...prev };
+            delete newCounts[selectedUser.id];
+            return newCounts;
+          });
+        }
       } catch (error) {
         console.error('Error loading messages:', error);
         setMessages([]);
@@ -919,6 +969,53 @@ const Messages = () => {
     }
   };
 
+  // Task H: Handle voice message for groups
+  const handleSendGroupVoiceMessage = async (audioBlob: Blob, duration: number) => {
+    if (!selectedGroup || !user) return;
+
+    try {
+      const { error } = await supabase.from('chat_group_messages').insert({
+        group_id: selectedGroup.id,
+        sender_id: user.id,
+        content: `Voice message (${Math.round(duration)}s)`,
+        message_type: 'voice'
+      });
+
+      if (error) throw error;
+
+      setShowGroupVoiceRecorder(false);
+      loadGroupMessages(selectedGroup.id);
+      toast.success('Voice message sent!');
+    } catch (error) {
+      console.error('Error sending group voice message:', error);
+      toast.error('Failed to send voice message');
+    }
+  };
+
+  // Task H: Handle file upload for groups
+  const handleSendGroupFile = async (file: File, fileInfo: any) => {
+    if (!selectedGroup || !user) return;
+
+    try {
+      const { error } = await supabase.from('chat_group_messages').insert({
+        group_id: selectedGroup.id,
+        sender_id: user.id,
+        content: `Sent a file: ${fileInfo.name}`,
+        message_type: 'file',
+        file_name: fileInfo.name
+      });
+
+      if (error) throw error;
+
+      setShowGroupFileUpload(false);
+      loadGroupMessages(selectedGroup.id);
+      toast.success('File sent!');
+    } catch (error) {
+      console.error('Error sending group file:', error);
+      toast.error('Failed to send file');
+    }
+  };
+
   // Task A: Delete group handler
   const handleDeleteGroup = async () => {
     if (!selectedGroup || !user) return;
@@ -1119,6 +1216,14 @@ const Messages = () => {
                               <div className="flex items-center justify-between gap-2">
                                 <p className="font-medium text-foreground text-sm sm:text-base truncate">{chatUser.name}</p>
                                 <div className="flex items-center gap-2 flex-shrink-0">
+                                  {/* Task E: Unread message badge with soft pink color and pulse animation */}
+                                  {unreadCounts[chatUser.id] > 0 && (
+                                    <Badge 
+                                      className="bg-pink-400 text-white animate-pulse text-xs min-w-[20px] h-5 flex items-center justify-center"
+                                    >
+                                      {unreadCounts[chatUser.id]}
+                                    </Badge>
+                                  )}
                                   <Badge className={getRoleBadgeColor(chatUser.role)} variant="secondary">
                                     {chatUser.role}
                                   </Badge>
@@ -1130,7 +1235,9 @@ const Messages = () => {
                                 </div>
                               </div>
                               <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                                Click to start chatting
+                                {unreadCounts[chatUser.id] > 0 
+                                  ? `${unreadCounts[chatUser.id]} new message${unreadCounts[chatUser.id] > 1 ? 's' : ''}`
+                                  : 'Click to start chatting'}
                               </p>
                             </div>
                           </div>
@@ -1421,23 +1528,64 @@ const Messages = () => {
           </div>
         </ScrollArea>
 
-        <div className="border-t p-4">
-          <form onSubmit={handleSendGroupMessage} className="flex space-x-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1"
+        {/* Task H: Group voice recorder */}
+        {showGroupVoiceRecorder && (
+          <div className="border-t p-2">
+            <VoiceRecorder
+              onSendVoiceMessage={handleSendGroupVoiceMessage}
+              onCancel={() => setShowGroupVoiceRecorder(false)}
             />
-            <Button 
-              type="submit"
-              disabled={!newMessage.trim()}
-              className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </form>
-        </div>
+          </div>
+        )}
+
+        {/* Task H: Group file upload */}
+        {showGroupFileUpload && (
+          <div className="border-t p-2">
+            <FileUpload
+              onSendFile={handleSendGroupFile}
+              onCancel={() => setShowGroupFileUpload(false)}
+            />
+          </div>
+        )}
+
+        {!showGroupVoiceRecorder && !showGroupFileUpload && (
+          <div className="border-t p-4">
+            <form onSubmit={handleSendGroupMessage} className="flex space-x-2">
+              {/* Task H: Voice and file buttons for groups */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowGroupVoiceRecorder(true)}
+                className="flex-shrink-0"
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowGroupFileUpload(true)}
+                className="flex-shrink-0"
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1"
+              />
+              <Button 
+                type="submit"
+                disabled={!newMessage.trim()}
+                className="bg-gradient-primary hover:shadow-glow transition-all duration-300"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
+        )}
 
         {/* Manage Members Dialog */}
         <Dialog open={showManageMembers} onOpenChange={setShowManageMembers}>

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ArrowLeft, Shield, Users, Settings, Bell, Activity, 
   Database, Lock, AlertTriangle, CheckCircle, XCircle,
@@ -46,6 +47,7 @@ const SuperAdminDashboard = () => {
   const [notifications, setNotifications] = useState<SystemNotification[]>([]);
   const [users, setUsers] = useState<UserActivity[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -187,6 +189,22 @@ const SuperAdminDashboard = () => {
   };
 
   const handleSuspendUser = async (userId: string, suspend: boolean) => {
+    // Task G: Prevent suspending super admin
+    const targetUser = users.find(u => u.id === userId);
+    if (targetUser?.role === 'admin') {
+      // Check if target is super admin
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', userId)
+        .single();
+      
+      if (profile?.is_super_admin) {
+        toast.error('Super Admin cannot be suspended');
+        return;
+      }
+    }
+    
     try {
       const { error } = await supabase
         .from('profiles')
@@ -209,11 +227,50 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.sector && u.sector.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Task A: Filter users based on dropdown and search term
+  const filteredUsers = users.filter(u => {
+    // Apply filter type first
+    let matchesFilter = true;
+    switch (filterType) {
+      case 'student':
+        matchesFilter = u.role === 'student';
+        break;
+      case 'teacher':
+        matchesFilter = u.role === 'teacher';
+        break;
+      case 'admin':
+        matchesFilter = u.role === 'admin';
+        break;
+      case 'primary':
+        matchesFilter = u.sector?.toLowerCase() === 'primary';
+        break;
+      case 'secondary':
+        matchesFilter = u.sector?.toLowerCase() === 'secondary';
+        break;
+      case 'primary-student':
+        matchesFilter = u.role === 'student' && u.sector?.toLowerCase() === 'primary';
+        break;
+      case 'secondary-student':
+        matchesFilter = u.role === 'student' && u.sector?.toLowerCase() === 'secondary';
+        break;
+      case 'primary-admin':
+        matchesFilter = u.role === 'admin' && u.sector?.toLowerCase() === 'primary';
+        break;
+      case 'secondary-admin':
+        matchesFilter = u.role === 'admin' && u.sector?.toLowerCase() === 'secondary';
+        break;
+      default:
+        matchesFilter = true;
+    }
+    
+    // Then apply search term
+    const matchesSearch = searchTerm === '' || 
+      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (u.sector && u.sector.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    return matchesFilter && matchesSearch;
+  });
 
   if (!accessChecked) {
     return (
@@ -387,8 +444,9 @@ const SuperAdminDashboard = () => {
           <TabsContent value="notifications" className="mt-4">
             <Card>
               <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-lg sm:text-xl">Activity Log</CardTitle>
-                <CardDescription>
+                {/* Task G: Center the Activity Log title */}
+                <CardTitle className="text-lg sm:text-xl text-center">Activity Log</CardTitle>
+                <CardDescription className="text-center">
                   All login/signup activities with device and location information
                 </CardDescription>
               </CardHeader>
@@ -442,28 +500,40 @@ const SuperAdminDashboard = () => {
               <CardHeader className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <CardTitle className="text-lg sm:text-xl">User Management</CardTitle>
-                    <CardDescription>Manage all users across the platform</CardDescription>
+                    {/* Task G: Center the User Management title */}
+                    <CardTitle className="text-lg sm:text-xl text-center">User Management</CardTitle>
+                    <CardDescription className="text-center">Manage all users across the platform</CardDescription>
                   </div>
                 </div>
-                {/* Task E: Enhanced search with filter buttons */}
+                {/* Task A: Enhanced search with filter dropdown instead of buttons */}
                 <div className="mt-4 space-y-3">
-                  <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search users by name, role, or sector..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" className={searchTerm === '' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('')}>All</Button>
-                    <Button variant="outline" size="sm" className={searchTerm === 'student' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('student')}>Students</Button>
-                    <Button variant="outline" size="sm" className={searchTerm === 'teacher' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('teacher')}>Teachers</Button>
-                    <Button variant="outline" size="sm" className={searchTerm === 'admin' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('admin')}>Admins</Button>
-                    <Button variant="outline" size="sm" className={searchTerm === 'primary' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('primary')}>Primary</Button>
-                    <Button variant="outline" size="sm" className={searchTerm === 'secondary' ? 'bg-primary/10' : ''} onClick={() => setSearchTerm('secondary')}>Secondary</Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search users by name..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    <Select value={filterType} onValueChange={setFilterType}>
+                      <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectValue placeholder="Filter users" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Users</SelectItem>
+                        <SelectItem value="student">Students Only</SelectItem>
+                        <SelectItem value="teacher">Teachers Only</SelectItem>
+                        <SelectItem value="admin">Admins Only</SelectItem>
+                        <SelectItem value="primary">Primary Sector</SelectItem>
+                        <SelectItem value="secondary">Secondary Sector</SelectItem>
+                        <SelectItem value="primary-student">Primary Students</SelectItem>
+                        <SelectItem value="secondary-student">Secondary Students</SelectItem>
+                        <SelectItem value="primary-admin">Primary Admins</SelectItem>
+                        <SelectItem value="secondary-admin">Secondary Admins</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </CardHeader>
