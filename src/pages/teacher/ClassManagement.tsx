@@ -97,35 +97,46 @@ const ClassManagement = () => {
     "JSS 1", "JSS 2", "JSS 3", "SSS 1", "SSS 2", "SSS 3"
   ];
 
+  // Task D FIX: First check if teacher is a class teacher and get their assigned class,
+  // THEN load data with the correct sector filtering
   useEffect(() => {
-    loadData();
-    checkIsClassTeacher();
+    const initializeData = async () => {
+      if (!user) return;
+      
+      // First, check if this teacher is a class teacher and get their assigned class
+      let assignedClassLevel: string | null = null;
+      try {
+        const { data } = await supabase
+          .from('teacher_assignments')
+          .select('is_class_teacher, class_level')
+          .eq('teacher_id', user.id)
+          .eq('is_class_teacher', true)
+          .eq('is_active', true)
+          .maybeSingle();
+        
+        if (data) {
+          setIsClassTeacher(true);
+          setTeacherAssignedClass(data.class_level);
+          assignedClassLevel = data.class_level;
+          setNewStudent(prev => ({ ...prev, class_grade: data.class_level }));
+        } else {
+          setIsClassTeacher(false);
+        }
+      } catch {
+        setIsClassTeacher(false);
+      }
+      
+      // Now load the data with the correct sector information
+      await loadDataWithSector(assignedClassLevel);
+    };
+    
+    initializeData();
   }, [user]);
 
-  const checkIsClassTeacher = async () => {
-    if (!user) return;
-    
-    try {
-      const { data } = await supabase
-        .from('teacher_assignments')
-        .select('is_class_teacher, class_level')
-        .eq('teacher_id', user.id)
-        .eq('is_class_teacher', true)
-        .eq('is_active', true)
-        .single();
-      
-      setIsClassTeacher(!!data);
-      if (data) {
-        setTeacherAssignedClass(data.class_level);
-        // Auto-set the new student class to teacher's assigned class
-        setNewStudent(prev => ({ ...prev, class_grade: data.class_level }));
-      }
-    } catch {
-      setIsClassTeacher(false);
-    }
-  };
+  // Note: checkIsClassTeacher is now integrated into initializeData above
 
-  const loadData = async () => {
+  // Task D FIX: Refactored to accept the assigned class level directly to avoid race condition
+  const loadDataWithSector = async (assignedClassLevel: string | null) => {
     if (!user) return;
     
     setIsLoading(true);
@@ -143,20 +154,26 @@ const ClassManagement = () => {
         setClasses(classesData || []);
       }
 
-      // Task D: Load ALL students first, then filter by sector for class teachers
+      // Task D FIX: Load ALL students first, then filter by sector for class teachers
       // Primary teachers only see primary students, secondary teachers only see secondary students
       const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'];
-      const secondaryClasses = ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
+      const secondaryClasses = ['JSS 1', 'JSS 2', 'JSS 3', 'SS 1', 'SS 2', 'SS 3', 'SSS 1', 'SSS 2', 'SSS 3'];
       
-      // Determine teacher's sector from their assigned class
+      // Task D FIX: Determine teacher's sector from their assigned class (passed as parameter)
       let teacherSector: 'primary' | 'secondary' | null = null;
-      if (user.role === 'teacher' && teacherAssignedClass) {
-        if (primaryClasses.some(pc => teacherAssignedClass.toLowerCase().includes(pc.toLowerCase()))) {
+      if (user.role === 'teacher' && assignedClassLevel) {
+        if (primaryClasses.some(pc => assignedClassLevel.toLowerCase().includes(pc.toLowerCase()))) {
           teacherSector = 'primary';
-        } else if (secondaryClasses.some(sc => teacherAssignedClass.toLowerCase().includes(sc.toLowerCase()))) {
+        } else if (secondaryClasses.some(sc => assignedClassLevel.toLowerCase().includes(sc.toLowerCase()))) {
           teacherSector = 'secondary';
         }
       }
+      
+      console.log('[ClassManagement] Teacher sector detection:', { 
+        assignedClassLevel, 
+        teacherSector,
+        userRole: user.role 
+      });
       
       // Get student role users first
       const { data: studentRoles } = await supabase
@@ -204,6 +221,13 @@ const ClassManagement = () => {
           
           // Only show students from the same sector as the teacher
           return studentSector === teacherSector;
+        });
+        
+        console.log('[ClassManagement] Student filtering result:', { 
+          totalStudents: studentsData?.length,
+          filteredCount: filteredStudentsData.length,
+          unassignedCount: filteredStudentsData.filter(s => !s.class_grade || s.class_grade === '').length,
+          teacherSector
         });
         
         setStudents(filteredStudentsData.map(s => ({
@@ -256,6 +280,9 @@ const ClassManagement = () => {
       setIsLoading(false);
     }
   };
+
+  // Wrapper function for reloading data (uses current teacherAssignedClass state)
+  const loadData = () => loadDataWithSector(teacherAssignedClass);
 
   const handleCreateClass = async () => {
     if (!newClass.name || !newClass.class_level) {
@@ -651,22 +678,23 @@ const ClassManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-3 sm:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-xl sm:text-3xl font-bold text-foreground">Class Management</h1>
-              <p className="text-sm text-muted-foreground">Manage classes and students</p>
+    <div className="min-h-screen bg-background">
+      {/* Fixed Header */}
+      <div className="sticky top-0 z-50 bg-background border-b shadow-sm">
+        <div className="max-w-7xl mx-auto p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <Link to="/">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-xl sm:text-3xl font-bold text-foreground">Class Management</h1>
+                <p className="text-sm text-muted-foreground">Manage classes and students</p>
+              </div>
             </div>
-          </div>
           
           <div className="flex flex-wrap gap-2">
             {user?.role === 'admin' && (
@@ -835,8 +863,12 @@ const ClassManagement = () => {
               </DialogContent>
             </Dialog>
           </div>
+          </div>
         </div>
+      </div>
 
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto p-3 sm:p-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <Card className="shadow-soft">
