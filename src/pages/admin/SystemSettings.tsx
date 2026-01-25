@@ -286,26 +286,28 @@ const SystemSettings = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Task F: Only show Reset Database card to super admin */}
-                  {isSuperAdmin && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-lg text-red-600">Reset Database</CardTitle>
-                        <CardDescription>
-                          Reset all data (use with extreme caution)
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button 
-                          variant="destructive" 
-                          onClick={handleResetDatabase}
-                          className="w-full"
-                        >
-                          Reset Database
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
+                  {/* Task A: Show Reset Database to all but only clickable by super admin */}
+                  <Card className={!isSuperAdmin ? 'opacity-60' : ''}>
+                    <CardHeader>
+                      <CardTitle className="text-lg text-red-600 flex items-center gap-2">
+                        Reset Database
+                        {!isSuperAdmin && <Lock className="h-4 w-4 text-muted-foreground" />}
+                      </CardTitle>
+                      <CardDescription>
+                        Reset all data (use with extreme caution)
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant="destructive" 
+                        onClick={handleResetDatabase}
+                        className="w-full"
+                        disabled={!isSuperAdmin}
+                      >
+                        Reset Database
+                      </Button>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">

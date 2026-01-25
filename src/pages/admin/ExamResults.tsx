@@ -375,7 +375,7 @@ const ExamResults = () => {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-xl sm:text-3xl font-bold">Exam Management</h1>
+            <h1 className="text-xl sm:text-3xl font-bold">Result Management</h1>
           </div>
           
           <Dialog open={isCreateTokenOpen} onOpenChange={setIsCreateTokenOpen}>

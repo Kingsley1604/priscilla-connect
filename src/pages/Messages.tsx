@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall } from "lucide-react";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall, Download, Play, Pause, FileText, Image, Music } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
@@ -125,6 +125,9 @@ const Messages = () => {
   const [showGroupVoiceRecorder, setShowGroupVoiceRecorder] = useState(false);
   const [showGroupFileUpload, setShowGroupFileUpload] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [groupUnreadCounts, setGroupUnreadCounts] = useState<Record<string, number>>({});
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Task G: Fetch all users from the system - Get ALL users with profiles
@@ -201,7 +204,61 @@ const Messages = () => {
     fetchGroups();
     // Task E: Fetch unread counts
     fetchUnreadCounts();
+    // Task D: Fetch group unread counts
+    fetchGroupUnreadCounts();
   }, [user]);
+
+  // Task D: Fetch group unread message counts
+  const fetchGroupUnreadCounts = async () => {
+    if (!user) return;
+    
+    try {
+      // Get all group memberships
+      const { data: memberData } = await supabase
+        .from('chat_group_members')
+        .select('group_id, joined_at')
+        .eq('user_id', user.id);
+
+      if (!memberData || memberData.length === 0) return;
+
+      const counts: Record<string, number> = {};
+      const lastReadKey = 'priscilla_group_last_read';
+      const lastReadData = JSON.parse(localStorage.getItem(lastReadKey) || '{}');
+
+      for (const membership of memberData) {
+        const lastRead = lastReadData[membership.group_id] || membership.joined_at;
+        
+        const { count, error } = await supabase
+          .from('chat_group_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('group_id', membership.group_id)
+          .neq('sender_id', user.id)
+          .gt('created_at', lastRead);
+
+        if (!error && count && count > 0) {
+          counts[membership.group_id] = count;
+        }
+      }
+
+      setGroupUnreadCounts(counts);
+    } catch (error) {
+      console.error('Error fetching group unread counts:', error);
+    }
+  };
+
+  // Task D: Mark group as read
+  const markGroupAsRead = (groupId: string) => {
+    const lastReadKey = 'priscilla_group_last_read';
+    const lastReadData = JSON.parse(localStorage.getItem(lastReadKey) || '{}');
+    lastReadData[groupId] = new Date().toISOString();
+    localStorage.setItem(lastReadKey, JSON.stringify(lastReadData));
+    
+    setGroupUnreadCounts(prev => {
+      const newCounts = { ...prev };
+      delete newCounts[groupId];
+      return newCounts;
+    });
+  };
 
   // Task E: Fetch unread message counts for each user
   const fetchUnreadCounts = async () => {
@@ -1271,6 +1328,7 @@ const Messages = () => {
                             onClick={() => {
                               setSelectedGroup(group);
                               loadGroupMessages(group.id);
+                              markGroupAsRead(group.id);
                             }}
                           >
                             <Avatar className="h-10 w-10 sm:h-12 sm:w-12 bg-primary">
@@ -1281,12 +1339,24 @@ const Messages = () => {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
                                 <p className="font-medium text-foreground text-sm sm:text-base truncate">{group.name}</p>
-                                <Badge variant="secondary" className="text-xs">
-                                  {group.members?.length || 0} members
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  {/* Task D: Group unread badge */}
+                                  {groupUnreadCounts[group.id] > 0 && (
+                                    <Badge 
+                                      className="bg-pink-400 text-white animate-pulse text-xs min-w-[20px] h-5 flex items-center justify-center"
+                                    >
+                                      {groupUnreadCounts[group.id]}
+                                    </Badge>
+                                  )}
+                                  <Badge variant="secondary" className="text-xs">
+                                    {group.members?.length || 0} members
+                                  </Badge>
+                                </div>
                               </div>
                               <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                                {group.description || 'Group chat'}
+                                {groupUnreadCounts[group.id] > 0 
+                                  ? `${groupUnreadCounts[group.id]} new message${groupUnreadCounts[group.id] > 1 ? 's' : ''}`
+                                  : (group.description || 'Group chat')}
                               </p>
                             </div>
                           </div>
@@ -1497,32 +1567,68 @@ const Messages = () => {
                 <p>No messages yet. Start the conversation!</p>
               </div>
             ) : (
-              groupMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                >
+              groupMessages.map((message) => {
+                const isVoiceMessage = message.message_type === 'voice';
+                const isFileMessage = message.message_type === 'file';
+                
+                return (
                   <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                      message.sender_id === user.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground'
-                    }`}
+                    key={message.id}
+                    className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    {message.sender_id !== user.id && (
-                      <p className="text-xs font-medium mb-1 opacity-70">{message.sender_name}</p>
-                    )}
-                    <p className="text-sm">{message.content}</p>
-                    <div className={`flex items-center justify-end gap-1 mt-1 ${
-                      message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                    }`}>
-                      <span className="text-xs">
-                        {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                        message.sender_id === user.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-foreground'
+                      }`}
+                    >
+                      {message.sender_id !== user.id && (
+                        <p className="text-xs font-medium mb-1 opacity-70">{message.sender_name}</p>
+                      )}
+                      
+                      {/* Task D: Voice message with playback */}
+                      {isVoiceMessage ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 rounded-full"
+                            onClick={() => toast.info('Voice playback feature - audio data not stored')}
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                          <span className="text-sm">{message.content}</span>
+                        </div>
+                      ) : isFileMessage ? (
+                        /* Task B: File message with download info */
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="text-sm">{message.content}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => toast.info('File download - file_url storage required')}
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-sm">{message.content}</p>
+                      )}
+                      
+                      <div className={`flex items-center justify-end gap-1 mt-1 ${
+                        message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                      }`}>
+                        <span className="text-xs">
+                          {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>
@@ -1854,6 +1960,8 @@ const Messages = () => {
               const isMissedCallMessage = message.content.startsWith('📞 Missed') || message.content.startsWith('📹 Missed');
               const isEditable = canEditMessage(message);
               const isEditing = editingMessageId === message.id;
+              const isVoiceMessage = message.message_type === 'voice';
+              const isFileMessage = message.message_type === 'file';
               
               return (
                 <div
@@ -1893,7 +2001,52 @@ const Messages = () => {
                               <PhoneMissed className="h-4 w-4" />
                             </div>
                           )}
-                          <p className="text-sm">{message.content}</p>
+                          
+                          {/* Task D: Voice message with playback indicator */}
+                          {isVoiceMessage ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={`h-8 w-8 p-0 rounded-full ${
+                                  message.sender_id === user.id 
+                                    ? 'hover:bg-primary-foreground/20' 
+                                    : 'hover:bg-muted-foreground/20'
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toast.info('Voice playback - audio data not stored in database');
+                                }}
+                              >
+                                <Play className="h-4 w-4" />
+                              </Button>
+                              <span className="text-sm">{message.content}</span>
+                            </div>
+                          ) : isFileMessage ? (
+                            /* Task B: File message with download button */
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              <span className="text-sm flex-1">{message.content}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className={`h-6 w-6 p-0 ${
+                                  message.sender_id === user.id 
+                                    ? 'hover:bg-primary-foreground/20' 
+                                    : 'hover:bg-muted-foreground/20'
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toast.info('File download requires storage bucket setup');
+                                }}
+                              >
+                                <Download className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <p className="text-sm">{message.content}</p>
+                          )}
+                          
                           <div className={`flex items-center justify-end gap-1 mt-1 ${
                             message.sender_id === user.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
                           }`}>

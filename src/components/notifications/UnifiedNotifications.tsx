@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, MessageSquare, Phone, Calendar, Megaphone, CheckCircle, X, Video, Users, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, MessageSquare, Phone, Calendar, Megaphone, CheckCircle, Video, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -17,14 +18,48 @@ interface Notification {
   timestamp: Date;
   read: boolean;
   metadata?: any;
+  senderId?: string;
 }
 
 interface UnifiedNotificationsProps {
   userRole: 'student' | 'teacher' | 'admin';
 }
 
+// Local storage key for read notifications
+const READ_NOTIFICATIONS_KEY = 'priscilla_read_notifications';
+
+const getReadNotifications = (): Set<string> => {
+  try {
+    const stored = localStorage.getItem(READ_NOTIFICATIONS_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+const saveReadNotification = (id: string) => {
+  try {
+    const readSet = getReadNotifications();
+    readSet.add(id);
+    localStorage.setItem(READ_NOTIFICATIONS_KEY, JSON.stringify([...readSet]));
+  } catch (e) {
+    console.error('Error saving read notification:', e);
+  }
+};
+
+const saveAllAsRead = (ids: string[]) => {
+  try {
+    const readSet = getReadNotifications();
+    ids.forEach(id => readSet.add(id));
+    localStorage.setItem(READ_NOTIFICATIONS_KEY, JSON.stringify([...readSet]));
+  } catch (e) {
+    console.error('Error saving read notifications:', e);
+  }
+};
+
 const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -33,6 +68,7 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
     if (!user) return;
 
     const allNotifications: Notification[] = [];
+    const readNotifications = getReadNotifications();
 
     try {
       // 1. Load unread messages (for all users)
@@ -52,13 +88,15 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
             .eq('id', msg.sender_id)
             .single();
 
+          const notifId = `msg-${msg.id}`;
           allNotifications.push({
-            id: `msg-${msg.id}`,
+            id: notifId,
             type: 'message',
             title: 'New Message',
             message: `${sender?.name || 'Someone'}: ${msg.content.substring(0, 50)}...`,
             timestamp: new Date(msg.created_at),
-            read: false
+            read: readNotifications.has(notifId),
+            senderId: msg.sender_id
           });
         }
       }
@@ -80,13 +118,15 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
             .eq('id', call.caller_id)
             .single();
 
+          const notifId = `call-${call.id}`;
           allNotifications.push({
-            id: `call-${call.id}`,
+            id: notifId,
             type: 'call',
             title: 'Missed Call',
             message: `${caller?.name || 'Someone'} tried to ${call.call_type === 'video' ? 'video' : 'voice'} call you`,
             timestamp: new Date(call.created_at),
-            read: false
+            read: readNotifications.has(notifId),
+            senderId: call.caller_id
           });
         }
       }
@@ -105,13 +145,14 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
 
       if (recentEvents) {
         for (const event of recentEvents) {
+          const notifId = `event-${event.id}`;
           allNotifications.push({
-            id: `event-${event.id}`,
+            id: notifId,
             type: 'event',
             title: 'New Event',
             message: `${event.title} - ${format(new Date(event.date), 'MMM dd, yyyy')}`,
             timestamp: new Date(event.created_at),
-            read: false
+            read: readNotifications.has(notifId)
           });
         }
       }
@@ -127,13 +168,14 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
 
       if (announcements) {
         for (const announcement of announcements) {
+          const notifId = `announce-${announcement.id}`;
           allNotifications.push({
-            id: `announce-${announcement.id}`,
+            id: notifId,
             type: 'announcement',
             title: 'New Announcement',
             message: `${announcement.title}: ${announcement.content.substring(0, 50)}...`,
             timestamp: new Date(announcement.created_at),
-            read: false
+            read: readNotifications.has(notifId)
           });
         }
       }
@@ -159,13 +201,14 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
 
           if (completions) {
             for (const c of completions) {
+              const notifId = `exam-${c.id}`;
               allNotifications.push({
-                id: `exam-${c.id}`,
+                id: notifId,
                 type: 'exam_complete',
                 title: 'Exam Completed',
                 message: `Student completed "${examMap.get(c.exam_id) || 'Exam'}" - Score: ${c.score}/${c.total_questions}`,
                 timestamp: new Date(c.submitted_at!),
-                read: false
+                read: readNotifications.has(notifId)
               });
             }
           }
@@ -183,13 +226,14 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
 
         if (approvedReports) {
           for (const report of approvedReports) {
+            const notifId = `report-${report.id}`;
             allNotifications.push({
-              id: `report-${report.id}`,
+              id: notifId,
               type: 'report_approved',
               title: 'Report Approved',
               message: `${report.student_name}'s ${report.class_level} result has been approved`,
               timestamp: new Date(report.approved_at!),
-              read: false
+              read: readNotifications.has(notifId)
             });
           }
         }
@@ -268,19 +312,39 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
     };
   }, [loadNotifications, user]);
 
-  const markAsRead = (id: string) => {
+  // Task H: Navigate to relevant page on notification click
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read locally and persist
+    saveReadNotification(notification.id);
     setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
+      prev.map(n => (n.id === notification.id ? { ...n, read: true } : n))
     );
     setUnreadCount(prev => Math.max(0, prev - 1));
+    setIsOpen(false);
+
+    // Navigate based on notification type
+    if (notification.type === 'message' || notification.type === 'call') {
+      navigate('/messages');
+    } else if (notification.type === 'event') {
+      navigate('/calendar');
+    } else if (notification.type === 'announcement') {
+      navigate('/dashboard');
+    } else if (notification.type === 'report_approved') {
+      navigate('/reports');
+    }
   };
 
+  // Task I: Mark all as read with persistence
   const markAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    saveAllAsRead(allIds);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
   };
 
   const clearNotifications = () => {
+    const allIds = notifications.map(n => n.id);
+    saveAllAsRead(allIds);
     setNotifications([]);
     setUnreadCount(0);
   };
@@ -314,7 +378,8 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative text-white hover:bg-white/20">
+        {/* Task J: Bell icon color - dark for light mode on mobile, white for desktop */}
+        <Button variant="ghost" size="icon" className="relative text-foreground sm:text-white hover:bg-white/20">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
@@ -363,7 +428,7 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
                   className={`cursor-pointer transition-colors ${
                     notification.read ? "opacity-60" : "bg-primary/5"
                   }`}
-                  onClick={() => markAsRead(notification.id)}
+                  onClick={() => handleNotificationClick(notification)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
