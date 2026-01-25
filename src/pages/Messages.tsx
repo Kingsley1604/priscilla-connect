@@ -978,14 +978,18 @@ const Messages = () => {
     }
   };
 
+  // Task F: Only group admins (is_admin=true in chat_group_members) can remove members
   const handleRemoveMember = async (memberId: string, groupId: string) => {
     if (!user) return;
 
     const group = groups.find(g => g.id === groupId);
     const currentUserMember = group?.members.find(m => m.user_id === user.id);
-    const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
+    
+    // Task F: Only check if user is a GROUP admin (not app role admin)
+    // Only members with is_admin=true in chat_group_members can remove others
+    const isGroupAdmin = currentUserMember?.is_admin === true;
 
-    if (!isAdmin) {
+    if (!isGroupAdmin) {
       toast.error('Only group admins can remove members');
       return;
     }
@@ -1593,7 +1597,8 @@ const Messages = () => {
   // Group Chat view
   if (selectedGroup) {
     const currentUserMember = selectedGroup.members.find(m => m.user_id === user.id);
-    const isGroupAdmin = user.role === 'admin' || currentUserMember?.is_admin;
+    // Task F: isGroupAdmin should only check if user is a group admin, not app role admin
+    const isGroupAdmin = currentUserMember?.is_admin === true;
 
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -1807,34 +1812,39 @@ const Messages = () => {
           </div>
         )}
 
+        {/* Task E & G: Group chat input with icons inside, fixed at bottom */}
         {!showGroupVoiceRecorder && !showGroupFileUpload && (
-          <div className="border-t p-4">
-            <form onSubmit={handleSendGroupMessage} className="flex space-x-2">
-              {/* Task H: Voice and file buttons for groups */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowGroupVoiceRecorder(true)}
-                className="flex-shrink-0"
-              >
-                <Mic className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowGroupFileUpload(true)}
-                className="flex-shrink-0"
-              >
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1"
-              />
+          <div className="border-t p-4 sticky bottom-0 bg-background">
+            <form onSubmit={handleSendGroupMessage} className="flex items-center gap-2">
+              <div className="flex-1 relative flex items-center">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="pr-20"
+                />
+                {/* Task E: Audio and attach icons inside the input on the right */}
+                <div className="absolute right-2 flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowGroupVoiceRecorder(true)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                  >
+                    <Mic className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowGroupFileUpload(true)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
               <Button 
                 type="submit"
                 disabled={!newMessage.trim()}
@@ -1884,7 +1894,8 @@ const Messages = () => {
                           </div>
                         </div>
                       </div>
-                      {isGroupAdmin && member.user_id !== user.id && !isCreator && (
+                      {/* Task F: Only show remove button to group admins (is_admin in chat_group_members) */}
+                      {currentUserMember?.is_admin && member.user_id !== user.id && !isCreator && (
                         <div className="flex gap-1">
                           {!member.is_admin && (
                             <Button
@@ -2264,7 +2275,8 @@ const Messages = () => {
         </div>
       </ScrollArea>
 
-      <div className="border-t p-4">
+      {/* Task G: Fixed chat input at bottom */}
+      <div className="border-t p-4 sticky bottom-0 bg-background">
         {showVoiceRecorder && (
           <div className="mb-3">
             <VoiceRecorder 
@@ -2283,32 +2295,38 @@ const Messages = () => {
           </div>
         )}
 
+        {/* Task E & G: Input with icons inside, fixed at bottom */}
         {!showVoiceRecorder && !showFileUpload && (
-          <form onSubmit={handleSendMessage} className="flex space-x-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowFileUpload(true)}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowVoiceRecorder(true)}
-              className="text-muted-foreground hover:text-primary"
-            >
-              <Mic className="h-4 w-4" />
-            </Button>
+          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            <div className="flex-1 relative flex items-center">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                className="pr-20"
+              />
+              {/* Task E: Audio and attach icons inside the input on the right */}
+              <div className="absolute right-2 flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowVoiceRecorder(true)}
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowFileUpload(true)}
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
             <Button 
               type="submit"
               disabled={!newMessage.trim()}
