@@ -563,14 +563,46 @@ const Messages = () => {
   const handleSendVoiceMessage = async (audioBlob: Blob, duration: number) => {
     if (!selectedUser || !user) return;
 
+    const messageId = crypto.randomUUID();
+    let fileUrl: string | undefined;
+    
+    try {
+      // Task K: Upload audio to Supabase Storage
+      const filePath = `${user.id}/${messageId}.webm`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat_attachments')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600'
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading voice message:', uploadError);
+        toast.error('Failed to upload voice message');
+        return;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('chat_attachments')
+        .getPublicUrl(filePath);
+      
+      fileUrl = urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading voice message:', error);
+      toast.error('Failed to upload voice message');
+      return;
+    }
+
     const message: Message = {
-      id: crypto.randomUUID(),
+      id: messageId,
       sender_id: user.id,
       receiver_id: selectedUser.id,
       content: `Voice message (${Math.round(duration)}s)`,
       message_type: 'voice',
       is_read: false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      file_url: fileUrl
     };
 
     try {
@@ -580,8 +612,10 @@ const Messages = () => {
         receiver_id: message.receiver_id,
         content: message.content,
         message_type: message.message_type,
+        file_url: message.file_url,
         is_read: false
       });
+      toast.success('Voice message sent!');
     } catch (error) {
       console.error('Error saving voice message:', error);
     }
@@ -593,15 +627,48 @@ const Messages = () => {
   const handleSendFile = async (file: File, fileInfo: any) => {
     if (!selectedUser || !user) return;
 
+    const messageId = crypto.randomUUID();
+    let fileUrl: string | undefined;
+    
+    try {
+      // Task K: Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop() || 'file';
+      const filePath = `${user.id}/${messageId}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat_attachments')
+        .upload(filePath, file, {
+          contentType: file.type,
+          cacheControl: '3600'
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        toast.error('Failed to upload file');
+        return;
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('chat_attachments')
+        .getPublicUrl(filePath);
+      
+      fileUrl = urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file');
+      return;
+    }
+
     const message: Message = {
-      id: crypto.randomUUID(),
+      id: messageId,
       sender_id: user.id,
       receiver_id: selectedUser.id,
       content: `Sent a file: ${fileInfo.name}`,
       message_type: 'file',
       is_read: false,
       created_at: new Date().toISOString(),
-      file_name: fileInfo.name
+      file_name: fileInfo.name,
+      file_url: fileUrl
     };
 
     try {
@@ -612,8 +679,10 @@ const Messages = () => {
         content: message.content,
         message_type: message.message_type,
         file_name: message.file_name,
+        file_url: message.file_url,
         is_read: false
       });
+      toast.success('File sent!');
     } catch (error) {
       console.error('Error saving file message:', error);
     }
@@ -1587,21 +1656,38 @@ const Messages = () => {
                         <p className="text-xs font-medium mb-1 opacity-70">{message.sender_name}</p>
                       )}
                       
-                      {/* Task D: Voice message with playback */}
+                      {/* Task K: Voice message with playback */}
                       {isVoiceMessage ? (
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-8 w-8 p-0 rounded-full"
-                            onClick={() => toast.info('Voice playback feature - audio data not stored')}
+                            onClick={() => {
+                              const msg = message as any;
+                              if (msg.file_url) {
+                                if (playingVoiceId === message.id) {
+                                  audioRef.current?.pause();
+                                  setPlayingVoiceId(null);
+                                } else {
+                                  if (audioRef.current) {
+                                    audioRef.current.src = msg.file_url;
+                                    audioRef.current.play();
+                                    setPlayingVoiceId(message.id);
+                                    audioRef.current.onended = () => setPlayingVoiceId(null);
+                                  }
+                                }
+                              } else {
+                                toast.info('Voice message audio not available');
+                              }
+                            }}
                           >
-                            <Play className="h-4 w-4" />
+                            {playingVoiceId === message.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                           </Button>
                           <span className="text-sm">{message.content}</span>
                         </div>
                       ) : isFileMessage ? (
-                        /* Task B: File message with download info */
+                        /* Task K: File message with actual download */
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4" />
                           <span className="text-sm">{message.content}</span>
@@ -1609,7 +1695,21 @@ const Messages = () => {
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0"
-                            onClick={() => toast.info('File download - file_url storage required')}
+                            onClick={() => {
+                              const msg = message as any;
+                              if (msg.file_url) {
+                                const link = document.createElement('a');
+                                link.href = msg.file_url;
+                                link.download = msg.file_name || 'download';
+                                link.target = '_blank';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                toast.success('Download started!');
+                              } else {
+                                toast.error('File not available');
+                              }
+                            }}
                           >
                             <Download className="h-3 w-3" />
                           </Button>
@@ -2002,7 +2102,7 @@ const Messages = () => {
                             </div>
                           )}
                           
-                          {/* Task D: Voice message with playback indicator */}
+                          {/* Task K: Voice message with actual playback */}
                           {isVoiceMessage ? (
                             <div className="flex items-center gap-2">
                               <Button
@@ -2015,15 +2115,29 @@ const Messages = () => {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toast.info('Voice playback - audio data not stored in database');
+                                  if (message.file_url) {
+                                    if (playingVoiceId === message.id) {
+                                      audioRef.current?.pause();
+                                      setPlayingVoiceId(null);
+                                    } else {
+                                      if (audioRef.current) {
+                                        audioRef.current.src = message.file_url;
+                                        audioRef.current.play();
+                                        setPlayingVoiceId(message.id);
+                                        audioRef.current.onended = () => setPlayingVoiceId(null);
+                                      }
+                                    }
+                                  } else {
+                                    toast.info('Voice message audio not available');
+                                  }
                                 }}
                               >
-                                <Play className="h-4 w-4" />
+                                {playingVoiceId === message.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                               </Button>
                               <span className="text-sm">{message.content}</span>
                             </div>
                           ) : isFileMessage ? (
-                            /* Task B: File message with download button */
+                            /* Task K: File message with actual download */
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               <span className="text-sm flex-1">{message.content}</span>
@@ -2037,7 +2151,18 @@ const Messages = () => {
                                 }`}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toast.info('File download requires storage bucket setup');
+                                  if (message.file_url) {
+                                    const link = document.createElement('a');
+                                    link.href = message.file_url;
+                                    link.download = message.file_name || 'download';
+                                    link.target = '_blank';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    toast.success('Download started!');
+                                  } else {
+                                    toast.error('File not available for download');
+                                  }
                                 }}
                               >
                                 <Download className="h-3 w-3" />
@@ -2195,6 +2320,9 @@ const Messages = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Hidden audio element for voice playback */}
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 };
