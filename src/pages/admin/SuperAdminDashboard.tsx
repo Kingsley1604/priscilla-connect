@@ -429,8 +429,9 @@ const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Task A: Center the navigation tabs */}
         <Tabs defaultValue="notifications" className="w-full">
-          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
+          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex justify-center mx-auto">
             <TabsTrigger value="notifications" className="text-xs sm:text-sm">
               <Bell className="h-4 w-4 mr-1 sm:mr-2" />
               Activity Log
