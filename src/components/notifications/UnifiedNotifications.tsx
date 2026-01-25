@@ -378,8 +378,12 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        {/* Task J: Bell icon color - dark for light mode on mobile, white for desktop */}
-        <Button variant="ghost" size="icon" className="relative text-foreground sm:text-white hover:bg-white/20">
+        {/* Task F: Bell icon - black in light mode on mobile/tablet, white on desktop for all portals */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative text-gray-900 dark:text-white sm:text-white hover:bg-white/20 sm:hover:bg-white/20"
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
