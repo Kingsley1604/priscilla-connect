@@ -1095,16 +1095,42 @@ const Messages = () => {
     }
   };
 
-  // Task H: Handle voice message for groups
+  // Task B: Handle voice message for groups - with proper storage upload
   const handleSendGroupVoiceMessage = async (audioBlob: Blob, duration: number) => {
     if (!selectedGroup || !user) return;
 
+    const messageId = crypto.randomUUID();
+    let fileUrl: string | undefined;
+
     try {
+      // Upload audio to Supabase Storage
+      const filePath = `groups/${selectedGroup.id}/${messageId}.webm`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat_attachments')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600'
+        });
+
+      if (uploadError) {
+        console.error('Error uploading voice message:', uploadError);
+        toast.error('Failed to upload voice message');
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('chat_attachments')
+        .getPublicUrl(filePath);
+
+      fileUrl = urlData.publicUrl;
+
       const { error } = await supabase.from('chat_group_messages').insert({
         group_id: selectedGroup.id,
         sender_id: user.id,
         content: `Voice message (${Math.round(duration)}s)`,
-        message_type: 'voice'
+        message_type: 'voice',
+        file_url: fileUrl
       });
 
       if (error) throw error;
@@ -1118,17 +1144,44 @@ const Messages = () => {
     }
   };
 
-  // Task H: Handle file upload for groups
+  // Task B: Handle file upload for groups - with proper storage upload
   const handleSendGroupFile = async (file: File, fileInfo: any) => {
     if (!selectedGroup || !user) return;
 
+    const messageId = crypto.randomUUID();
+    let fileUrl: string | undefined;
+
     try {
+      // Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop() || 'file';
+      const filePath = `groups/${selectedGroup.id}/${messageId}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat_attachments')
+        .upload(filePath, file, {
+          contentType: file.type,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        toast.error('Failed to upload file');
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('chat_attachments')
+        .getPublicUrl(filePath);
+
+      fileUrl = urlData.publicUrl;
+
       const { error } = await supabase.from('chat_group_messages').insert({
         group_id: selectedGroup.id,
         sender_id: user.id,
         content: `Sent a file: ${fileInfo.name}`,
         message_type: 'file',
-        file_name: fileInfo.name
+        file_name: fileInfo.name,
+        file_url: fileUrl
       });
 
       if (error) throw error;

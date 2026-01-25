@@ -444,11 +444,16 @@ const SuperAdminDashboard = () => {
           <TabsContent value="notifications" className="mt-4">
             <Card>
               <CardHeader className="p-4 sm:p-6">
-                {/* Task G: Center the Activity Log title */}
-                <CardTitle className="text-lg sm:text-xl text-center">Activity Log</CardTitle>
-                <CardDescription className="text-center">
-                  All login/signup activities with device and location information
-                </CardDescription>
+                {/* Task E: Center Activity Log section with justify-center */}
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <CardTitle className="text-lg sm:text-xl flex items-center justify-center gap-2">
+                    <Bell className="h-5 w-5" />
+                    Activity Log
+                  </CardTitle>
+                  <CardDescription className="text-center">
+                    All login/signup activities with device and location information
+                  </CardDescription>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[400px] sm:h-[500px]">
@@ -498,12 +503,13 @@ const SuperAdminDashboard = () => {
           <TabsContent value="users" className="mt-4">
             <Card>
               <CardHeader className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    {/* Task G: Center the User Management title */}
-                    <CardTitle className="text-lg sm:text-xl text-center">User Management</CardTitle>
-                    <CardDescription className="text-center">Manage all users across the platform</CardDescription>
-                  </div>
+                {/* Task E: Center User Management section with justify-center */}
+                <div className="flex flex-col items-center justify-center gap-2 mb-4">
+                  <CardTitle className="text-lg sm:text-xl flex items-center justify-center gap-2">
+                    <Users className="h-5 w-5" />
+                    User Management
+                  </CardTitle>
+                  <CardDescription className="text-center">Manage all users across the platform</CardDescription>
                 </div>
                 {/* Task A: Enhanced search with filter dropdown instead of buttons */}
                 <div className="mt-4 space-y-3">

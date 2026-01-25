@@ -946,20 +946,7 @@ const ClassManagement = () => {
                         <span className="font-medium text-sm">{getStudentsInClass(cls.id).length}</span>
                       </div>
                     </div>
-                    <div className="flex space-x-2 mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={() => {
-                          setSelectedClass(cls);
-                          setIsAddStudentOpen(true);
-                        }}
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Add Student
-                      </Button>
-                    </div>
+                    {/* Task A: Removed Add Student button from Classes tab - use Assign Students tab instead */}
                   </CardContent>
                 </Card>
               ))}
@@ -1100,9 +1087,13 @@ const ClassManagement = () => {
                 </CardHeader>
                 <CardContent>
                   {(() => {
-                    const unassignedStudents = students.filter(s => 
-                      (!s.class_grade || s.class_grade === '') && !s.is_suspended
-                    );
+                    // Task A: Show ALL unassigned students from the teacher's sector
+                    // Unassigned = no class_grade or empty class_grade
+                    const unassignedStudents = students.filter(s => {
+                      const isUnassigned = !s.class_grade || s.class_grade === '';
+                      const isNotSuspended = !s.is_suspended;
+                      return isUnassigned && isNotSuspended;
+                    });
                     
                     if (unassignedStudents.length === 0) {
                       return (
