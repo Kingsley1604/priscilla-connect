@@ -143,7 +143,15 @@ const ClassManagement = () => {
         setClasses(classesData || []);
       }
 
-      // Task B: Load ALL students from profiles (even without email confirmation)
+      // Task B: Load students filtered by sector - primary teachers only see primary students
+      // Get teacher's sector from their profile or assigned class
+      let teacherSector: string | null = null;
+      
+      if (user.role === 'teacher' && teacherAssignedClass) {
+        const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'];
+        teacherSector = primaryClasses.includes(teacherAssignedClass) ? 'primary' : 'secondary';
+      }
+      
       // Get student role users first
       const { data: studentRoles } = await supabase
         .from('user_roles')
@@ -155,14 +163,36 @@ const ClassManagement = () => {
       // Load student profiles - include all students with role, not just those with admission_no
       const { data: studentsData, error: studentsError } = await supabase
         .from('profiles')
-        .select('id, name, admission_no, class_grade, is_suspended')
+        .select('id, name, admission_no, class_grade, is_suspended, sector')
         .in('id', studentUserIds)
         .order('name', { ascending: true });
 
       if (studentsError) {
         console.error('Error loading students:', studentsError);
       } else {
-        setStudents((studentsData || []).map(s => ({
+        // Task B: Filter students by sector for class teachers to prevent cross-sector access
+        const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'];
+        
+        const filteredStudentsData = (studentsData || []).filter(s => {
+          // If not a teacher or no sector restriction, show all
+          if (user.role !== 'teacher' || !teacherSector) return true;
+          
+          // Determine student's sector from their class_grade
+          const studentSector = s.class_grade ? 
+            (primaryClasses.some(pc => s.class_grade?.includes(pc)) ? 'primary' : 
+             (s.class_grade ? 'secondary' : null)) : null;
+          
+          // If student has no class assigned, check their profile sector or allow both
+          if (!studentSector) {
+            // Unassigned students - show based on profile sector or if no sector set
+            return !s.sector || s.sector === teacherSector || s.sector === 'both';
+          }
+          
+          // Only show students from same sector
+          return studentSector === teacherSector;
+        });
+        
+        setStudents(filteredStudentsData.map(s => ({
           id: s.id,
           name: s.name || 'Unknown',
           admission_no: s.admission_no || 'Pending',
@@ -566,11 +596,16 @@ const ClassManagement = () => {
     return matchesSearch;
   });
 
-  const searchedExistingStudents = students.filter(student =>
-    (student.name.toLowerCase().includes(existingStudentSearch.toLowerCase()) ||
-    student.admission_no.toLowerCase().includes(existingStudentSearch.toLowerCase())) &&
-    !student.is_suspended
-  );
+  // Task B: Filter searched students - only show students from teacher's sector
+  const searchedExistingStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(existingStudentSearch.toLowerCase()) ||
+      student.admission_no.toLowerCase().includes(existingStudentSearch.toLowerCase());
+    
+    if (!matchesSearch || student.is_suspended) return false;
+    
+    // For class teachers, only show students from their sector (already filtered in loadData)
+    return true;
+  });
 
   // Check access - only class teachers and admins
   const canAccess = user?.role === 'admin' || isClassTeacher;

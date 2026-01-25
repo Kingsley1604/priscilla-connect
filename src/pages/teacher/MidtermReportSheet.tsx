@@ -122,19 +122,53 @@ const MidtermReportSheet = () => {
       return;
     }
 
+    if (!reportData.term) {
+      toast.error("Please select a term");
+      return;
+    }
+
+    if (!reportData.academicYear) {
+      toast.error("Please enter the academic year");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error("User not authenticated");
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("User not authenticated");
+
+      // Task G: First check if teacher is a class teacher for the specified class
+      const { data: assignmentData } = await supabase
+        .from('teacher_assignments')
+        .select('class_level')
+        .eq('teacher_id', userData.user.id)
+        .eq('is_class_teacher', true)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (!assignmentData) {
+        toast.error("Only class teachers can submit reports. Please contact your administrator.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Find the student by admission number
+      const { data: studentData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('admission_no', reportData.admissionNo)
+        .maybeSingle();
+
+      const studentId = studentData?.id || userData.user.id;
 
       const summary = calculateSummary();
       
       const { error } = await supabase.from("report_cards").insert({
-        student_id: user.user.id,
+        student_id: studentId,
         student_name: reportData.studentName,
         admission_no: reportData.admissionNo,
         date_of_birth: reportData.dateOfBirth || null,
-        class_level: reportData.classLevel,
+        class_level: reportData.classLevel || assignmentData.class_level,
         academic_session: reportData.academicYear,
         term: reportData.term,
         gender: reportData.sex,
@@ -155,16 +189,19 @@ const MidtermReportSheet = () => {
         passport_photo_url: passportPhoto,
         school_sports: reportData.schoolSports ? [reportData.schoolSports] : [],
         other_activities: reportData.otherActivities ? [reportData.otherActivities] : [],
-        created_by: user.user.id,
+        created_by: userData.user.id,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
-      toast.success("Midterm report submitted successfully!");
+      toast.success("Midterm report submitted successfully! It will be visible to admins for approval.");
       navigate("/reports");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting report:", error);
-      toast.error("Failed to submit report");
+      toast.error(error.message || "Failed to submit report. Please check your permissions.");
     } finally {
       setIsSubmitting(false);
     }

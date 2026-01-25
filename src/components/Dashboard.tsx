@@ -35,6 +35,11 @@ const Dashboard = ({
   
   // Check if user is super admin from auth context or props
   const isUserSuperAdmin = isSuperAdmin || authUser?.is_super_admin;
+  
+  // Task J: Check if student is assigned to a class
+  const studentClassGrade = (authUser as any)?.class_grade;
+  const isUnassignedStudent = userRole === 'student' && (!studentClassGrade || studentClassGrade === '');
+  
   const getProfilePath = () => {
     if (userRole === 'teacher') return '/teacher/profile-options';
     if (userRole === 'admin') return '/admin/profile-settings';
@@ -502,27 +507,67 @@ const Dashboard = ({
       <section className="pb-6 sm:pb-10 md:pb-12 px-3 sm:px-4 md:px-6 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           <h3 className="text-sm sm:text-lg md:text-xl font-semibold mb-3 sm:mb-6 text-foreground">Your Dashboard</h3>
+          
+          {/* Task J: Show warning for unassigned students */}
+          {isUnassignedStudent && (
+            <Card className="mb-6 border-orange-300 bg-orange-50 dark:bg-orange-950/20">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full">
+                    <Users className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-orange-800 dark:text-orange-200">Not Assigned to a Class</h4>
+                    <p className="text-sm text-orange-600 dark:text-orange-300">
+                      Please wait for your class teacher to assign you to a class. Most features are currently restricted.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-4 md:gap-6">
-            {modules.map((module, index) => <Link key={module.title} to={module.disabled ? "#" : module.path || "#"} className={module.disabled ? "pointer-events-none" : ""}>
-                <Card className={`group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft ${module.disabled ? 'opacity-60' : ''} h-full`}>
-                  <CardHeader className="pb-1 sm:pb-4 p-2 sm:p-4">
-                    <div className="flex items-center justify-between">
-                      <div className={`p-1.5 sm:p-3 rounded-lg ${module.color} shadow-soft ${module.disabled ? 'opacity-70' : ''}`}>
-                        <module.icon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
+            {modules.map((module, index) => {
+              // Task J: Restrict features for unassigned students (except Calendar)
+              const isRestricted = isUnassignedStudent && module.title !== 'Calendar';
+              const modulePath = isRestricted ? "#" : (module.disabled ? "#" : module.path || "#");
+              const isDisabled = module.disabled || isRestricted;
+              
+              return (
+                <Link 
+                  key={module.title} 
+                  to={modulePath} 
+                  className={isDisabled ? "pointer-events-none" : ""}
+                  onClick={(e) => {
+                    if (isRestricted) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  <Card className={`group cursor-pointer hover:shadow-medium transition-all duration-300 hover:-translate-y-1 shadow-soft ${isDisabled ? 'opacity-60' : ''} h-full`}>
+                    <CardHeader className="pb-1 sm:pb-4 p-2 sm:p-4">
+                      <div className="flex items-center justify-between">
+                        <div className={`p-1.5 sm:p-3 rounded-lg ${module.color} shadow-soft ${isDisabled ? 'opacity-70' : ''}`}>
+                          <module.icon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
+                        </div>
+                        <Badge variant="outline" className={`text-[10px] sm:text-xs hidden sm:inline-flex ${isDisabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                          {isRestricted ? "Restricted" : (module.disabled ? "Coming Soon" : "Open")}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className={`text-[10px] sm:text-xs hidden sm:inline-flex ${module.disabled ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                        {module.disabled ? "Coming Soon" : "Open"}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-2 sm:p-4 pt-0">
-                    <CardTitle className={`text-xs sm:text-base md:text-lg mb-0.5 sm:mb-2 transition-colors line-clamp-1 ${module.disabled ? 'text-muted-foreground' : 'group-hover:text-primary'}`}>
-                      {module.title}
-                    </CardTitle>
-                    <CardDescription className="text-[10px] sm:text-sm line-clamp-2">{module.description}</CardDescription>
-                  </CardContent>
-                </Card>
-              </Link>)}
+                    </CardHeader>
+                    <CardContent className="p-2 sm:p-4 pt-0">
+                      <CardTitle className={`text-xs sm:text-base md:text-lg mb-0.5 sm:mb-2 transition-colors line-clamp-1 ${isDisabled ? 'text-muted-foreground' : 'group-hover:text-primary'}`}>
+                        {module.title}
+                      </CardTitle>
+                      <CardDescription className="text-[10px] sm:text-sm line-clamp-2">
+                        {isRestricted ? "Available after class assignment" : module.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
