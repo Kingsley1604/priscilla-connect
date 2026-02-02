@@ -9,6 +9,7 @@ import UnifiedNotifications from "@/components/notifications/UnifiedNotification
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import StudentDashboardWidget from "@/components/student/StudentDashboardWidget";
 import SystemHealthCard from "@/components/dashboard/SystemHealthCard";
+import HelpWidget from "@/components/help/HelpWidget";
 import { BookOpen, Users, Trophy, Calendar, MessageSquare, BarChart3, Bell, Settings, PlayCircle, Brain, Package, FileText, GamepadIcon, ShoppingBag, Menu, X, User, LogOut, Moon, UserX, GraduationCap, ClipboardList, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Link, useNavigate } from "react-router-dom";
@@ -571,6 +572,9 @@ const Dashboard = ({
           </div>
         </div>
       </section>
+
+      {/* Task B: Help Widget - AI & Human Support */}
+      <HelpWidget />
     </div>;
 };
 export default Dashboard;
