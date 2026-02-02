@@ -10,12 +10,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall, Download, Play, Pause, FileText, Image, Music } from "lucide-react";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall, Download, Play, Pause, FileText, Image, Music, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
 import FileUpload from '@/components/chat/FileUpload';
 import CallInterface from '@/components/chat/CallInterface';
+import CallHistoryDialog from '@/components/chat/CallHistoryDialog';
+import GroupEditDialog from '@/components/chat/GroupEditDialog';
 import { useNotificationSystem } from '@/hooks/useNotificationSystem';
 import { checkContent, getLevelColor, getLevelLabel } from '@/lib/contentMonitoring';
 
@@ -82,6 +84,8 @@ interface GroupMessage {
   sender_name?: string;
   content: string;
   message_type: string;
+  file_url?: string;
+  file_name?: string;
   created_at: string;
 }
 
@@ -100,10 +104,12 @@ const Messages = () => {
     contact: ChatUser;
     type: 'audio' | 'video';
     status: 'calling' | 'ringing' | 'active' | 'ended';
+    startTime?: Date;
   } | null>(null);
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
   const [missedCalls, setMissedCalls] = useState<MissedCall[]>([]);
   const [showMissedCalls, setShowMissedCalls] = useState(false);
+  const [showCallHistory, setShowCallHistory] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [contentWarning, setContentWarning] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -121,6 +127,7 @@ const Messages = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editedContent, setEditedContent] = useState('');
   const [showDeleteGroupDialog, setShowDeleteGroupDialog] = useState(false);
+  const [showEditGroup, setShowEditGroup] = useState(false);
   const [groupCallActive, setGroupCallActive] = useState<{ type: 'audio' | 'video' } | null>(null);
   const [showGroupVoiceRecorder, setShowGroupVoiceRecorder] = useState(false);
   const [showGroupFileUpload, setShowGroupFileUpload] = useState(false);
@@ -802,33 +809,45 @@ const Messages = () => {
     // Notify about the call
     notifyCall(user.name || 'User', selectedUser.name, type);
     
-    // Check if user is online - show "Calling..." or "Ringing..."
+    // Check if user is online
     const isReceiverOnline = onlineUsers.has(selectedUser.id);
     
     setActiveCall({
       contact: selectedUser,
       type,
-      status: 'calling'
+      status: 'calling',
+      startTime: new Date()
     });
 
-    // Task F: No auto end call - only update status based on online state
-    // User controls when to end the call manually
-    setTimeout(() => {
+    // Task I: Improved call flow with better timing
+    // Wait 3 seconds before showing offline message (giving time for connection)
+    setTimeout(async () => {
       if (isReceiverOnline) {
         setActiveCall(prev => prev ? { ...prev, status: 'ringing' } : null);
       } else {
-        // Record missed call but do NOT auto-end the call
-        supabase.from('missed_calls').insert({
-          caller_id: user?.id,
-          receiver_id: selectedUser.id,
-          call_type: type
-        }).then(() => {
-          toast.info(`${selectedUser.name} is offline. They will see a missed call notification.`);
-        });
-        // Keep showing calling status - user can manually end the call
-        setActiveCall(prev => prev ? { ...prev, status: 'calling' } : null);
+        // Task E & F: Record call in call_history table
+        try {
+          await supabase.from('call_history').insert({
+            caller_id: user.id,
+            receiver_id: selectedUser.id,
+            call_type: type,
+            call_status: 'missed',
+            call_duration: 0
+          });
+          
+          // Also record in missed_calls for backward compatibility
+          await supabase.from('missed_calls').insert({
+            caller_id: user.id,
+            receiver_id: selectedUser.id,
+            call_type: type
+          });
+        } catch (error) {
+          console.error('Error recording call:', error);
+        }
+        
+        toast.info(`${selectedUser.name} is offline. They will see a missed call notification.`);
       }
-    }, 2000);
+    }, 3000); // Task I: Wait 3 seconds before showing offline message
   };
 
   const answerCall = () => {
@@ -861,7 +880,23 @@ const Messages = () => {
     setIncomingCall(null);
   };
 
-  const endCall = () => {
+  const endCall = async () => {
+    // Task E & F: Record call duration when ending an answered call
+    if (activeCall && activeCall.status === 'active' && activeCall.startTime && user) {
+      const duration = Math.floor((Date.now() - activeCall.startTime.getTime()) / 1000);
+      try {
+        await supabase.from('call_history').insert({
+          caller_id: user.id,
+          receiver_id: activeCall.contact.id,
+          call_type: activeCall.type,
+          call_status: 'answered',
+          call_duration: duration,
+          ended_at: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error('Error recording call duration:', error);
+      }
+    }
     setActiveCall(null);
   };
 
@@ -1009,15 +1044,15 @@ const Messages = () => {
     }
   };
 
+  // Task K: Only group CREATOR can make users admin (not just any admin)
   const handleMakeAdmin = async (memberId: string, groupId: string) => {
     if (!user) return;
 
     const group = groups.find(g => g.id === groupId);
-    const currentUserMember = group?.members.find(m => m.user_id === user.id);
-    const isAdmin = user.role === 'admin' || currentUserMember?.is_admin;
-
-    if (!isAdmin) {
-      toast.error('Only group admins can promote members');
+    
+    // Task K: Only the group creator can promote members to admin
+    if (group?.created_by !== user.id) {
+      toast.error('Only the group creator can promote members to admin');
       return;
     }
 
@@ -1327,12 +1362,22 @@ const Messages = () => {
                   <span className="hidden sm:inline">New Group</span>
                 </Button>
 
+                {/* Task E: Call History button - shows all calls */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/20"
+                  onClick={() => setShowCallHistory(true)}
+                >
+                  <Phone className="h-5 w-5" />
+                </Button>
+
                 {missedCalls.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-white hover:bg-white/20 relative"
-                    onClick={() => setShowMissedCalls(true)}
+                    onClick={() => setShowCallHistory(true)}
                   >
                     <PhoneMissed className="h-5 w-5" />
                     <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs h-5 w-5 p-0 flex items-center justify-center">
@@ -2213,17 +2258,27 @@ const Messages = () => {
                                     ? 'hover:bg-primary-foreground/20' 
                                     : 'hover:bg-muted-foreground/20'
                                 }`}
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
                                   if (message.file_url) {
-                                    const link = document.createElement('a');
-                                    link.href = message.file_url;
-                                    link.download = message.file_name || 'download';
-                                    link.target = '_blank';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    toast.success('Download started!');
+                                    // Task A: Force download by fetching the file and creating blob
+                                    try {
+                                      toast.info('Starting download...');
+                                      const response = await fetch(message.file_url);
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const link = document.createElement('a');
+                                      link.href = url;
+                                      link.download = message.file_name || 'download';
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                      window.URL.revokeObjectURL(url);
+                                      toast.success('File downloaded successfully!');
+                                    } catch (error) {
+                                      console.error('Download error:', error);
+                                      toast.error('Failed to download file');
+                                    }
                                   } else {
                                     toast.error('File not available for download');
                                   }
@@ -2391,6 +2446,21 @@ const Messages = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Task E & F: Call History Dialog */}
+      <CallHistoryDialog
+        open={showCallHistory}
+        onOpenChange={setShowCallHistory}
+        users={users}
+        onCallBack={(userId, type) => {
+          const callUser = users.find(u => u.id === userId);
+          if (callUser) {
+            setSelectedUser(callUser);
+            setShowCallHistory(false);
+            setTimeout(() => startCall(type), 100);
+          }
+        }}
+      />
 
       {/* Hidden audio element for voice playback */}
       <audio ref={audioRef} className="hidden" />

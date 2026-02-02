@@ -91,6 +91,42 @@ export type Database = {
         }
         Relationships: []
       }
+      call_history: {
+        Row: {
+          call_duration: number | null
+          call_status: string
+          call_type: string
+          caller_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          receiver_id: string
+          started_at: string
+        }
+        Insert: {
+          call_duration?: number | null
+          call_status?: string
+          call_type?: string
+          caller_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          receiver_id: string
+          started_at?: string
+        }
+        Update: {
+          call_duration?: number | null
+          call_status?: string
+          call_type?: string
+          caller_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          receiver_id?: string
+          started_at?: string
+        }
+        Relationships: []
+      }
       chat_group_members: {
         Row: {
           group_id: string
@@ -1102,6 +1138,42 @@ export type Database = {
           is_used?: boolean
           student_id?: string
           used_at?: string | null
+        }
+        Relationships: []
+      }
+      result_upload_notifications: {
+        Row: {
+          class_name: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          result_type: string
+          student_name: string
+          submitted_at: string
+          teacher_id: string
+          teacher_name: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          result_type: string
+          student_name: string
+          submitted_at?: string
+          teacher_id: string
+          teacher_name: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          result_type?: string
+          student_name?: string
+          submitted_at?: string
+          teacher_id?: string
+          teacher_name?: string
         }
         Relationships: []
       }

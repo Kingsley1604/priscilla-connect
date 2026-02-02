@@ -1,0 +1,209 @@
+import { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { HelpCircle, Send, X, Bot, User, Minimize2 } from 'lucide-react';
+
+interface Message {
+  id: string;
+  content: string;
+  sender: 'user' | 'ai' | 'human';
+  timestamp: Date;
+}
+
+// AI responses for common issues
+const aiResponses: Record<string, string> = {
+  '404': "It looks like you're experiencing a 404 error. This means the page you're looking for doesn't exist. Try navigating back to the dashboard and checking the URL. If the issue persists, please try refreshing the page.",
+  'error': "I understand you're experiencing an error. Here are some steps to try:\n1. Refresh the page\n2. Clear your browser cache\n3. Log out and log back in\n4. If the issue persists, please describe the error in detail and our human support team will assist you.",
+  'refresh': "Try refreshing your browser page (Ctrl+R or Cmd+R). This often resolves temporary issues. If the problem continues, clear your browser cache and cookies.",
+  'login': "Having trouble logging in? Make sure you're using the correct email and password. If you forgot your password, use the 'Forgot Password' link on the login page.",
+  'password': "To reset your password, go to the login page and click 'Forgot Password'. Enter your email address and we'll send you a reset link.",
+  'slow': "If the app is running slowly, try:\n1. Refresh the page\n2. Clear browser cache\n3. Close other browser tabs\n4. Check your internet connection",
+  'upload': "Having trouble uploading files? Make sure your file is under 50MB and in a supported format (images, PDFs, documents). Try refreshing and attempting the upload again.",
+  'chat': "For chat issues, try refreshing the page. Make sure you have a stable internet connection. Messages are sent in real-time, so a good connection is important.",
+  'result': "For issues with viewing or uploading results, make sure you're logged in as the correct user type (teacher or admin). Class teachers can only upload results for their assigned classes.",
+  'class': "If you're having trouble with class management, make sure you're assigned as a class teacher. Only class teachers can manage students and upload results for their classes.",
+  'default': "I'm here to help! Please describe your issue and I'll do my best to assist. For complex issues, our human support team is also available."
+};
+
+const getAIResponse = (message: string): string => {
+  const lowerMessage = message.toLowerCase();
+  
+  for (const [key, response] of Object.entries(aiResponses)) {
+    if (lowerMessage.includes(key)) {
+      return response;
+    }
+  }
+  
+  return aiResponses.default;
+};
+
+const HelpWidget = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      content: "Hi! I'm the Priscilla Connect AI assistant. How can I help you today? For common issues like 404 errors, login problems, or slow loading, I can provide instant solutions. For complex issues, our human support team is available.",
+      sender: 'ai',
+      timestamp: new Date()
+    }
+  ]);
+  const [newMessage, setNewMessage] = useState('');
+  const [isHumanOnline] = useState(false); // Human support status
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      content: newMessage,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setNewMessage('');
+
+    // AI responds after a short delay
+    setTimeout(() => {
+      const aiResponse: Message = {
+        id: crypto.randomUUID(),
+        content: getAIResponse(newMessage),
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    }, 500);
+  };
+
+  const toggleWidget = () => {
+    if (isMinimized) {
+      setIsMinimized(false);
+    } else {
+      setIsOpen(!isOpen);
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <Button
+        onClick={toggleWidget}
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse"
+        size="icon"
+      >
+        <HelpCircle className="h-6 w-6" />
+      </Button>
+    );
+  }
+
+  if (isMinimized) {
+    return (
+      <Button
+        onClick={() => setIsMinimized(false)}
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
+        size="icon"
+      >
+        <HelpCircle className="h-6 w-6" />
+      </Button>
+    );
+  }
+
+  return (
+    <Card className="fixed bottom-4 right-4 z-50 w-80 sm:w-96 shadow-xl border-2">
+      <CardHeader className="py-3 px-4 bg-gradient-hero text-white rounded-t-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            <CardTitle className="text-sm font-semibold">Priscilla Help</CardTitle>
+          </div>
+          <div className="flex items-center gap-1">
+            <Badge 
+              variant="secondary" 
+              className={`text-xs ${isHumanOnline ? 'bg-green-500/20 text-green-100' : 'bg-yellow-500/20 text-yellow-100'}`}
+            >
+              {isHumanOnline ? 'Human Available' : 'AI Support'}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-white hover:bg-white/20"
+              onClick={() => setIsMinimized(true)}
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-white hover:bg-white/20"
+              onClick={() => setIsOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <ScrollArea className="h-72 p-3">
+          <div className="space-y-3">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`flex items-start gap-2 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <Avatar className="h-7 w-7">
+                    <AvatarFallback className={msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary'}>
+                      {msg.sender === 'user' ? <User className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      msg.sender === 'user'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    <span className={`text-[10px] mt-1 block ${msg.sender === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+        
+        <div className="p-3 border-t">
+          <form onSubmit={handleSendMessage} className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Describe your issue..."
+              className="flex-1 text-sm"
+            />
+            <Button type="submit" size="icon" disabled={!newMessage.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+          <p className="text-[10px] text-muted-foreground mt-2 text-center">
+            AI support available 24/7. Human support during business hours.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default HelpWidget;
