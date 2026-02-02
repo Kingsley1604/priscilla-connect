@@ -6,7 +6,7 @@ export const examSchema = z.object({
     .trim()
     .min(3, "Title must be at least 3 characters")
     .max(200, "Title must not exceed 200 characters"),
-  exam_type: z.enum(['entrance', 'cbt']),
+  exam_type: z.enum(['entrance', 'cbt', 'termly']),
   duration_minutes: z.number()
     .int("Duration must be a whole number")
     .min(10, "Duration must be at least 10 minutes")

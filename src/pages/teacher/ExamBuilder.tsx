@@ -28,7 +28,7 @@ interface Question {
 interface Exam {
   id: string;
   title: string;
-  exam_type: 'entrance' | 'cbt';
+  exam_type: 'entrance' | 'cbt' | 'termly';
   duration_minutes: number;
   status: 'draft' | 'active' | 'completed';
   created_at: string;
@@ -177,14 +177,12 @@ const ExamBuilder = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      // Map 'termly' to 'cbt' for database (as termly is not in the enum)
-      const dbExamType = newExam.exam_type === 'termly' ? 'cbt' : newExam.exam_type;
-      
+      // Task K & L: Use termly directly - it's now a valid enum value
       const { data, error } = await supabase
         .from("exams")
         .insert({
-          title: newExam.exam_type === 'termly' ? `[TERMLY] ${newExam.title}` : newExam.title,
-          exam_type: dbExamType,
+          title: newExam.title,
+          exam_type: newExam.exam_type as 'entrance' | 'cbt' | 'termly',
           duration_minutes: newExam.duration_minutes,
           randomize_questions: newExam.randomize_questions,
           created_by: user.user.id

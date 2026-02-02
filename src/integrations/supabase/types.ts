@@ -1858,7 +1858,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "teacher" | "student"
       exam_status: "draft" | "active" | "completed"
-      exam_type: "entrance" | "cbt"
+      exam_type: "entrance" | "cbt" | "termly"
       result_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -1989,7 +1989,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "teacher", "student"],
       exam_status: ["draft", "active", "completed"],
-      exam_type: ["entrance", "cbt"],
+      exam_type: ["entrance", "cbt", "termly"],
       result_status: ["pending", "approved", "rejected"],
     },
   },

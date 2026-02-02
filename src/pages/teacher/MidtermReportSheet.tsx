@@ -197,7 +197,28 @@ const MidtermReportSheet = () => {
         throw error;
       }
 
-      toast.success("Midterm report submitted successfully! It will be visible to admins for approval.");
+      // Task G & H & P: Notify admins that a result was submitted
+      // Get teacher's profile for name
+      const { data: teacherProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userData.user.id)
+        .maybeSingle();
+
+      const teacherName = teacherProfile?.name || 'Unknown Teacher';
+      const className = reportData.classLevel || assignmentData.class_level || 'Unknown Class';
+
+      // Insert notification for admins
+      await supabase.from('result_upload_notifications').insert({
+        teacher_id: userData.user.id,
+        teacher_name: teacherName,
+        class_name: className,
+        student_name: reportData.studentName,
+        result_type: 'Mid Term Result',
+        submitted_at: new Date().toISOString()
+      });
+
+      toast.success("Midterm report submitted successfully! Admins have been notified for approval.");
       navigate("/reports");
     } catch (error: any) {
       console.error("Error submitting report:", error);

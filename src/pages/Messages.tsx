@@ -1071,6 +1071,39 @@ const Messages = () => {
     }
   };
 
+  // Task A: Only group CREATOR can remove admin status from a user
+  const handleRemoveAdmin = async (memberId: string, groupId: string) => {
+    if (!user) return;
+
+    const group = groups.find(g => g.id === groupId);
+    
+    // Only the group creator can demote admins
+    if (group?.created_by !== user.id) {
+      toast.error('Only the group creator can remove admin status');
+      return;
+    }
+
+    // Cannot remove admin status from the creator
+    if (memberId === group.created_by) {
+      toast.error('Cannot remove admin status from the group creator');
+      return;
+    }
+
+    try {
+      await supabase
+        .from('chat_group_members')
+        .update({ is_admin: false })
+        .eq('group_id', groupId)
+        .eq('user_id', memberId);
+
+      toast.success('Admin status removed');
+      fetchGroups();
+    } catch (error) {
+      console.error('Error removing admin:', error);
+      toast.error('Failed to remove admin status');
+    }
+  };
+
   const loadGroupMessages = async (groupId: string) => {
     try {
       const { data, error } = await supabase
@@ -1362,29 +1395,21 @@ const Messages = () => {
                   <span className="hidden sm:inline">New Group</span>
                 </Button>
 
-                {/* Task E: Call History button - shows all calls */}
+                {/* Task E: Single call history button with missed call badge */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-white/20"
+                  className="text-white hover:bg-white/20 relative"
                   onClick={() => setShowCallHistory(true)}
+                  title="Call History"
                 >
-                  <Phone className="h-5 w-5" />
-                </Button>
-
-                {missedCalls.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20 relative"
-                    onClick={() => setShowCallHistory(true)}
-                  >
-                    <PhoneMissed className="h-5 w-5" />
+                  <PhoneMissed className="h-5 w-5" />
+                  {missedCalls.length > 0 && (
                     <Badge className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs h-5 w-5 p-0 flex items-center justify-center">
                       {missedCalls.length}
                     </Badge>
-                  </Button>
-                )}
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -1790,7 +1815,7 @@ const Messages = () => {
                           <span className="text-sm">{message.content}</span>
                         </div>
                       ) : isFileMessage ? (
-                        /* Task K: File message with actual download */
+                        /* Task A: File message with actual download - force save to device */
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4" />
                           <span className="text-sm">{message.content}</span>
@@ -1798,17 +1823,26 @@ const Messages = () => {
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0"
-                            onClick={() => {
+                            onClick={async () => {
                               const msg = message as any;
                               if (msg.file_url) {
-                                const link = document.createElement('a');
-                                link.href = msg.file_url;
-                                link.download = msg.file_name || 'download';
-                                link.target = '_blank';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                toast.success('Download started!');
+                                try {
+                                  toast.info('Starting download...');
+                                  const response = await fetch(msg.file_url);
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const link = document.createElement('a');
+                                  link.href = url;
+                                  link.download = msg.file_name || 'download';
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                  window.URL.revokeObjectURL(url);
+                                  toast.success('File downloaded and saved to your device!');
+                                } catch (error) {
+                                  console.error('Download error:', error);
+                                  toast.error('Failed to download file');
+                                }
                               } else {
                                 toast.error('File not available');
                               }
@@ -1940,17 +1974,33 @@ const Messages = () => {
                         </div>
                       </div>
                       {/* Task F: Only show remove button to group admins (is_admin in chat_group_members) */}
-                      {currentUserMember?.is_admin && member.user_id !== user.id && !isCreator && (
-                        <div className="flex gap-1">
-                          {!member.is_admin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleMakeAdmin(member.user_id, selectedGroup.id)}
-                            >
-                              Make Admin
-                            </Button>
-                          )}
+                      {/* Task A: Group creator can make/remove admin status */}
+                      <div className="flex gap-1">
+                        {/* Only group creator can promote/demote admins */}
+                        {selectedGroup.created_by === user.id && member.user_id !== user.id && (
+                          <>
+                            {!member.is_admin ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMakeAdmin(member.user_id, selectedGroup.id)}
+                              >
+                                Make Admin
+                              </Button>
+                            ) : !isCreator && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-orange-600"
+                                onClick={() => handleRemoveAdmin(member.user_id, selectedGroup.id)}
+                              >
+                                Remove Admin
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        {/* Group admins can remove non-admin members (but not creator) */}
+                        {currentUserMember?.is_admin && member.user_id !== user.id && !isCreator && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1959,8 +2009,8 @@ const Messages = () => {
                           >
                             <UserMinus className="h-4 w-4" />
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   );
                 })}
