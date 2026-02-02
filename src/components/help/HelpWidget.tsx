@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { HelpCircle, Send, X, Bot, User, Minimize2 } from 'lucide-react';
+import { Headphones, Send, X, Bot, User, Minimize2, MessageCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -42,19 +43,34 @@ const getAIResponse = (message: string): string => {
 };
 
 const HelpWidget = () => {
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: "Hi! I'm the Priscilla Connect AI assistant. How can I help you today? For common issues like 404 errors, login problems, or slow loading, I can provide instant solutions. For complex issues, our human support team is available.",
+      content: "Hi! I'm the Priscilla Connect support assistant. How can I help you today? I can assist with common issues like 404 errors, login problems, or slow loading. For complex issues, I can connect you with our support team.",
       sender: 'ai',
       timestamp: new Date()
     }
   ]);
   const [newMessage, setNewMessage] = useState('');
-  const [isHumanOnline] = useState(false); // Human support status
+  const [isHumanOnline] = useState(true); // Human support status - typically true during business hours
+  const [needsHumanHelp, setNeedsHumanHelp] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Task F: Pages where help widget should be hidden
+  const hiddenPaths = [
+    '/messages',
+    '/teacher/create-questions',
+    '/teacher/exam-overview',
+    '/teacher/lesson-planner',
+    '/teacher/class-management',
+    '/student/exam-interface',
+    '/priscilla-brain'
+  ];
+
+  const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,18 +88,43 @@ const HelpWidget = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const userInput = newMessage;
     setNewMessage('');
 
     // AI responds after a short delay
     setTimeout(() => {
+      const aiResponseText = getAIResponse(userInput);
+      
+      // Check if AI couldn't solve the issue - suggest human help
+      const needsHuman = userInput.toLowerCase().includes('not working') || 
+                         userInput.toLowerCase().includes('still broken') ||
+                         userInput.toLowerCase().includes('help me') ||
+                         aiResponseText === aiResponses.default;
+      
+      if (needsHuman && !needsHumanHelp) {
+        setNeedsHumanHelp(true);
+      }
+      
       const aiResponse: Message = {
         id: crypto.randomUUID(),
-        content: getAIResponse(newMessage),
+        content: aiResponseText + (needsHuman ? "\n\n💡 If this doesn't solve your issue, click 'Connect to Support' below to chat with our team directly." : ""),
         sender: 'ai',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, aiResponse]);
     }, 500);
+  };
+
+  const handleConnectToHuman = () => {
+    const humanMessage: Message = {
+      id: crypto.randomUUID(),
+      content: "I'm connecting you to our support team. They will respond shortly. In the meantime, please describe your issue in detail.",
+      sender: 'ai',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, humanMessage]);
+    setNeedsHumanHelp(false);
+    // In production, this would integrate with Tawk.to, Chatwoot, or similar
   };
 
   const toggleWidget = () => {
@@ -94,14 +135,23 @@ const HelpWidget = () => {
     }
   };
 
+  // Task F: Don't render on hidden pages
+  if (shouldHide) {
+    return null;
+  }
+
   if (!isOpen) {
     return (
       <Button
         onClick={toggleWidget}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse"
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
         size="icon"
+        title="Support"
       >
-        <HelpCircle className="h-6 w-6" />
+        <Headphones className="h-6 w-6" />
+        {isHumanOnline && (
+          <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+        )}
       </Button>
     );
   }
@@ -112,8 +162,28 @@ const HelpWidget = () => {
         onClick={() => setIsMinimized(false)}
         className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
         size="icon"
+        title="Support"
       >
-        <HelpCircle className="h-6 w-6" />
+        <Headphones className="h-6 w-6" />
+        {isHumanOnline && (
+          <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+        )}
+      </Button>
+    );
+  }
+
+  if (isMinimized) {
+    return (
+      <Button
+        onClick={() => setIsMinimized(false)}
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
+        size="icon"
+        title="Support"
+      >
+        <Headphones className="h-6 w-6" />
+        {isHumanOnline && (
+          <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+        )}
       </Button>
     );
   }
@@ -123,15 +193,15 @@ const HelpWidget = () => {
       <CardHeader className="py-3 px-4 bg-gradient-hero text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5" />
-            <CardTitle className="text-sm font-semibold">Priscilla Help</CardTitle>
+            <Headphones className="h-5 w-5" />
+            <CardTitle className="text-sm font-semibold">Priscilla Support</CardTitle>
           </div>
           <div className="flex items-center gap-1">
             <Badge 
               variant="secondary" 
               className={`text-xs ${isHumanOnline ? 'bg-green-500/20 text-green-100' : 'bg-yellow-500/20 text-yellow-100'}`}
             >
-              {isHumanOnline ? 'Human Available' : 'AI Support'}
+              {isHumanOnline ? "We're Online!" : 'Leave a message'}
             </Badge>
             <Button
               variant="ghost"
@@ -185,7 +255,17 @@ const HelpWidget = () => {
           </div>
         </ScrollArea>
         
-        <div className="p-3 border-t">
+        <div className="p-3 border-t space-y-2">
+          {needsHumanHelp && (
+            <Button 
+              onClick={handleConnectToHuman}
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              size="sm"
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Connect to Support Team
+            </Button>
+          )}
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={newMessage}
@@ -197,8 +277,8 @@ const HelpWidget = () => {
               <Send className="h-4 w-4" />
             </Button>
           </form>
-          <p className="text-[10px] text-muted-foreground mt-2 text-center">
-            AI support available 24/7. Human support during business hours.
+          <p className="text-[10px] text-muted-foreground text-center">
+            {isHumanOnline ? "We're online! Get help now." : "Leave a message, we'll respond soon."}
           </p>
         </div>
       </CardContent>

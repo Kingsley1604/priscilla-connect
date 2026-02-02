@@ -29,7 +29,7 @@ interface ExamResult {
   };
   exams: {
     title: string;
-    exam_type: 'entrance' | 'cbt';
+    exam_type: 'entrance' | 'cbt' | 'termly';
     duration_minutes: number;
   };
 }
@@ -43,7 +43,7 @@ interface ExamToken {
   exam_id: string;
   exams: {
     title: string;
-    exam_type: 'entrance' | 'cbt';
+    exam_type: 'entrance' | 'cbt' | 'termly';
   };
 }
 
@@ -56,7 +56,7 @@ interface ExamAttempt {
   total_questions: number;
   exams: {
     title: string;
-    exam_type: 'entrance' | 'cbt';
+    exam_type: 'entrance' | 'cbt' | 'termly';
   };
 }
 

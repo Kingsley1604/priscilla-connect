@@ -34,7 +34,7 @@ interface ExamAttempt {
 interface Exam {
   id: string;
   title: string;
-  exam_type: 'entrance' | 'cbt';
+  exam_type: 'entrance' | 'cbt' | 'termly';
   duration_minutes: number;
 }
 
