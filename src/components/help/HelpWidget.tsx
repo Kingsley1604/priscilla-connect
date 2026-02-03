@@ -59,15 +59,16 @@ const HelpWidget = () => {
   const [needsHumanHelp, setNeedsHumanHelp] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Task F: Pages where help widget should be hidden
+  // Task K: Pages where help widget should be hidden
   const hiddenPaths = [
-    '/messages',
-    '/teacher/create-questions',
-    '/teacher/exam-overview',
-    '/teacher/lesson-planner',
-    '/teacher/class-management',
-    '/student/exam-interface',
-    '/priscilla-brain'
+    '/messages',                    // 1. Priscilla Chat (for all users)
+    '/teacher/create-questions',    // 2. Create examination (for all teachers)
+    '/teacher/exam-overview',       // 2. Create examination (for all teachers)
+    '/teacher/exam-builder',        // 2. Create examination (for all teachers)
+    '/teacher/lesson-planner',      // 3. AI Lesson planner
+    '/teacher/class-management',    // 4. Class Management (for all class teachers)
+    '/student/exam-interface',      // 5. Take Exam (for all students)
+    '/priscilla-brain'              // 6. Priscilla Brain
   ];
 
   const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
@@ -144,22 +145,6 @@ const HelpWidget = () => {
     return (
       <Button
         onClick={toggleWidget}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
-        size="icon"
-        title="Support"
-      >
-        <Headphones className="h-6 w-6" />
-        {isHumanOnline && (
-          <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-        )}
-      </Button>
-    );
-  }
-
-  if (isMinimized) {
-    return (
-      <Button
-        onClick={() => setIsMinimized(false)}
         className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
         size="icon"
         title="Support"
