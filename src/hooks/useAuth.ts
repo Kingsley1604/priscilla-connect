@@ -11,6 +11,7 @@ export interface User {
   lastLogin?: number;
   sector?: string;
   is_super_admin?: boolean;
+  class_grade?: string | null;
 }
 
 export interface AuthState {
@@ -32,10 +33,10 @@ export const useAuth = () => {
 
   const fetchUserProfile = useCallback(async (userId: string, session: Session) => {
     try {
-      // Fetch profile data including sector and super admin status
+      // Fetch profile data including sector, super admin status, and class_grade
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('name, avatar, sector, is_super_admin')
+        .select('name, avatar, sector, is_super_admin, class_grade')
         .eq('id', userId)
         .single();
 
@@ -65,7 +66,8 @@ export const useAuth = () => {
           isSuperAdmin_computed: isSuperAdmin,
           name: profile?.name,
           sector: profile?.sector,
-          role: roleData.role
+          role: roleData.role,
+          class_grade: profile?.class_grade
         });
         
         setAuthState({
@@ -78,7 +80,8 @@ export const useAuth = () => {
             avatar: profile?.avatar,
             lastLogin: Date.now(),
             sector: profile?.sector || undefined,
-            is_super_admin: isSuperAdmin
+            is_super_admin: isSuperAdmin,
+            class_grade: profile?.class_grade || null
           },
           session,
           sessionId: session.access_token,

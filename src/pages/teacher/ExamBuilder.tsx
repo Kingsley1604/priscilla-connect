@@ -117,29 +117,45 @@ const ExamBuilder = () => {
   const loadExams = async () => {
     try {
       const { data: user } = await supabase.auth.getUser();
-      if (!user.user) return;
+      if (!user.user) {
+        console.log("No user found for loading exams");
+        return;
+      }
 
-      const { data, error } = await supabase
+      console.log("Loading exams for user:", user.user.id);
+
+      // First, load the exams
+      const { data: examsData, error: examsError } = await supabase
         .from("exams")
-        .select(`
-          *,
-          exam_questions (count)
-        `)
+        .select("*")
         .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (examsError) {
+        console.error("Error loading exams:", examsError);
+        throw examsError;
+      }
 
-      const examsWithCounts = data.map(exam => ({
-        ...exam,
-        total_questions: exam.exam_questions?.[0]?.count || 0
-      }));
+      console.log("Loaded exams:", examsData?.length || 0);
+
+      // Then get question counts for each exam
+      const examsWithCounts = await Promise.all(
+        (examsData || []).map(async (exam) => {
+          const { count } = await supabase
+            .from("exam_questions")
+            .select("*", { count: "exact", head: true })
+            .eq("exam_id", exam.id);
+          
+          return {
+            ...exam,
+            total_questions: count || 0
+          };
+        })
+      );
 
       setExams(examsWithCounts);
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error loading exams:", error);
-      }
+      console.error("Error loading exams:", error);
       toast.error("Failed to load exams");
     }
   };
