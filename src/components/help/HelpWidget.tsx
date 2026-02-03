@@ -3,10 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Headphones, Send, X, Bot, User, Minimize2, MessageCircle } from 'lucide-react';
+import { Send, X, Bot, User, Minimize2, MessageCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import helpSupportIcon from '@/assets/priscilla-help-icon.webp';
 
 interface Message {
   id: string;
@@ -142,58 +143,49 @@ const HelpWidget = () => {
 
   if (!isOpen) {
     return (
-      <Button
+      <button
         onClick={toggleWidget}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
-        size="icon"
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center p-0 overflow-hidden"
         title="Support"
       >
-        <Headphones className="h-6 w-6" />
+        <img 
+          src={helpSupportIcon} 
+          alt="Support" 
+          className="h-10 w-10 object-contain filter invert"
+        />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
         )}
-      </Button>
+      </button>
     );
   }
 
   if (isMinimized) {
     return (
-      <Button
+      <button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
-        size="icon"
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center p-0 overflow-hidden"
         title="Support"
       >
-        <Headphones className="h-6 w-6" />
+        <img 
+          src={helpSupportIcon} 
+          alt="Support" 
+          className="h-10 w-10 object-contain filter invert"
+        />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
         )}
-      </Button>
+      </button>
     );
   }
 
-  if (isMinimized) {
-    return (
-      <Button
-        onClick={() => setIsMinimized(false)}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300"
-        size="icon"
-        title="Support"
-      >
-        <Headphones className="h-6 w-6" />
-        {isHumanOnline && (
-          <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-        )}
-      </Button>
-    );
-  }
 
   return (
     <Card className="fixed bottom-4 right-4 z-50 w-80 sm:w-96 shadow-xl border-2">
       <CardHeader className="py-3 px-4 bg-gradient-hero text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Headphones className="h-5 w-5" />
+            <img src={helpSupportIcon} alt="Support" className="h-5 w-5 filter invert" />
             <CardTitle className="text-sm font-semibold">Priscilla Support</CardTitle>
           </div>
           <div className="flex items-center gap-1">
