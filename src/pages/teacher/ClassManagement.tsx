@@ -758,10 +758,10 @@ const ClassManagement = () => {
 
             <Dialog open={isCreateStudentOpen} onOpenChange={setIsCreateStudentOpen}>
               <DialogTrigger asChild>
-                <Button variant="secondary">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  {/* Task O: Renamed button */}
-                  Create Student Account
+                {/* Task H: Mobile shows icon only, desktop shows full text */}
+                <Button variant="secondary" title="Create Student Account">
+                  <UserPlus className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Create Student Account</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
@@ -1088,34 +1088,72 @@ const ClassManagement = () => {
                     {selectedStudentsToAssign.size > 0 && (
                       <Button 
                         onClick={async () => {
-                          if (!teacherAssignedClass) return;
+                          if (!teacherAssignedClass) {
+                            toast.error("No class assigned to you");
+                            return;
+                          }
                           setIsAssigning(true);
                           try {
                             // Find the class for the teacher's assigned class
                             const targetClass = classes.find(c => c.class_level === teacherAssignedClass);
                             
+                            console.log("[ClassManagement] Assigning students:", {
+                              count: selectedStudentsToAssign.size,
+                              targetClass: teacherAssignedClass,
+                              targetClassId: targetClass?.id
+                            });
+                            
+                            let successCount = 0;
+                            
                             for (const studentId of selectedStudentsToAssign) {
-                              // Update student's class_grade
-                              await supabase
+                              // Task E-G FIX: Update student's class_grade in profiles table
+                              const { error: profileError } = await supabase
                                 .from('profiles')
-                                .update({ class_grade: teacherAssignedClass })
+                                .update({ 
+                                  class_grade: teacherAssignedClass,
+                                  // Also set sector based on class
+                                  sector: ['JSS 1', 'JSS 2', 'JSS 3', 'SSS 1', 'SSS 2', 'SSS 3', 'SS 1', 'SS 2', 'SS 3'].includes(teacherAssignedClass) ? 'secondary' : 'primary'
+                                })
                                 .eq('id', studentId);
+                              
+                              if (profileError) {
+                                console.error('[ClassManagement] Error updating profile:', profileError);
+                                continue;
+                              }
                               
                               // Add to class_students if class exists
                               if (targetClass) {
-                                await supabase
+                                // Check if already exists
+                                const { data: existing } = await supabase
                                   .from('class_students')
-                                  .insert({
-                                    class_id: targetClass.id,
-                                    student_id: studentId,
-                                    enrolled_by: user?.id
-                                  });
+                                  .select('id')
+                                  .eq('class_id', targetClass.id)
+                                  .eq('student_id', studentId)
+                                  .maybeSingle();
+                                
+                                if (!existing) {
+                                  await supabase
+                                    .from('class_students')
+                                    .insert({
+                                      class_id: targetClass.id,
+                                      student_id: studentId,
+                                      enrolled_by: user?.id
+                                    });
+                                }
                               }
+                              
+                              successCount++;
                             }
                             
-                            toast.success(`${selectedStudentsToAssign.size} student(s) assigned to ${teacherAssignedClass}`);
+                            if (successCount > 0) {
+                              toast.success(`${successCount} student(s) assigned to ${teacherAssignedClass}`);
+                            } else {
+                              toast.error("Failed to assign students");
+                            }
+                            
                             setSelectedStudentsToAssign(new Set());
-                            loadData();
+                            // Reload data to refresh the student lists
+                            await loadDataWithSector(teacherAssignedClass);
                           } catch (error: any) {
                             console.error('Error assigning students:', error);
                             toast.error('Failed to assign students');
@@ -1126,7 +1164,7 @@ const ClassManagement = () => {
                         disabled={isAssigning}
                       >
                         <UserPlus className="h-4 w-4 mr-2" />
-                        Assign {selectedStudentsToAssign.size} Selected to {teacherAssignedClass}
+                        {isAssigning ? 'Assigning...' : `Assign ${selectedStudentsToAssign.size} Selected to ${teacherAssignedClass}`}
                       </Button>
                     )}
                   </div>

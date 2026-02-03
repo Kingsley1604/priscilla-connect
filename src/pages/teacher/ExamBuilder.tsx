@@ -119,6 +119,7 @@ const ExamBuilder = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Task A: Load ALL exams created by this user (with or without questions)
       const { data, error } = await supabase
         .from("exams")
         .select(`
@@ -128,9 +129,14 @@ const ExamBuilder = () => {
         .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading exams:", error);
+        throw error;
+      }
 
-      const examsWithCounts = data.map(exam => ({
+      console.log("[ExamBuilder] Loaded exams:", data?.length || 0);
+
+      const examsWithCounts = (data || []).map(exam => ({
         ...exam,
         total_questions: exam.exam_questions?.[0]?.count || 0
       }));
@@ -218,7 +224,10 @@ const ExamBuilder = () => {
   };
 
   const createQuestion = async () => {
-    if (!selectedExam) return;
+    if (!selectedExam) {
+      toast.error("Please select an exam first");
+      return;
+    }
 
     // Validate question data
     try {
@@ -228,15 +237,14 @@ const ExamBuilder = () => {
       return;
     }
 
-    // Check question limit for entrance exams
-    if (selectedExam.exam_type === 'entrance' && questions.length >= 30 && !editingQuestion) {
-      toast.error("Entrance exams can have a maximum of 30 questions");
-      return;
-    }
+    // Task C: Remove question limit - allow unlimited questions for all exam types
+    // Only entrance exams have a soft recommendation, not a hard limit
 
     setIsLoading(true);
     try {
       const questionOrder = editingQuestion?.question_order || (questions.length + 1);
+      
+      console.log("[ExamBuilder] Creating question for exam:", selectedExam.id);
       
       if (editingQuestion) {
         const { error } = await supabase
@@ -251,10 +259,14 @@ const ExamBuilder = () => {
           })
           .eq("id", editingQuestion.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error("[ExamBuilder] Error updating question:", error);
+          throw error;
+        }
         toast.success("Question updated successfully!");
       } else {
-        const { error } = await supabase
+        // Task C: Insert new question - RLS allows if user is exam creator
+        const { data, error } = await supabase
           .from("exam_questions")
           .insert({
             exam_id: selectedExam.id,
@@ -265,9 +277,16 @@ const ExamBuilder = () => {
             option_d: newQuestion.option_d,
             correct_answer: newQuestion.correct_answer,
             question_order: questionOrder
-          });
+          })
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error("[ExamBuilder] Error adding question:", error);
+          toast.error(`Failed to add question: ${error.message}`);
+          return;
+        }
+        
+        console.log("[ExamBuilder] Question added successfully:", data);
         toast.success("Question added successfully!");
       }
 
@@ -276,11 +295,9 @@ const ExamBuilder = () => {
       resetQuestionForm();
       loadQuestions(selectedExam.id);
       loadExams();
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error("Error saving question:", error);
-      }
-      toast.error("Failed to save question");
+    } catch (error: any) {
+      console.error("[ExamBuilder] Error saving question:", error);
+      toast.error(error.message || "Failed to save question");
     } finally {
       setIsLoading(false);
     }
