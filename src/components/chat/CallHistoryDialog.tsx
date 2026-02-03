@@ -70,23 +70,18 @@ const CallHistoryDialog = ({ open, onOpenChange, users, onCallBack }: CallHistor
   const [groupedCalls, setGroupedCalls] = useState<GroupedCall[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Task L: Fetch call history immediately when dialog opens - no delay
   useEffect(() => {
     if (open && user) {
-      // Fetch immediately without delay
       fetchCallHistory();
     }
   }, [open, user]);
 
   const fetchCallHistory = async () => {
     if (!user) return;
-    
-    // Task L: Show loading state immediately but don't block UI
     setIsLoading(true);
-    setGroupedCalls([]); // Clear previous data for fresh load
 
     try {
-      // Fetch from call_history table - optimized query
+      // Fetch from call_history table
       const { data: historyData, error: historyError } = await supabase
         .from('call_history')
         .select('*')

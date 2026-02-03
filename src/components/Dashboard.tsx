@@ -208,10 +208,10 @@ const Dashboard = ({
       path: "/admin/deactivate-teacher"
     }, {
       title: "Manage Results",
-      description: "View submitted teacher results",
-      icon: FileText,
+      description: "Approve exam results",
+      icon: Trophy,
       color: "bg-gradient-secondary",
-      path: "/admin/manage-results"
+      path: "/admin/exam-results"
     }, {
       title: "Manage Store",
       description: "Add and manage store items",
