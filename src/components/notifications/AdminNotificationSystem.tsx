@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { FileText, UserX } from 'lucide-react';
 import { Bell, AlertTriangle, X, ShoppingCart, MessageSquare, UserPlus, LogIn, Eye, User, Phone, MapPin, Package, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,7 +69,50 @@ const AdminNotificationSystem = () => {
         return;
       }
 
-      setNotifications(data || []);
+      // Task J & K & L: Also fetch result upload notifications
+      const { data: resultNotifications } = await supabase
+        .from('result_upload_notifications')
+        .select('*')
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Task B & C: Fetch suspension notifications
+      const { data: suspensionNotifications } = await supabase
+        .from('admin_suspension_notifications')
+        .select('*')
+        .eq('is_handled', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Convert result notifications to standard format
+      const convertedResultNotifications: Notification[] = (resultNotifications || []).map(n => ({
+        id: `result_${n.id}`,
+        title: 'Result Uploaded',
+        message: `${n.teacher_name} (${n.class_name}) submitted ${n.result_type} for ${n.student_name}`,
+        type: 'result_upload',
+        is_read: n.is_read,
+        created_at: n.created_at,
+      }));
+
+      // Convert suspension notifications to standard format
+      const convertedSuspensionNotifications: Notification[] = (suspensionNotifications || []).map(n => ({
+        id: `suspension_${n.id}`,
+        title: 'Suspension Request',
+        message: `${n.teacher_name} (${n.class_name}) requested suspension for ${n.student_name}: ${n.reason}`,
+        type: 'suspension_request',
+        is_read: n.is_read,
+        created_at: n.created_at,
+      }));
+
+      // Combine all notifications
+      const allNotifications = [
+        ...(data || []),
+        ...convertedResultNotifications,
+        ...convertedSuspensionNotifications
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setNotifications(allNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -245,6 +289,10 @@ const AdminNotificationSystem = () => {
         return 'bg-purple-500/10 text-purple-600 border-purple-200';
       case 'content_alert':
         return 'bg-destructive/10 text-destructive border-destructive/20';
+      case 'result_upload':
+        return 'bg-orange-500/10 text-orange-600 border-orange-200';
+      case 'suspension_request':
+        return 'bg-red-500/10 text-red-600 border-red-200';
       default:
         return 'bg-secondary text-secondary-foreground';
     }
@@ -263,6 +311,10 @@ const AdminNotificationSystem = () => {
         return <LogIn className="h-4 w-4" />;
       case 'content_alert':
         return <AlertTriangle className="h-4 w-4" />;
+      case 'result_upload':
+        return <FileText className="h-4 w-4" />;
+      case 'suspension_request':
+        return <UserX className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
     }

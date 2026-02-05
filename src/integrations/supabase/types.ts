@@ -55,6 +55,56 @@ export type Database = {
           },
         ]
       }
+      admin_suspension_notifications: {
+        Row: {
+          class_name: string
+          created_at: string | null
+          id: string
+          is_handled: boolean | null
+          is_read: boolean | null
+          reason: string
+          request_id: string
+          student_id: string
+          student_name: string
+          teacher_id: string
+          teacher_name: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string | null
+          id?: string
+          is_handled?: boolean | null
+          is_read?: boolean | null
+          reason: string
+          request_id: string
+          student_id: string
+          student_name: string
+          teacher_id: string
+          teacher_name: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string | null
+          id?: string
+          is_handled?: boolean | null
+          is_read?: boolean | null
+          reason?: string
+          request_id?: string
+          student_id?: string
+          student_name?: string
+          teacher_id?: string
+          teacher_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_suspension_notifications_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "suspension_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           content: string

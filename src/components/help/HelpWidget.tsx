@@ -145,13 +145,13 @@ const HelpWidget = () => {
     return (
       <button
         onClick={toggleWidget}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center p-0 overflow-hidden"
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center p-0"
         title="Support"
       >
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-10 w-10 object-contain filter invert"
+          className="h-8 w-8 object-contain"
         />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -164,13 +164,13 @@ const HelpWidget = () => {
     return (
       <button
         onClick={() => setIsMinimized(false)}
-        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center p-0 overflow-hidden"
+        className="fixed bottom-4 right-4 z-50 h-14 w-14 rounded-full bg-gradient-primary shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center p-0"
         title="Support"
       >
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-10 w-10 object-contain filter invert"
+          className="h-8 w-8 object-contain"
         />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -185,7 +185,7 @@ const HelpWidget = () => {
       <CardHeader className="py-3 px-4 bg-gradient-hero text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={helpSupportIcon} alt="Support" className="h-5 w-5 filter invert" />
+            <img src={helpSupportIcon} alt="Support" className="h-5 w-5" />
             <CardTitle className="text-sm font-semibold">Priscilla Support</CardTitle>
           </div>
           <div className="flex items-center gap-1">

@@ -34,6 +34,7 @@ interface Exam {
   created_at: string;
   total_questions?: number;
   randomize_questions: boolean;
+  created_by: string;
 }
 
 interface ExamStatistics {
@@ -55,6 +56,7 @@ const ExamBuilder = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [examStats, setExamStats] = useState<ExamStatistics[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Create exam form state
   const [newExam, setNewExam] = useState<{
@@ -123,12 +125,13 @@ const ExamBuilder = () => {
       }
 
       console.log("Loading exams for user:", user.user.id);
+      setCurrentUserId(user.user.id);
 
-      // First, load the exams
+      // Task M & N: Load ALL exams (not just the creator's) so teachers can view others' exams
+      // But only the creator can edit/delete
       const { data: examsData, error: examsError } = await supabase
         .from("exams")
         .select("*")
-        .eq("created_by", user.user.id)
         .order("created_at", { ascending: false });
 
       if (examsError) {
@@ -162,13 +165,19 @@ const ExamBuilder = () => {
 
   const loadQuestions = async (examId: string) => {
     try {
+      console.log("Loading questions for exam:", examId);
       const { data, error } = await supabase
         .from("exam_questions")
         .select("*")
         .eq("exam_id", examId)
         .order("question_order");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading questions:", error);
+        throw error;
+      }
+      
+      console.log("Loaded questions:", data?.length || 0);
       setQuestions((data || []).map(q => ({
         ...q,
         correct_answer: q.correct_answer as 'a' | 'b' | 'c' | 'd'
@@ -643,6 +652,8 @@ const ExamBuilder = () => {
                           <Badge variant={exam.status === 'active' ? 'default' : 'secondary'}>
                             {exam.status}
                           </Badge>
+                      {/* Task E & M: Only show edit/delete buttons for exam creator */}
+                      {exam.created_by === currentUserId && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -653,6 +664,7 @@ const ExamBuilder = () => {
                           >
                             {exam.status === 'active' ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                           </Button>
+                      )}
                         </div>
                       </div>
                     </div>
