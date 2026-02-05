@@ -1660,6 +1660,21 @@ const Messages = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Task F: Call History Dialog - Include in contact list view */}
+        <CallHistoryDialog
+          open={showCallHistory}
+          onOpenChange={setShowCallHistory}
+          users={users}
+          onCallBack={(userId, type) => {
+            const callUser = users.find(u => u.id === userId);
+            if (callUser) {
+              setSelectedUser(callUser);
+              setShowCallHistory(false);
+              setTimeout(() => startCall(type), 100);
+            }
+          }}
+        />
       </div>
     );
   }

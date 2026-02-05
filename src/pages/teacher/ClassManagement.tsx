@@ -503,15 +503,39 @@ const ClassManagement = () => {
         toast.success("Student suspended successfully!");
       } else {
         // Teacher creates a request
-        const { error } = await supabase
+        const { data: requestData, error } = await supabase
           .from('suspension_requests')
           .insert({
             student_id: selectedStudent.id,
             requested_by: user?.id,
             reason: suspensionReason
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Task B: Get teacher's profile for name and class info
+        const { data: teacherProfile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user?.id)
+          .maybeSingle();
+
+        const teacherName = teacherProfile?.name || 'Unknown Teacher';
+        const className = teacherAssignedClass || 'Unknown Class';
+
+        // Task B: Create notification for admins
+        await supabase.from('admin_suspension_notifications').insert({
+          request_id: requestData.id,
+          student_id: selectedStudent.id,
+          student_name: selectedStudent.name,
+          teacher_id: user?.id,
+          teacher_name: teacherName,
+          class_name: className,
+          reason: suspensionReason
+        });
+
         toast.success("Suspension request submitted for admin approval");
       }
 
