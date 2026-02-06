@@ -10,7 +10,7 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import helpSupportIcon from '@/assets/priscilla-help-icon.webp';
+import helpSupportIcon from '@/assets/priscilla-help-icon.png';
 
 interface Message {
   id: string;
@@ -218,7 +218,8 @@ const HelpWidget = () => {
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-8 w-8 object-contain rounded-full"
+          className="h-8 w-8 object-contain"
+          style={{ filter: 'brightness(0) invert(1)' }}
         />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -237,7 +238,8 @@ const HelpWidget = () => {
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-8 w-8 object-contain rounded-full"
+          className="h-8 w-8 object-contain"
+          style={{ filter: 'brightness(0) invert(1)' }}
         />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -251,7 +253,7 @@ const HelpWidget = () => {
       <CardHeader className="py-3 px-4 bg-gradient-hero text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={helpSupportIcon} alt="Support" className="h-5 w-5 rounded-full" />
+            <img src={helpSupportIcon} alt="Support" className="h-5 w-5" style={{ filter: 'brightness(0) invert(1)' }} />
             <CardTitle className="text-sm font-semibold">Priscilla Support</CardTitle>
           </div>
           <div className="flex items-center gap-1">

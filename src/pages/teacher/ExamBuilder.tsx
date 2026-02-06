@@ -417,6 +417,7 @@ const ExamBuilder = () => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-gradient-hero text-white py-6 px-6 shadow-medium">
@@ -876,24 +877,24 @@ const ExamBuilder = () => {
       </div>
     </div>
 
-    {/* Task D: Delete Exam Confirmation Dialog */}
-    <AlertDialog open={!!examToDelete} onOpenChange={(open) => !open && setExamToDelete(null)}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Delete Examination</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete "{examToDelete?.title}"? This will permanently remove the exam and all its questions. This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={deleteExam} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Delete
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-    </div>
+      {/* Task D: Delete Exam Confirmation Dialog */}
+      <AlertDialog open={!!examToDelete} onOpenChange={(open) => !open && setExamToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Examination</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{examToDelete?.title}"? This will permanently remove the exam and all its questions. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteExam} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

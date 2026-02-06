@@ -566,6 +566,35 @@ const ClassManagement = () => {
 
   const handleApproveSuspension = async (requestId: string, studentId: string, approve: boolean) => {
     try {
+      // Task G: Role-based approval - check if admin can approve this request
+      if (user?.role === 'admin' && !user?.is_super_admin) {
+        // Get the teacher who made the request to determine sector
+        const { data: requestData } = await supabase
+          .from('suspension_requests')
+          .select('requested_by')
+          .eq('id', requestId)
+          .single();
+
+        if (requestData) {
+          const { data: teacherAssignment } = await supabase
+            .from('teacher_assignments')
+            .select('class_level')
+            .eq('teacher_id', requestData.requested_by)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (teacherAssignment) {
+            const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery 1', 'Nursery 2', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6'];
+            const teacherSector = primaryClasses.some(pc => teacherAssignment.class_level.toLowerCase().includes(pc.toLowerCase())) ? 'primary' : 'secondary';
+            
+            if (adminSector && adminSector !== 'both' && teacherSector !== adminSector) {
+              toast.error(`You can only approve/decline requests from ${adminSector} school teachers.`);
+              return;
+            }
+          }
+        }
+      }
+
       if (approve) {
         // Update profile to suspended
         const { error: profileError } = await supabase
@@ -592,11 +621,77 @@ const ClassManagement = () => {
 
       if (error) throw error;
 
+      // Mark the suspension notification as handled
+      await supabase
+        .from('admin_suspension_notifications')
+        .update({ is_handled: true, is_read: true })
+        .eq('request_id', requestId);
+
       toast.success(approve ? "Suspension approved!" : "Suspension rejected!");
       loadData();
     } catch (error: any) {
       console.error('Error:', error);
       toast.error("Failed to process request");
+    }
+  };
+
+  // Task G: Handle unsuspension request from teacher
+  const handleRequestUnsuspension = async (studentId: string, studentName: string) => {
+    try {
+      // Check for existing pending unsuspension request
+      const { data: existingRequest } = await supabase
+        .from('suspension_requests')
+        .select('id')
+        .eq('student_id', studentId)
+        .eq('requested_by', user?.id)
+        .eq('status', 'pending')
+        .eq('reason', 'UNSUSPENSION_REQUEST')
+        .maybeSingle();
+
+      if (existingRequest) {
+        toast.error("You already have a pending unsuspension request for this student.");
+        return;
+      }
+
+      const { data: requestData, error } = await supabase
+        .from('suspension_requests')
+        .insert({
+          student_id: studentId,
+          requested_by: user?.id,
+          reason: 'UNSUSPENSION_REQUEST',
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Get teacher info
+      const { data: teacherProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user?.id)
+        .maybeSingle();
+
+      const teacherName = teacherProfile?.name || 'Unknown Teacher';
+      const className = teacherAssignedClass || 'Unknown Class';
+
+      // Create notification for admins
+      await supabase.from('admin_suspension_notifications').insert({
+        request_id: requestData.id,
+        student_id: studentId,
+        student_name: studentName,
+        teacher_id: user?.id,
+        teacher_name: teacherName,
+        class_name: className,
+        reason: `Request to unsuspend ${studentName}`
+      });
+
+      toast.success("Unsuspension request submitted for admin approval");
+      loadData();
+    } catch (error: any) {
+      console.error('Error:', error);
+      toast.error("Failed to submit unsuspension request");
     }
   };
 
@@ -1072,7 +1167,7 @@ const ClassManagement = () => {
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             {student.is_suspended ? (
-                              (user?.role === 'admin') && (
+                              user?.role === 'admin' ? (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1081,12 +1176,21 @@ const ClassManagement = () => {
                                   <UserPlus className="h-4 w-4 mr-1" />
                                   Unsuspend
                                 </Button>
-                              )
+                              ) : user?.role === 'teacher' ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRequestUnsuspension(student.id, student.name)}
+                                >
+                                  <UserPlus className="h-4 w-4 mr-1" />
+                                  Request Unsuspension
+                                </Button>
+                              ) : null
                             ) : (
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="text-orange-600 hover:text-orange-700"
+                                className="text-destructive hover:text-destructive"
                                 onClick={() => {
                                   setSelectedStudent(student);
                                   setIsSuspendOpen(true);
@@ -1272,12 +1376,22 @@ const ClassManagement = () => {
                 <div className="space-y-4">
                   {suspensionRequests.map((request) => {
                     const studentInfo = students.find(s => s.id === request.student_id);
+                    const isUnsuspensionRequest = request.reason === 'UNSUSPENSION_REQUEST';
                     return (
                       <div key={request.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between flex-wrap gap-2">
                           <div>
-                            <p className="font-medium">{studentInfo?.name || 'Unknown Student'}</p>
-                            <p className="text-sm text-muted-foreground">{request.reason}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{studentInfo?.name || 'Unknown Student'}</p>
+                              {isUnsuspensionRequest && (
+                                <Badge variant="outline" className="text-xs">Unsuspension</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {isUnsuspensionRequest 
+                                ? `Request to unsuspend ${studentInfo?.name || 'student'}`
+                                : request.reason}
+                            </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Requested on {new Date(request.created_at).toLocaleDateString()}
                             </p>
@@ -1285,23 +1399,67 @@ const ClassManagement = () => {
                           <div className="flex items-center gap-2">
                             {request.status === 'pending' ? (
                               user?.role === 'admin' ? (
-                                <>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleApproveSuspension(request.id, request.student_id, true)}
-                                  >
-                                    <Check className="h-4 w-4 mr-1" />
-                                    Approve
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleApproveSuspension(request.id, request.student_id, false)}
-                                  >
-                                    <X className="h-4 w-4 mr-1" />
-                                    Reject
-                                  </Button>
-                                </>
+                                isUnsuspensionRequest ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={async () => {
+                                        try {
+                                          await supabase.from('profiles').update({
+                                            is_suspended: false,
+                                            suspended_at: null,
+                                            suspended_by: null,
+                                            suspension_reason: null
+                                          }).eq('id', request.student_id);
+                                          
+                                          await supabase.from('suspension_requests').update({
+                                            status: 'approved',
+                                            approved_by: user?.id,
+                                            approved_at: new Date().toISOString()
+                                          }).eq('id', request.id);
+
+                                          await supabase.from('admin_suspension_notifications')
+                                            .update({ is_handled: true, is_read: true })
+                                            .eq('request_id', request.id);
+                                          
+                                          toast.success("Student unsuspended successfully!");
+                                          loadData();
+                                        } catch {
+                                          toast.error("Failed to process unsuspension");
+                                        }
+                                      }}
+                                    >
+                                      <Check className="h-4 w-4 mr-1" />
+                                      Restore Access
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleApproveSuspension(request.id, request.student_id, false)}
+                                    >
+                                      <X className="h-4 w-4 mr-1" />
+                                      Decline
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleApproveSuspension(request.id, request.student_id, true)}
+                                    >
+                                      <Check className="h-4 w-4 mr-1" />
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleApproveSuspension(request.id, request.student_id, false)}
+                                    >
+                                      <X className="h-4 w-4 mr-1" />
+                                      Decline
+                                    </Button>
+                                  </>
+                                )
                               ) : (
                                 <Badge variant="secondary">Pending</Badge>
                               )
