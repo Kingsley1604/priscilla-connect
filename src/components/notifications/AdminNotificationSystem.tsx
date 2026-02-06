@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { FileText, UserX } from 'lucide-react';
 import { Bell, AlertTriangle, X, ShoppingCart, MessageSquare, UserPlus, LogIn, Eye, User, Phone, MapPin, Package, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ interface OrderDetails {
 
 const AdminNotificationSystem = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -401,6 +403,14 @@ const AdminNotificationSystem = () => {
                           onClick={() => {
                             if (notification.related_order_id) {
                               viewOrderDetails(notification.related_order_id, notification.id);
+                            } else if (notification.type === 'suspension_request') {
+                              markAsRead(notification.id);
+                              setIsOpen(false);
+                              navigate('/teacher/class-management');
+                            } else if (notification.type === 'support_request') {
+                              markAsRead(notification.id);
+                              setIsOpen(false);
+                              navigate('/messages');
                             } else {
                               markAsRead(notification.id);
                             }
