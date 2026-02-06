@@ -6,7 +6,7 @@ import StudentSignupForm from "@/components/auth/StudentSignupForm";
 import AdminSignupForm from "@/components/auth/AdminSignupForm";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 type AuthView = 'landing' | 'login' | 'signup';
 

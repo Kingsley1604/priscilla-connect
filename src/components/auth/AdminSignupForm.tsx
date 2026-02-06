@@ -11,7 +11,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 interface AdminSignupFormProps {
   onBack: () => void;

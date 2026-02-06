@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useLoginNotification } from '@/hooks/useLoginNotification';
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 interface RoleLoginFormProps {
   role: 'student' | 'teacher' | 'admin';
@@ -129,6 +129,20 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
           return;
         }
 
+        // Task B: Check if the student account is suspended
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('is_suspended, is_super_admin, name')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileData?.is_suspended) {
+          await supabase.auth.signOut();
+          setErrors({ general: 'Your account has been suspended. Please contact your class teacher or school administrator.' });
+          setIsSubmitting(false);
+          return;
+        }
+
         // Check maintenance mode - block all users except super admin
         const { data: maintenanceData } = await supabase
           .from('system_settings')
@@ -137,13 +151,6 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
           .single();
 
         if (maintenanceData?.setting_value === 'true') {
-          // Check if user is super admin
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('is_super_admin')
-            .eq('id', data.user.id)
-            .single();
-
           if (!profileData?.is_super_admin) {
             await supabase.auth.signOut();
             setErrors({ general: 'Priscilla Connect SMS is currently under maintenance. Please try again later.' });
@@ -153,12 +160,6 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
         }
 
         // Task D&E: Send login notification to super admin
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', data.user.id)
-          .single();
-        
         sendLoginNotification(data.user.id, profileData?.name || data.user.email || 'User');
 
         toast.success('Login successful!');

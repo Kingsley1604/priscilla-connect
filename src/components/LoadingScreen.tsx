@@ -1,4 +1,4 @@
-import logo from "@/assets/priscilla-connect-logo.jpg";
+import logo from "@/assets/priscilla-connect-logo.svg";
 
 const LoadingScreen = () => {
   return (

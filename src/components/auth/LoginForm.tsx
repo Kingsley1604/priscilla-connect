@@ -10,7 +10,7 @@ import PrivacyNotice from '@/components/privacy/PrivacyNotice';
 import SignupForm from './SignupForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ email: '', password: '' });
