@@ -121,8 +121,8 @@ const PassAnnouncement = () => {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-4 sm:px-6 shadow-medium overflow-hidden">
+      {/* Header - Task J: Fixed, not sticky */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-hero text-white py-4 sm:py-6 px-4 sm:px-6 shadow-medium overflow-hidden">
         <div className="max-w-2xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button variant="ghost" onClick={() => navigate('/')} className="text-white hover:bg-white/20 w-fit">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -143,6 +143,8 @@ const PassAnnouncement = () => {
         </div>
       </header>
       
+      {/* Spacer for fixed header */}
+      <div className="h-24 sm:h-28" />
       <div className="max-w-2xl mx-auto p-4 sm:p-6">
         <DemoInstructions />
 

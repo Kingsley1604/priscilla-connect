@@ -169,6 +169,13 @@ const SuperAdminDashboard = () => {
   }, []);
 
   const handleMaintenanceToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // Task H: Confirm before enabling maintenance mode
+      if (!confirm('⚠️ Enabling maintenance mode will log out ALL users immediately. Are you sure?')) {
+        return;
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('system_settings')
@@ -181,7 +188,18 @@ const SuperAdminDashboard = () => {
       if (error) throw error;
       
       setMaintenanceMode(enabled);
-      toast.success(`Maintenance mode ${enabled ? 'enabled' : 'disabled'}`);
+      
+      if (enabled) {
+        // Task H: Create a notification so all users know about maintenance
+        await supabase.from('admin_notifications').insert({
+          title: 'System Maintenance',
+          message: 'The system is now in maintenance mode. All users have been logged out.',
+          type: 'maintenance'
+        });
+        toast.success('Maintenance mode enabled. All users will be logged out on their next action.');
+      } else {
+        toast.success('Maintenance mode disabled. Users can now access the platform.');
+      }
     } catch (error) {
       console.error('Error toggling maintenance mode:', error);
       toast.error('Failed to update maintenance mode');

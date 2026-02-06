@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SecurityProvider from "@/components/security/SecurityProvider";
+import HelpWidget from "@/components/help/HelpWidget";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -81,6 +82,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <HelpWidget />
         <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

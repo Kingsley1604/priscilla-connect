@@ -502,6 +502,21 @@ const ClassManagement = () => {
         if (profileError) throw profileError;
         toast.success("Student suspended successfully!");
       } else {
+        // Task F: Check for existing pending request before creating a new one
+        const { data: existingRequest } = await supabase
+          .from('suspension_requests')
+          .select('id, status')
+          .eq('student_id', selectedStudent.id)
+          .eq('requested_by', user?.id)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (existingRequest) {
+          toast.error("You already have a pending suspension request for this student. Wait for admin approval or rejection.");
+          setIsSuspendOpen(false);
+          return;
+        }
+
         // Teacher creates a request
         const { data: requestData, error } = await supabase
           .from('suspension_requests')
@@ -515,7 +530,7 @@ const ClassManagement = () => {
 
         if (error) throw error;
 
-        // Task B: Get teacher's profile for name and class info
+        // Get teacher's profile for name and class info
         const { data: teacherProfile } = await supabase
           .from('profiles')
           .select('name')
@@ -525,7 +540,7 @@ const ClassManagement = () => {
         const teacherName = teacherProfile?.name || 'Unknown Teacher';
         const className = teacherAssignedClass || 'Unknown Class';
 
-        // Task B: Create notification for admins
+        // Create notification for admins
         await supabase.from('admin_suspension_notifications').insert({
           request_id: requestData.id,
           student_id: selectedStudent.id,
