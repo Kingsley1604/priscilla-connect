@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Users, BookOpen, Calendar, Plus, Search, UserMinus, UserPlus, AlertTriangle, Check, X, Trash2 } from "lucide-react";
+import { ArrowLeft, Users, BookOpen, Calendar, Plus, Search, UserMinus, UserPlus, AlertTriangle, Check, X, Trash2, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -72,6 +73,8 @@ const ClassManagement = () => {
   const [teacherAssignedClass, setTeacherAssignedClass] = useState<string | null>(null);
   const [selectedStudentsToAssign, setSelectedStudentsToAssign] = useState<Set<string>>(new Set());
   const [isAssigning, setIsAssigning] = useState(false);
+  const [isProcessingSuspension, setIsProcessingSuspension] = useState(false);
+  const [isProcessingUnsuspension, setIsProcessingUnsuspension] = useState<string | null>(null);
 
   const [newClass, setNewClass] = useState({
     name: "",
@@ -485,6 +488,8 @@ const ClassManagement = () => {
       toast.error("Please provide a reason for suspension");
       return;
     }
+    if (isProcessingSuspension) return;
+    setIsProcessingSuspension(true);
 
     try {
       if (user?.role === 'admin') {
@@ -561,6 +566,8 @@ const ClassManagement = () => {
     } catch (error: any) {
       console.error('Error:', error);
       toast.error(error.message || "Failed to process suspension");
+    } finally {
+      setIsProcessingSuspension(false);
     }
   };
 
@@ -637,6 +644,8 @@ const ClassManagement = () => {
 
   // Task G: Handle unsuspension request from teacher
   const handleRequestUnsuspension = async (studentId: string, studentName: string) => {
+    if (isProcessingUnsuspension === studentId) return;
+    setIsProcessingUnsuspension(studentId);
     try {
       // Check for existing pending unsuspension request
       const { data: existingRequest } = await supabase
@@ -645,7 +654,6 @@ const ClassManagement = () => {
         .eq('student_id', studentId)
         .eq('requested_by', user?.id)
         .eq('status', 'pending')
-        .eq('reason', 'UNSUSPENSION_REQUEST')
         .maybeSingle();
 
       if (existingRequest) {
@@ -692,6 +700,8 @@ const ClassManagement = () => {
     } catch (error: any) {
       console.error('Error:', error);
       toast.error("Failed to submit unsuspension request");
+    } finally {
+      setIsProcessingUnsuspension(null);
     }
   };
 
@@ -831,33 +841,138 @@ const ClassManagement = () => {
             </div>
           
           <div className="flex flex-wrap gap-2">
-            {user?.role === 'admin' && (
-              <Dialog open={isCreateClassOpen} onOpenChange={setIsCreateClassOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Class
+            {/* Mobile 3-dot menu */}
+            <div className="sm:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Class</DialogTitle>
-                    <DialogDescription>Add a new class to the system</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Class Name</Label>
-                      <Input
-                        value={newClass.name}
-                        onChange={(e) => setNewClass(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Primary 1A"
-                      />
-                    </div>
-                    <div>
-                      <Label>Class Level</Label>
-                      <Select value={newClass.class_level} onValueChange={(v) => setNewClass(prev => ({ ...prev, class_level: v }))}>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {user?.role === 'admin' && (
+                    <DropdownMenuItem onClick={() => setIsCreateClassOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Class
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setIsCreateStudentOpen(true)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Student Account
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Desktop buttons */}
+            <div className="hidden sm:flex flex-wrap gap-2">
+              {user?.role === 'admin' && (
+                <Button onClick={() => setIsCreateClassOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Class
+                </Button>
+              )}
+              <Button variant="secondary" onClick={() => setIsCreateStudentOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Student Account
+              </Button>
+            </div>
+          </div>
+
+          {/* Create Class Dialog */}
+          <Dialog open={isCreateClassOpen} onOpenChange={setIsCreateClassOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Class</DialogTitle>
+                <DialogDescription>Add a new class to the system</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Class Name</Label>
+                  <Input
+                    value={newClass.name}
+                    onChange={(e) => setNewClass(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Primary 1A"
+                  />
+                </div>
+                <div>
+                  <Label>Class Level</Label>
+                  <Select value={newClass.class_level} onValueChange={(v) => setNewClass(prev => ({ ...prev, class_level: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classLevels.map(level => (
+                        <SelectItem key={level} value={level}>{level}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Section (Optional)</Label>
+                  <Input
+                    value={newClass.section}
+                    onChange={(e) => setNewClass(prev => ({ ...prev, section: e.target.value }))}
+                    placeholder="e.g., A, B, C"
+                  />
+                </div>
+                <div>
+                  <Label>Academic Session</Label>
+                  <Input
+                    value={newClass.academic_session}
+                    onChange={(e) => setNewClass(prev => ({ ...prev, academic_session: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateClassOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateClass}>Create Class</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Create Student Dialog */}
+          <Dialog open={isCreateStudentOpen} onOpenChange={setIsCreateStudentOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Create New Student</DialogTitle>
+                <DialogDescription>Add a new student to the system</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <Label>Full Name *</Label>
+                    <Input
+                      value={newStudent.name}
+                      onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Student's full name"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Admission Number *</Label>
+                    <Input
+                      value={newStudent.admission_no}
+                      onChange={(e) => setNewStudent(prev => ({ ...prev, admission_no: e.target.value }))}
+                      placeholder="e.g., ADM001 (required)"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Email *</Label>
+                    <Input
+                      type="email"
+                      value={newStudent.email}
+                      onChange={(e) => setNewStudent(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="student@email.com"
+                    />
+                  </div>
+                  <div>
+                    <Label>Class *</Label>
+                    {user?.role === 'teacher' && teacherAssignedClass ? (
+                      <Input value={teacherAssignedClass} disabled className="bg-muted" />
+                    ) : (
+                      <Select value={newStudent.class_grade} onValueChange={(v) => setNewStudent(prev => ({ ...prev, class_grade: v }))}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select level" />
+                          <SelectValue placeholder="Select class" />
                         </SelectTrigger>
                         <SelectContent>
                           {classLevels.map(level => (
@@ -865,138 +980,52 @@ const ClassManagement = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <Label>Section (Optional)</Label>
-                      <Input
-                        value={newClass.section}
-                        onChange={(e) => setNewClass(prev => ({ ...prev, section: e.target.value }))}
-                        placeholder="e.g., A, B, C"
-                      />
-                    </div>
-                    <div>
-                      <Label>Academic Session</Label>
-                      <Input
-                        value={newClass.academic_session}
-                        onChange={(e) => setNewClass(prev => ({ ...prev, academic_session: e.target.value }))}
-                      />
-                    </div>
+                    )}
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsCreateClassOpen(false)}>Cancel</Button>
-                    <Button onClick={handleCreateClass}>Create Class</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )}
-
-            <Dialog open={isCreateStudentOpen} onOpenChange={setIsCreateStudentOpen}>
-              <DialogTrigger asChild>
-                <Button variant="secondary">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  {/* Task O: Renamed button */}
-                  Create Student Account
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Create New Student</DialogTitle>
-                  <DialogDescription>Add a new student to the system</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <Label>Full Name *</Label>
-                      <Input
-                        value={newStudent.name}
-                        onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Student's full name"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label>Admission Number *</Label>
-                      <Input
-                        value={newStudent.admission_no}
-                        onChange={(e) => setNewStudent(prev => ({ ...prev, admission_no: e.target.value }))}
-                        placeholder="e.g., ADM001 (required)"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label>Email *</Label>
-                      <Input
-                        type="email"
-                        value={newStudent.email}
-                        onChange={(e) => setNewStudent(prev => ({ ...prev, email: e.target.value }))}
-                        placeholder="student@email.com"
-                      />
-                    </div>
-                    <div>
-                      <Label>Class *</Label>
-                      {/* If teacher is class teacher, class is fixed to their assigned class */}
-                      {user?.role === 'teacher' && teacherAssignedClass ? (
-                        <Input
-                          value={teacherAssignedClass}
-                          disabled
-                          className="bg-muted"
-                        />
-                      ) : (
-                        <Select value={newStudent.class_grade} onValueChange={(v) => setNewStudent(prev => ({ ...prev, class_grade: v }))}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {classLevels.map(level => (
-                              <SelectItem key={level} value={level}>{level}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                    <div>
-                      <Label>Gender *</Label>
-                      <Select value={newStudent.gender} onValueChange={(v) => setNewStudent(prev => ({ ...prev, gender: v }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Date of Birth *</Label>
-                      <Input
-                        type="date"
-                        value={newStudent.date_of_birth}
-                        onChange={(e) => setNewStudent(prev => ({ ...prev, date_of_birth: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <Label>Parent/Guardian Name</Label>
-                      <Input
-                        value={newStudent.parent_guardian_name}
-                        onChange={(e) => setNewStudent(prev => ({ ...prev, parent_guardian_name: e.target.value }))}
-                        placeholder="Parent name"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label>Parent Phone</Label>
-                      <Input
-                        value={newStudent.parent_phone}
-                        onChange={(e) => setNewStudent(prev => ({ ...prev, parent_phone: e.target.value }))}
-                        placeholder="+234..."
-                      />
-                    </div>
+                  <div>
+                    <Label>Gender *</Label>
+                    <Select value={newStudent.gender} onValueChange={(v) => setNewStudent(prev => ({ ...prev, gender: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Date of Birth *</Label>
+                    <Input
+                      type="date"
+                      value={newStudent.date_of_birth}
+                      onChange={(e) => setNewStudent(prev => ({ ...prev, date_of_birth: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Parent/Guardian Name</Label>
+                    <Input
+                      value={newStudent.parent_guardian_name}
+                      onChange={(e) => setNewStudent(prev => ({ ...prev, parent_guardian_name: e.target.value }))}
+                      placeholder="Parent name"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Parent Phone</Label>
+                    <Input
+                      value={newStudent.parent_phone}
+                      onChange={(e) => setNewStudent(prev => ({ ...prev, parent_phone: e.target.value }))}
+                      placeholder="+234..."
+                    />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCreateStudentOpen(false)}>Cancel</Button>
-                  <Button onClick={handleCreateStudent}>Create Student</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateStudentOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateStudent}>Create Student</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           </div>
         </div>
       </div>

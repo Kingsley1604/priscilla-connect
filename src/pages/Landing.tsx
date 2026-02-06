@@ -1,7 +1,7 @@
 import { GraduationCap, Users, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 interface LandingProps {
   onSelectRole: (role: 'student' | 'teacher' | 'admin') => void;

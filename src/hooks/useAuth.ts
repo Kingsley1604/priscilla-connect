@@ -152,6 +152,43 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, [fetchUserProfile]);
 
+  // Task B: Real-time listener to kick out suspended users immediately
+  useEffect(() => {
+    if (!authState.user?.id) return;
+
+    const channel = supabase
+      .channel(`suspension-watch-${authState.user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${authState.user.id}`
+        },
+        async (payload) => {
+          const updatedProfile = payload.new as any;
+          if (updatedProfile.is_suspended === true) {
+            // Student has been suspended - force logout immediately
+            console.log('[useAuth] Account suspended - forcing logout');
+            await supabase.auth.signOut();
+            setAuthState({
+              isAuthenticated: false,
+              user: null,
+              session: null,
+              sessionId: null,
+              isLoading: false
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [authState.user?.id]);
+
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({

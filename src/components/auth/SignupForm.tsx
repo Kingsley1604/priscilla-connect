@@ -9,7 +9,7 @@ import { Loader2, User, Mail, Lock } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 // Function to send signup notification
 const sendSignupNotification = async (userId: string, userName: string, email: string) => {

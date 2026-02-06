@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import LoginForm from './LoginForm';
 import { Skeleton } from '@/components/ui/skeleton';
-import priscillaLogo from "@/assets/priscilla-connect-main-logo.png";
+import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
