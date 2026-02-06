@@ -6,8 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause, Users, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -333,6 +334,36 @@ const ExamBuilder = () => {
     }
   };
 
+  // Task C & D: Delete exam with confirmation (only for creator)
+  const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
+
+  const deleteExam = async () => {
+    if (!examToDelete) return;
+    
+    try {
+      // Delete all questions first
+      await supabase.from("exam_questions").delete().eq("exam_id", examToDelete.id);
+      // Delete exam tokens
+      await supabase.from("exam_tokens").delete().eq("exam_id", examToDelete.id);
+      // Delete the exam
+      const { error } = await supabase.from("exams").delete().eq("id", examToDelete.id);
+      
+      if (error) throw error;
+      
+      toast.success(`"${examToDelete.title}" deleted successfully`);
+      if (selectedExam?.id === examToDelete.id) {
+        setSelectedExam(null);
+        setQuestions([]);
+      }
+      setExamToDelete(null);
+      loadExams();
+      loadExamStatistics();
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      toast.error("Failed to delete exam");
+    }
+  };
+
   const toggleExamStatus = async (examId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'active' ? 'draft' : 'active';
     
@@ -600,7 +631,7 @@ const ExamBuilder = () => {
                   {exams.map((exam) => (
                     <div
                       key={exam.id}
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors hover:bg-accent/50 ${
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors group relative hover:bg-accent/50 ${
                         selectedExam?.id === exam.id ? 'border-primary bg-primary/10' : 'border-muted-foreground/20'
                       }`}
                       onClick={() => setSelectedExam(exam)}
@@ -652,8 +683,9 @@ const ExamBuilder = () => {
                           <Badge variant={exam.status === 'active' ? 'default' : 'secondary'}>
                             {exam.status}
                           </Badge>
-                      {/* Task E & M: Only show edit/delete buttons for exam creator */}
+                      {/* Task C & M: Only show edit/delete for exam creator, delete on hover */}
                       {exam.created_by === currentUserId && (
+                        <div className="flex items-center gap-1">
                           <Button
                             size="sm"
                             variant="outline"
@@ -664,6 +696,18 @@ const ExamBuilder = () => {
                           >
                             {exam.status === 'active' ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExamToDelete(exam);
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
                       )}
                         </div>
                       </div>
@@ -830,6 +874,25 @@ const ExamBuilder = () => {
           </div>
         </div>
       </div>
+    </div>
+
+    {/* Task D: Delete Exam Confirmation Dialog */}
+    <AlertDialog open={!!examToDelete} onOpenChange={(open) => !open && setExamToDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Examination</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete "{examToDelete?.title}"? This will permanently remove the exam and all its questions. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={deleteExam} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </div>
   );
 };

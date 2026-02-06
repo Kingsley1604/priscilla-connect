@@ -7,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, X, Bot, User, Minimize2, MessageCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 import helpSupportIcon from '@/assets/priscilla-help-icon.webp';
 
 interface Message {
@@ -45,6 +48,7 @@ const getAIResponse = (message: string): string => {
 
 const HelpWidget = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -56,22 +60,27 @@ const HelpWidget = () => {
     }
   ]);
   const [newMessage, setNewMessage] = useState('');
-  const [isHumanOnline] = useState(true); // Human support status - typically true during business hours
+  const [isHumanOnline] = useState(true);
   const [needsHumanHelp, setNeedsHumanHelp] = useState(false);
+  const [isConnectingToSupport, setIsConnectingToSupport] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Task F: Pages where help widget should be hidden
+  // Pages where help widget should be hidden
   const hiddenPaths = [
     '/messages',
     '/teacher/create-questions',
     '/teacher/exam-overview',
     '/teacher/lesson-planner',
     '/teacher/class-management',
-    '/student/exam-interface',
-    '/priscilla-brain'
+    '/student/exam',
+    '/priscilla-brain',
+    '/admin/super-admin'
   ];
 
   const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
+
+  // Hide for super admin portal
+  const isSuperAdmin = user?.is_super_admin === true;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,7 +105,6 @@ const HelpWidget = () => {
     setTimeout(() => {
       const aiResponseText = getAIResponse(userInput);
       
-      // Check if AI couldn't solve the issue - suggest human help
       const needsHuman = userInput.toLowerCase().includes('not working') || 
                          userInput.toLowerCase().includes('still broken') ||
                          userInput.toLowerCase().includes('help me') ||
@@ -116,16 +124,75 @@ const HelpWidget = () => {
     }, 500);
   };
 
-  const handleConnectToHuman = () => {
-    const humanMessage: Message = {
-      id: crypto.randomUUID(),
-      content: "I'm connecting you to our support team. They will respond shortly. In the meantime, please describe your issue in detail.",
-      sender: 'ai',
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, humanMessage]);
-    setNeedsHumanHelp(false);
-    // In production, this would integrate with Tawk.to, Chatwoot, or similar
+  // Task L: Connect to super admin via Priscilla Chat
+  const handleConnectToHuman = async () => {
+    if (!user) {
+      toast.error('Please log in to connect to support');
+      return;
+    }
+
+    setIsConnectingToSupport(true);
+    
+    try {
+      // Find the super admin
+      const { data: superAdminProfile } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('is_super_admin', true)
+        .maybeSingle();
+
+      if (!superAdminProfile) {
+        const connectMessage: Message = {
+          id: crypto.randomUUID(),
+          content: "Our support team is currently unavailable. Please try again later or leave a detailed message describing your issue.",
+          sender: 'ai',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, connectMessage]);
+        setIsConnectingToSupport(false);
+        return;
+      }
+
+      // Collect the conversation so far to send to super admin
+      const conversationSummary = messages
+        .filter(m => m.sender === 'user')
+        .map(m => m.content)
+        .join('\n');
+
+      const supportMessage = `🆘 Support Request from ${user.name || 'User'}:\n\n${conversationSummary || 'User needs assistance'}`;
+
+      // Send message to super admin via Priscilla Chat
+      await supabase.from('chat_messages').insert({
+        sender_id: user.id,
+        receiver_id: superAdminProfile.id,
+        content: supportMessage,
+        message_type: 'text',
+        is_read: false
+      });
+
+      // Create admin notification for the super admin
+      await supabase.from('admin_notifications').insert({
+        title: 'Support Request',
+        message: `${user.name || 'A user'} needs help via the support widget. Click to view in Priscilla Chat.`,
+        type: 'support_request',
+        target_admin_id: superAdminProfile.id
+      });
+
+      const connectMessage: Message = {
+        id: crypto.randomUUID(),
+        content: `I've connected you to our support team (${superAdminProfile.name || 'Super Admin'}). Your conversation has been sent to them via Priscilla Chat. They will respond shortly. You can also check your Priscilla Chat messages for their reply.`,
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, connectMessage]);
+      setNeedsHumanHelp(false);
+      toast.success('Support request sent! Check Priscilla Chat for the response.');
+    } catch (error) {
+      console.error('Error connecting to support:', error);
+      toast.error('Failed to connect to support. Please try again.');
+    } finally {
+      setIsConnectingToSupport(false);
+    }
   };
 
   const toggleWidget = () => {
@@ -136,8 +203,8 @@ const HelpWidget = () => {
     }
   };
 
-  // Task F: Don't render on hidden pages
-  if (shouldHide) {
+  // Don't render on hidden pages or for super admin
+  if (shouldHide || isSuperAdmin) {
     return null;
   }
 
@@ -151,7 +218,7 @@ const HelpWidget = () => {
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-8 w-8 object-contain"
+          className="h-8 w-8 object-contain rounded-full"
         />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -170,7 +237,7 @@ const HelpWidget = () => {
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-8 w-8 object-contain"
+          className="h-8 w-8 object-contain rounded-full"
         />
         {isHumanOnline && (
           <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -179,13 +246,12 @@ const HelpWidget = () => {
     );
   }
 
-
   return (
     <Card className="fixed bottom-4 right-4 z-50 w-80 sm:w-96 shadow-xl border-2">
       <CardHeader className="py-3 px-4 bg-gradient-hero text-white rounded-t-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={helpSupportIcon} alt="Support" className="h-5 w-5" />
+            <img src={helpSupportIcon} alt="Support" className="h-5 w-5 rounded-full" />
             <CardTitle className="text-sm font-semibold">Priscilla Support</CardTitle>
           </div>
           <div className="flex items-center gap-1">
@@ -253,9 +319,10 @@ const HelpWidget = () => {
               onClick={handleConnectToHuman}
               className="w-full bg-green-600 hover:bg-green-700 text-white"
               size="sm"
+              disabled={isConnectingToSupport}
             >
               <MessageCircle className="h-4 w-4 mr-2" />
-              Connect to Support Team
+              {isConnectingToSupport ? 'Connecting...' : 'Connect to Support Team'}
             </Button>
           )}
           <form onSubmit={handleSendMessage} className="flex gap-2">
