@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { FileText, UserX } from 'lucide-react';
+import { FileText, UserX, Headphones } from 'lucide-react';
 import { Bell, AlertTriangle, X, ShoppingCart, MessageSquare, UserPlus, LogIn, Eye, User, Phone, MapPin, Package, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -295,6 +295,8 @@ const AdminNotificationSystem = () => {
         return 'bg-orange-500/10 text-orange-600 border-orange-200';
       case 'suspension_request':
         return 'bg-red-500/10 text-red-600 border-red-200';
+      case 'support_request':
+        return 'bg-pink-500/10 text-pink-600 border-pink-200';
       default:
         return 'bg-secondary text-secondary-foreground';
     }
@@ -317,6 +319,8 @@ const AdminNotificationSystem = () => {
         return <FileText className="h-4 w-4" />;
       case 'suspension_request':
         return <UserX className="h-4 w-4" />;
+      case 'support_request':
+        return <Headphones className="h-4 w-4" />;
       default:
         return <Bell className="h-4 w-4" />;
     }
@@ -411,6 +415,10 @@ const AdminNotificationSystem = () => {
                               markAsRead(notification.id);
                               setIsOpen(false);
                               navigate('/messages');
+                            } else if (notification.type === 'result_upload') {
+                              markAsRead(notification.id);
+                              setIsOpen(false);
+                              navigate('/admin/exam-results');
                             } else {
                               markAsRead(notification.id);
                             }
