@@ -297,6 +297,10 @@ const AdminNotificationSystem = () => {
         return 'bg-red-500/10 text-red-600 border-red-200';
       case 'support_request':
         return 'bg-pink-500/10 text-pink-600 border-pink-200';
+      case 'report_approved':
+        return 'bg-green-500/10 text-green-600 border-green-200';
+      case 'report_rejected':
+        return 'bg-red-500/10 text-red-600 border-red-200';
       default:
         return 'bg-secondary text-secondary-foreground';
     }

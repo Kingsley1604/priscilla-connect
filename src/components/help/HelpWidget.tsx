@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, X, Bot, User, Minimize2, MessageCircle, PhoneOff, Headphones } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -39,35 +39,62 @@ const aiResponses: Record<string, string> = {
   'chat': "For chat issues, try refreshing the page. Make sure you have a stable internet connection. Messages are sent in real-time, so a good connection is important.",
   'result': "For issues with viewing or uploading results, make sure you're logged in as the correct user type (teacher or admin). Class teachers can only upload results for their assigned classes.",
   'class': "If you're having trouble with class management, make sure you're assigned as a class teacher. Only class teachers can manage students and upload results for their classes.",
-  'code': "I'm sorry, but I cannot generate, edit, or execute any code. I can only provide guidance and explanations. For coding-related changes, please contact the development team.",
-  'default': "I'm here to help! Please describe your issue and I'll do my best to assist with guidance and explanations. Note: I cannot generate or modify any code within the software."
+  'exam': "For exam-related issues, ensure you have the correct exam token. If an exam isn't loading, try refreshing the page. Contact your teacher if you need a new token.",
+  'account': "For account issues like updating your profile or changing settings, navigate to your Profile Settings from the dashboard menu.",
+  'notification': "If you're not receiving notifications, check that browser notifications are enabled and your internet connection is stable.",
+  'human': "I'll connect you with our Support Team right away. Click the 'Connect to Support Team' button below.",
+  'support': "I'll connect you with our Support Team right away. Click the 'Connect to Support Team' button below.",
+  'help': "I'm here to assist! You can ask about:\n• Account and login issues\n• Exam and result problems\n• Technical troubleshooting\n• Navigation help\n\nIf I can't resolve your issue, I'll connect you with human support.",
+  'code': "I apologize, but I cannot generate, edit, or execute any code. For technical development requests, please contact the development team directly through official channels.",
+  'default': "I'm here to help! Please describe your issue in more detail, and I'll do my best to assist you. If I'm unable to resolve it, I can connect you with our human Support Team."
 };
 
-const getAIResponse = (message: string): { response: string; needsEscalation: boolean } => {
+const getAIResponse = (message: string): { response: string; needsEscalation: boolean; shouldShowButton: boolean } => {
   const lowerMessage = message.toLowerCase();
   
   // Check if user is asking for code/development work - AI must refuse
-  const codeKeywords = ['write code', 'fix code', 'create function', 'add feature', 'implement', 'develop', 'program', 'script'];
+  const codeKeywords = ['write code', 'fix code', 'create function', 'add feature', 'implement', 'develop', 'program', 'script', 'coding', 'debug code'];
   if (codeKeywords.some(keyword => lowerMessage.includes(keyword))) {
     return {
-      response: "I'm sorry, but I cannot generate, edit, or execute any code within the software. I'm limited to providing guidance, explanations, and answering questions. For development requests, please contact the development team directly.",
-      needsEscalation: false
+      response: "I apologize, but I cannot generate, edit, or execute any code within the software. I'm here to provide guidance and explanations. For development requests, please contact the development team directly.",
+      needsEscalation: false,
+      shouldShowButton: false
+    };
+  }
+
+  // Check if user explicitly asks for human support
+  const humanKeywords = ['human', 'real person', 'speak to someone', 'talk to someone', 'support team', 'contact support', 'live chat', 'agent'];
+  if (humanKeywords.some(keyword => lowerMessage.includes(keyword))) {
+    return {
+      response: "I understand you'd like to speak with our Support Team. Click the 'Connect to Support Team' button below to chat with a human representative.",
+      needsEscalation: true,
+      shouldShowButton: true
     };
   }
   
+  // Check for matching keywords
   for (const [key, response] of Object.entries(aiResponses)) {
     if (lowerMessage.includes(key)) {
-      return { response, needsEscalation: false };
+      return { response, needsEscalation: false, shouldShowButton: false };
     }
   }
   
-  // Check if the issue seems unresolvable by AI
-  const escalationTriggers = ['not working', 'still broken', 'urgent', 'critical', 'please help', 'need help', 'cannot access', 'blocked'];
+  // Check if the issue seems unresolvable by AI - only show button after multiple failed attempts
+  const escalationTriggers = ['not working', 'still broken', 'urgent', 'critical', 'please help', 'cannot access', 'blocked', 'desperate', 'emergency'];
   const needsEscalation = escalationTriggers.some(trigger => lowerMessage.includes(trigger));
+  
+  if (needsEscalation) {
+    return { 
+      response: "I understand you're facing a difficult issue. I've done my best to assist, but if you'd like to speak with our Support Team directly, you can click the button below.",
+      needsEscalation: true,
+      shouldShowButton: true
+    };
+  }
   
   return { 
     response: aiResponses.default,
-    needsEscalation
+    needsEscalation: false,
+    shouldShowButton: false
   };
 };
 
@@ -79,7 +106,7 @@ const HelpWidget = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: "Hi! I'm the Priscilla Connect support assistant. How can I help you today? I can assist with common issues like 404 errors, login problems, or slow loading.\n\n⚠️ Note: I can only provide guidance and explanations. I cannot generate, edit, or execute any code.",
+      content: "Hello! You're connected to the Priscilla Connect Support Assistant. I can guide you through common issues like account access, exam results, or technical troubleshooting. If I can't resolve your request, I'll connect you to our human support team.",
       sender: 'ai',
       timestamp: new Date()
     }
@@ -94,6 +121,7 @@ const HelpWidget = () => {
   const [showEscalateButton, setShowEscalateButton] = useState(false);
   const [isConnectingToSupport, setIsConnectingToSupport] = useState(false);
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasUserSentMessage, setHasUserSentMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Pages where help widget should be COMPLETELY hidden
@@ -105,16 +133,16 @@ const HelpWidget = () => {
     '/student/exam',
     '/priscilla-brain',
     '/admin/super-admin',
-    '/teacher/midterm-report',          // Result templates
-    '/teacher/nursery-one-exam',         // Result templates
-    '/teacher/nursery-two-exam',         // Result templates
-    '/teacher/nursery-midterm-report',   // Result templates
-    '/teacher/secondary-exam-result',    // Result templates
-    '/teacher/secondary-result-upload',  // Result templates
-    '/teacher/report-card',              // Result templates
-    '/reports/exam-result',              // Result pages
-    '/reports/midterm-result',           // Result pages
-    '/reports/entrance-result'           // Result pages
+    '/teacher/midterm-report',
+    '/teacher/nursery-one-exam',
+    '/teacher/nursery-two-exam',
+    '/teacher/nursery-midterm-report',
+    '/teacher/secondary-exam-result',
+    '/teacher/secondary-result-upload',
+    '/teacher/report-card',
+    '/reports/exam-result',
+    '/reports/midterm-result',
+    '/reports/entrance-result'
   ];
 
   const shouldHide = hiddenPaths.some(path => location.pathname.startsWith(path));
@@ -217,6 +245,7 @@ const HelpWidget = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    setHasUserSentMessage(true);
     const userInput = newMessage;
     setNewMessage('');
 
@@ -237,17 +266,18 @@ const HelpWidget = () => {
       return; // Don't add AI response during human support
     }
 
-    // AI responds after a short delay
+    // AI responds after a short delay - AI does NOT auto-escalate
     setTimeout(() => {
-      const { response, needsEscalation } = getAIResponse(userInput);
+      const { response, shouldShowButton } = getAIResponse(userInput);
       
-      if (needsEscalation && !showEscalateButton) {
+      // Only show escalate button if AI explicitly suggests it
+      if (shouldShowButton && !showEscalateButton) {
         setShowEscalateButton(true);
       }
       
       const aiResponse: Message = {
         id: crypto.randomUUID(),
-        content: response + (needsEscalation ? "\n\n💡 If this doesn't solve your issue, you can click 'Connect to Support Team' below to chat with our human support team." : ""),
+        content: response,
         sender: 'ai',
         timestamp: new Date()
       };
@@ -274,7 +304,7 @@ const HelpWidget = () => {
       if (!superAdminProfile) {
         const connectMessage: Message = {
           id: crypto.randomUUID(),
-          content: "Our support team is currently unavailable. Please try again later or describe your issue in detail and we'll get back to you.",
+          content: "Our Support Team is currently unavailable. Please try again later or describe your issue in detail and we'll get back to you.",
           sender: 'ai',
           timestamp: new Date()
         };
@@ -312,13 +342,13 @@ const HelpWidget = () => {
       setSupportSession({
         isActive: true,
         superAdminId: superAdminProfile.id,
-        superAdminName: superAdminProfile.name || 'Support Team',
+        superAdminName: 'Support Team',
         startedAt: new Date()
       });
 
       const connectMessage: Message = {
         id: crypto.randomUUID(),
-        content: `You are now connected to our Support Team. They will respond to your messages here. You can end this session at any time by clicking 'End Chat'.`,
+        content: `✅ You are now connected to our Support Team. They will respond to your messages here. You can end this session at any time by clicking 'End Chat'.`,
         sender: 'ai',
         timestamp: new Date()
       };
@@ -334,21 +364,8 @@ const HelpWidget = () => {
   };
 
   const handleEndChat = async () => {
-    if (!supportSession.isActive) {
-      // Just reset AI chat
-      setMessages([{
-        id: crypto.randomUUID(),
-        content: "Chat ended. Starting a new session...\n\nHi! I'm the Priscilla Connect support assistant. How can I help you today?\n\n⚠️ Note: I can only provide guidance and explanations. I cannot generate, edit, or execute any code.",
-        sender: 'ai',
-        timestamp: new Date()
-      }]);
-      setShowEscalateButton(false);
-      toast.success('Conversation ended. You can start a new session.');
-      return;
-    }
-
-    // Notify super admin that chat ended
-    if (supportSession.superAdminId && user) {
+    // Notify super admin if in human session
+    if (supportSession.isActive && supportSession.superAdminId && user) {
       try {
         await supabase.from('chat_messages').insert({
           sender_id: user.id,
@@ -370,14 +387,15 @@ const HelpWidget = () => {
       startedAt: null
     });
 
-    const endMessage: Message = {
+    // Reset to initial state
+    setMessages([{
       id: crypto.randomUUID(),
-      content: "✅ Conversation ended. Thank you for contacting support!\n\nStarting a new AI support session...\n\nHi! I'm the Priscilla Connect support assistant. How can I help you today?",
+      content: "✅ Conversation ended. You can start a new chat anytime.\n\nHello! You're connected to the Priscilla Connect Support Assistant. I can guide you through common issues like account access, exam results, or technical troubleshooting. If I can't resolve your request, I'll connect you to our human support team.",
       sender: 'ai',
       timestamp: new Date()
-    };
-    setMessages([endMessage]);
+    }]);
     setShowEscalateButton(false);
+    setHasUserSentMessage(false);
     toast.success('Conversation ended successfully.');
   };
 
@@ -407,12 +425,12 @@ const HelpWidget = () => {
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-8 w-8 object-contain"
+          className="h-8 w-8 object-contain dark:invert"
         />
-        {/* Unread message indicator */}
-        {hasUnreadMessages && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-            <span className="text-white text-xs font-bold">!</span>
+        {/* Unread message indicator - only show when there's an active conversation */}
+        {hasUnreadMessages && hasUserSentMessage && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 rounded-full border-2 border-white flex items-center justify-center animate-pulse">
+            <MessageCircle className="h-3 w-3 text-white" />
           </span>
         )}
         {/* Online indicator */}
@@ -434,11 +452,11 @@ const HelpWidget = () => {
         <img 
           src={helpSupportIcon} 
           alt="Support" 
-          className="h-8 w-8 object-contain"
+          className="h-8 w-8 object-contain dark:invert"
         />
-        {hasUnreadMessages && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-            <span className="text-white text-xs font-bold">!</span>
+        {hasUnreadMessages && hasUserSentMessage && (
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 rounded-full border-2 border-white flex items-center justify-center animate-pulse">
+            <MessageCircle className="h-3 w-3 text-white" />
           </span>
         )}
         <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
@@ -544,16 +562,18 @@ const HelpWidget = () => {
             </Button>
           )}
 
-          {/* End Chat button - always visible */}
-          <Button 
-            onClick={handleEndChat}
-            variant="outline"
-            className="w-full text-red-600 border-red-200 hover:bg-red-50"
-            size="sm"
-          >
-            <PhoneOff className="h-4 w-4 mr-2" />
-            End Chat
-          </Button>
+          {/* End Chat button - only show after user has sent at least one message */}
+          {hasUserSentMessage && (
+            <Button 
+              onClick={handleEndChat}
+              variant="outline"
+              className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+              size="sm"
+            >
+              <PhoneOff className="h-4 w-4 mr-2" />
+              End Chat
+            </Button>
+          )}
 
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
@@ -569,7 +589,7 @@ const HelpWidget = () => {
           <p className="text-[10px] text-muted-foreground text-center">
             {supportSession.isActive 
               ? "You're chatting with our Support Team" 
-              : "AI assistant - guidance only, no code execution"}
+              : "AI assistant for guidance and support"}
           </p>
         </div>
       </CardContent>
