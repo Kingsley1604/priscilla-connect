@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, CheckCircle, XCircle, Eye, Users, Trophy, Clock, Calendar, Trash2, Search, Filter, FileText, AlertCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Eye, Users, Trophy, Clock, Calendar, Trash2, Search, Filter, FileText, AlertCircle, ChevronDown, ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ExamResult {
   id: string;
@@ -50,6 +52,7 @@ interface ReportCardResult {
   rejection_reason?: string;
   total_score_obtained?: number;
   percentage?: number;
+  report_type: 'midterm' | 'termly';
 }
 
 interface SecondaryReportCard {
@@ -66,6 +69,7 @@ interface SecondaryReportCard {
   rejection_reason?: string;
   student_total_score?: number;
   student_average?: number;
+  report_type: 'midterm' | 'termly';
 }
 
 interface ExamToken {
@@ -94,6 +98,15 @@ interface ExamAttempt {
   };
 }
 
+interface TeacherFolder {
+  teacherId: string;
+  teacherName: string;
+  className: string;
+  midtermReports: (ReportCardResult | SecondaryReportCard)[];
+  termlyReports: (ReportCardResult | SecondaryReportCard)[];
+  isOpen: boolean;
+}
+
 const ExamResults = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState<ExamResult[]>([]);
@@ -107,11 +120,18 @@ const ExamResults = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [examsList, setExamsList] = useState<Array<{id: string, title: string, exam_type: string}>>([]);
 
+  // View report dialog
+  const [viewingReport, setViewingReport] = useState<ReportCardResult | SecondaryReportCard | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
   // Rejection dialog state
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectingReportId, setRejectingReportId] = useState<string | null>(null);
   const [rejectingReportType, setRejectingReportType] = useState<'primary' | 'secondary' | null>(null);
+
+  // Teacher folders state
+  const [teacherFolders, setTeacherFolders] = useState<TeacherFolder[]>([]);
 
   // Filter states
   const [tokenFilter, setTokenFilter] = useState<'all' | 'used' | 'available' | 'expired'>('all');
@@ -203,11 +223,13 @@ const ExamResults = () => {
 
       const teacherMap = new Map(teachers?.map(t => [t.id, t.name]) || []);
 
-      setReportCards((reportCardsData || []).map(rc => ({
+      const processedReportCards = (reportCardsData || []).map(rc => ({
         ...rc,
-        status: 'pending', // Report cards don't have status field yet, treating as pending
-        teacher_name: teacherMap.get(rc.created_by) || 'Unknown Teacher'
-      })));
+        status: 'pending',
+        teacher_name: teacherMap.get(rc.created_by) || 'Unknown Teacher',
+        report_type: rc.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
+      }));
+      setReportCards(processedReportCards);
 
       // Load secondary report cards
       const { data: secondaryData, error: secondaryError } = await supabase
@@ -239,10 +261,15 @@ const ExamResults = () => {
 
       const secondaryTeacherMap = new Map(secondaryTeachers?.map(t => [t.id, t.name]) || []);
 
-      setSecondaryReports((secondaryData || []).map(sr => ({
+      const processedSecondaryReports = (secondaryData || []).map(sr => ({
         ...sr,
-        teacher_name: secondaryTeacherMap.get(sr.created_by) || 'Unknown Teacher'
-      })));
+        teacher_name: secondaryTeacherMap.get(sr.created_by) || 'Unknown Teacher',
+        report_type: sr.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
+      }));
+      setSecondaryReports(processedSecondaryReports);
+
+      // Organize reports into teacher folders
+      organizeIntoFolders(processedReportCards, processedSecondaryReports);
 
       // Load tokens
       const { data: tokensData, error: tokensError } = await supabase
@@ -280,6 +307,63 @@ const ExamResults = () => {
       console.error("Error loading data:", error);
       toast.error("Failed to load data");
     }
+  };
+
+  const organizeIntoFolders = (
+    primaryReports: ReportCardResult[],
+    secondaryReportsData: SecondaryReportCard[]
+  ) => {
+    const folderMap = new Map<string, TeacherFolder>();
+
+    // Process primary reports
+    primaryReports.forEach(report => {
+      const key = `${report.created_by}-${report.class_level}`;
+      if (!folderMap.has(key)) {
+        folderMap.set(key, {
+          teacherId: report.created_by,
+          teacherName: report.teacher_name || 'Unknown Teacher',
+          className: report.class_level,
+          midtermReports: [],
+          termlyReports: [],
+          isOpen: false
+        });
+      }
+      const folder = folderMap.get(key)!;
+      if (report.report_type === 'midterm') {
+        folder.midtermReports.push(report);
+      } else {
+        folder.termlyReports.push(report);
+      }
+    });
+
+    // Process secondary reports
+    secondaryReportsData.forEach(report => {
+      const key = `${report.created_by}-${report.class_level}`;
+      if (!folderMap.has(key)) {
+        folderMap.set(key, {
+          teacherId: report.created_by,
+          teacherName: report.teacher_name || 'Unknown Teacher',
+          className: report.class_level,
+          midtermReports: [],
+          termlyReports: [],
+          isOpen: false
+        });
+      }
+      const folder = folderMap.get(key)!;
+      if (report.report_type === 'midterm') {
+        folder.midtermReports.push(report);
+      } else {
+        folder.termlyReports.push(report);
+      }
+    });
+
+    setTeacherFolders(Array.from(folderMap.values()));
+  };
+
+  const toggleFolder = (index: number) => {
+    setTeacherFolders(prev => prev.map((folder, i) => 
+      i === index ? { ...folder, isOpen: !folder.isOpen } : folder
+    ));
   };
 
   const createTokens = async () => {
@@ -411,7 +495,23 @@ const ExamResults = () => {
     }
   };
 
-  const approveReportCard = async (reportId: string, type: 'primary' | 'secondary') => {
+  const notifyTeacher = async (teacherId: string, action: 'approved' | 'rejected', studentName: string, className: string) => {
+    try {
+      // Create notification for teacher
+      await supabase.from('admin_notifications').insert({
+        title: action === 'approved' ? 'Report Approved' : 'Report Rejected',
+        message: action === 'approved' 
+          ? `Your result for ${studentName} (${className}) has been approved and published.`
+          : `Your result for ${studentName} (${className}) has been rejected. Please check the rejection reason and resubmit.`,
+        type: action === 'approved' ? 'report_approved' : 'report_rejected',
+        target_admin_id: teacherId
+      });
+    } catch (error) {
+      console.error('Error sending notification to teacher:', error);
+    }
+  };
+
+  const approveReportCard = async (reportId: string, type: 'primary' | 'secondary', report: ReportCardResult | SecondaryReportCard) => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
@@ -429,8 +529,9 @@ const ExamResults = () => {
 
         if (error) throw error;
       }
-      // For primary reports, we would add status column in a migration
-      // For now, just show success
+
+      // Notify teacher
+      await notifyTeacher(report.created_by, 'approved', report.student_name, report.class_level);
       
       toast.success("Report card approved and published!");
       loadData();
@@ -458,7 +559,10 @@ const ExamResults = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      let report: ReportCardResult | SecondaryReportCard | undefined;
+
       if (rejectingReportType === 'secondary') {
+        report = secondaryReports.find(r => r.id === rejectingReportId);
         const { error } = await supabase
           .from("secondary_report_cards")
           .update({
@@ -470,8 +574,14 @@ const ExamResults = () => {
           .eq("id", rejectingReportId);
 
         if (error) throw error;
+      } else {
+        report = reportCards.find(r => r.id === rejectingReportId);
       }
-      // For primary reports, we'd need to add status/rejection_reason columns
+
+      // Notify teacher about rejection
+      if (report) {
+        await notifyTeacher(report.created_by, 'rejected', report.student_name, report.class_level);
+      }
       
       toast.success("Report card rejected and returned to teacher as draft");
       setIsRejectDialogOpen(false);
@@ -483,6 +593,11 @@ const ExamResults = () => {
       console.error("Error rejecting report:", error);
       toast.error("Failed to reject report card");
     }
+  };
+
+  const viewReportDetails = (report: ReportCardResult | SecondaryReportCard) => {
+    setViewingReport(report);
+    setIsViewDialogOpen(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -573,6 +688,16 @@ const ExamResults = () => {
     return true;
   });
 
+  // Filter teacher folders based on search
+  const filteredTeacherFolders = teacherFolders.filter(folder => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return folder.teacherName.toLowerCase().includes(searchLower) ||
+           folder.className.toLowerCase().includes(searchLower) ||
+           folder.midtermReports.some(r => r.student_name.toLowerCase().includes(searchLower)) ||
+           folder.termlyReports.some(r => r.student_name.toLowerCase().includes(searchLower));
+  });
+
   const pendingResults = results.filter(r => r.status === 'pending');
   const pendingReports = [...reportCards.filter(r => r.status === 'pending'), ...secondaryReports.filter(r => r.status === 'submitted' || r.status === 'pending')];
   const approvedResults = results.filter(r => r.status === 'approved');
@@ -581,74 +706,78 @@ const ExamResults = () => {
   const usedTokens = tokens.filter(t => t.used_at).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <h1 className="text-xl sm:text-3xl font-bold">Result Management</h1>
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      {/* Fixed Header */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm">
+        <div className="max-w-7xl mx-auto p-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+              <h1 className="text-xl sm:text-3xl font-bold">Result Management</h1>
+            </div>
+            
+            <Dialog open={isCreateTokenOpen} onOpenChange={setIsCreateTokenOpen}>
+              <DialogTrigger asChild>
+                <Button>Create Exam Tokens</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Exam Tokens</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="exam">Select Exam</Label>
+                    <select 
+                      id="exam"
+                      value={newToken.exam_id}
+                      onChange={(e) => setNewToken(prev => ({ ...prev, exam_id: e.target.value }))}
+                      className="w-full p-2 border rounded-md bg-background"
+                    >
+                      <option value="">Select an exam...</option>
+                      {examsList.map(exam => (
+                        <option key={exam.id} value={exam.id}>
+                          {exam.title} ({exam.exam_type.toUpperCase()})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="token_number">Base Token Number</Label>
+                    <Input
+                      id="token_number"
+                      value={newToken.token_number}
+                      onChange={(e) => setNewToken(prev => ({ ...prev, token_number: e.target.value }))}
+                      placeholder="e.g., ENT2024"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="count">Number of Tokens</Label>
+                    <Input
+                      id="count"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={newToken.count}
+                      onChange={(e) => setNewToken(prev => ({ ...prev, count: parseInt(e.target.value) || 1 }))}
+                    />
+                  </div>
+
+                  <Button onClick={createTokens} disabled={isLoading} className="w-full">
+                    {isLoading ? "Creating..." : `Create ${newToken.count} Token(s)`}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
-          
-          <Dialog open={isCreateTokenOpen} onOpenChange={setIsCreateTokenOpen}>
-            <DialogTrigger asChild>
-              <Button>Create Exam Tokens</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Exam Tokens</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="exam">Select Exam</Label>
-                  <select 
-                    id="exam"
-                    value={newToken.exam_id}
-                    onChange={(e) => setNewToken(prev => ({ ...prev, exam_id: e.target.value }))}
-                    className="w-full p-2 border rounded-md bg-background"
-                  >
-                    <option value="">Select an exam...</option>
-                    {examsList.map(exam => (
-                      <option key={exam.id} value={exam.id}>
-                        {exam.title} ({exam.exam_type.toUpperCase()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <Label htmlFor="token_number">Base Token Number</Label>
-                  <Input
-                    id="token_number"
-                    value={newToken.token_number}
-                    onChange={(e) => setNewToken(prev => ({ ...prev, token_number: e.target.value }))}
-                    placeholder="e.g., ENT2024"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="count">Number of Tokens</Label>
-                  <Input
-                    id="count"
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={newToken.count}
-                    onChange={(e) => setNewToken(prev => ({ ...prev, count: parseInt(e.target.value) || 1 }))}
-                  />
-                </div>
-
-                <Button onClick={createTokens} disabled={isLoading} className="w-full">
-                  {isLoading ? "Creating..." : `Create ${newToken.count} Token(s)`}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
+      </div>
 
+      <div className="max-w-7xl mx-auto p-4">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <Card>
@@ -888,152 +1017,106 @@ const ExamResults = () => {
             </Card>
           </TabsContent>
 
-          {/* Report Cards Tab */}
+          {/* Report Cards Tab - Organized by Teacher Folders */}
           <TabsContent value="report_cards">
             <Card>
               <CardHeader>
                 <CardTitle>Teacher-Uploaded Report Cards</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {/* Primary/Nursery Reports */}
-                  {filteredReportCards.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Primary & Nursery Reports ({filteredReportCards.length})</h3>
-                      <div className="space-y-4">
-                        {filteredReportCards.map((report) => (
-                          <div key={report.id} className="border rounded-lg p-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex flex-wrap items-center gap-2 mb-2">
-                                  <h4 className="font-medium">{report.student_name}</h4>
-                                  <Badge variant="outline">{report.class_level}</Badge>
-                                  {getStatusBadge(report.status)}
-                                </div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
-                                  <div>
-                                    <span className="font-medium">Admission No:</span> {report.admission_no}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Term:</span> {report.term}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Session:</span> {report.academic_session}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Teacher:</span> {report.teacher_name}
-                                  </div>
+                <ScrollArea className="h-[600px]">
+                  <div className="space-y-4">
+                    {filteredTeacherFolders.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No report cards found</p>
+                        <p className="text-sm">Teacher-uploaded results will appear here for approval</p>
+                      </div>
+                    ) : (
+                      filteredTeacherFolders.map((folder, folderIndex) => (
+                        <Collapsible 
+                          key={`${folder.teacherId}-${folder.className}`}
+                          open={folder.isOpen}
+                          onOpenChange={() => toggleFolder(folderIndex)}
+                        >
+                          <CollapsibleTrigger asChild>
+                            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg cursor-pointer hover:bg-muted transition-colors">
+                              <div className="flex items-center gap-3">
+                                {folder.isOpen ? (
+                                  <FolderOpen className="h-5 w-5 text-primary" />
+                                ) : (
+                                  <Folder className="h-5 w-5 text-muted-foreground" />
+                                )}
+                                <div>
+                                  <p className="font-medium">{folder.teacherName}</p>
+                                  <p className="text-sm text-muted-foreground">{folder.className}</p>
                                 </div>
                               </div>
-                              
-                              <div className="flex flex-wrap gap-2">
-                                {report.status === 'pending' && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => approveReportCard(report.id, 'primary')}
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => openRejectDialog(report.id, 'primary')}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">
+                                  {folder.midtermReports.length + folder.termlyReports.length} reports
+                                </Badge>
+                                {folder.isOpen ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
                                 )}
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Secondary Reports */}
-                  {filteredSecondaryReports.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Secondary School Reports ({filteredSecondaryReports.length})</h3>
-                      <div className="space-y-4">
-                        {filteredSecondaryReports.map((report) => (
-                          <div key={report.id} className="border rounded-lg p-4">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex flex-wrap items-center gap-2 mb-2">
-                                  <h4 className="font-medium">{report.student_name}</h4>
-                                  <Badge variant="outline">{report.class_level}</Badge>
-                                  {getStatusBadge(report.status)}
+                          </CollapsibleTrigger>
+                          
+                          <CollapsibleContent>
+                            <div className="ml-4 mt-2 space-y-3 border-l-2 border-muted pl-4">
+                              {/* Mid Term Reports Subfolder */}
+                              {folder.midtermReports.length > 0 && (
+                                <div>
+                                  <div className="flex items-center gap-2 mb-2 text-sm font-medium text-blue-600">
+                                    <FileText className="h-4 w-4" />
+                                    Mid Term Report ({folder.midtermReports.length})
+                                  </div>
+                                  <div className="space-y-2">
+                                    {folder.midtermReports.map((report) => (
+                                      <ReportCardItem
+                                        key={report.id}
+                                        report={report}
+                                        onView={() => viewReportDetails(report)}
+                                        onApprove={() => approveReportCard(report.id, 'student_average' in report ? 'secondary' : 'primary', report)}
+                                        onReject={() => openRejectDialog(report.id, 'student_average' in report ? 'secondary' : 'primary')}
+                                        getStatusBadge={getStatusBadge}
+                                      />
+                                    ))}
+                                  </div>
                                 </div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
-                                  <div>
-                                    <span className="font-medium">Admission No:</span> {report.admission_no}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Term:</span> {report.term}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Session:</span> {report.academic_session}
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">Teacher:</span> {report.teacher_name}
-                                  </div>
-                                  {report.student_average && (
-                                    <div>
-                                      <span className="font-medium">Average:</span> {report.student_average.toFixed(1)}%
-                                    </div>
-                                  )}
-                                </div>
+                              )}
 
-                                {report.rejection_reason && (
-                                  <div className="mt-2 p-2 bg-destructive/10 rounded text-sm text-destructive">
-                                    <AlertCircle className="h-4 w-4 inline mr-1" />
-                                    Rejection reason: {report.rejection_reason}
+                              {/* Termly Examination Reports Subfolder */}
+                              {folder.termlyReports.length > 0 && (
+                                <div>
+                                  <div className="flex items-center gap-2 mb-2 text-sm font-medium text-green-600">
+                                    <FileText className="h-4 w-4" />
+                                    Termly Examination Report ({folder.termlyReports.length})
                                   </div>
-                                )}
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-2">
-                                {(report.status === 'submitted' || report.status === 'pending') && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => approveReportCard(report.id, 'secondary')}
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      onClick={() => openRejectDialog(report.id, 'secondary')}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-1" />
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
+                                  <div className="space-y-2">
+                                    {folder.termlyReports.map((report) => (
+                                      <ReportCardItem
+                                        key={report.id}
+                                        report={report}
+                                        onView={() => viewReportDetails(report)}
+                                        onApprove={() => approveReportCard(report.id, 'student_average' in report ? 'secondary' : 'primary', report)}
+                                        onReject={() => openRejectDialog(report.id, 'student_average' in report ? 'secondary' : 'primary')}
+                                        getStatusBadge={getStatusBadge}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {filteredReportCards.length === 0 && filteredSecondaryReports.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No report cards found</p>
-                      <p className="text-sm">Teacher-uploaded results will appear here for approval</p>
-                    </div>
-                  )}
-                </div>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1129,6 +1212,102 @@ const ExamResults = () => {
         </Tabs>
       </div>
 
+      {/* View Report Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Report Card Details</DialogTitle>
+          </DialogHeader>
+          {viewingReport && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Student Name</Label>
+                  <p className="font-medium">{viewingReport.student_name}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Admission No</Label>
+                  <p className="font-medium">{viewingReport.admission_no}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Class</Label>
+                  <p className="font-medium">{viewingReport.class_level}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Term</Label>
+                  <p className="font-medium">{viewingReport.term}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Academic Session</Label>
+                  <p className="font-medium">{viewingReport.academic_session}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Status</Label>
+                  <div className="mt-1">{getStatusBadge(viewingReport.status)}</div>
+                </div>
+                {'student_average' in viewingReport && viewingReport.student_average && (
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Average Score</Label>
+                    <p className="font-medium">{viewingReport.student_average.toFixed(1)}%</p>
+                  </div>
+                )}
+                {'percentage' in viewingReport && viewingReport.percentage && (
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Percentage</Label>
+                    <p className="font-medium">{viewingReport.percentage}%</p>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <Label className="text-muted-foreground text-sm">Teacher</Label>
+                <p className="font-medium">{viewingReport.teacher_name}</p>
+              </div>
+              
+              <div>
+                <Label className="text-muted-foreground text-sm">Submitted</Label>
+                <p className="font-medium">{formatDate(viewingReport.created_at)}</p>
+              </div>
+
+              {viewingReport.rejection_reason && (
+                <div className="p-3 bg-destructive/10 rounded-lg">
+                  <Label className="text-destructive text-sm">Rejection Reason</Label>
+                  <p className="text-destructive">{viewingReport.rejection_reason}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            {viewingReport && (viewingReport.status === 'submitted' || viewingReport.status === 'pending') && (
+              <>
+                <Button
+                  onClick={() => {
+                    approveReportCard(viewingReport.id, 'student_average' in viewingReport ? 'secondary' : 'primary', viewingReport);
+                    setIsViewDialogOpen(false);
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setIsViewDialogOpen(false);
+                    openRejectDialog(viewingReport.id, 'student_average' in viewingReport ? 'secondary' : 'primary');
+                  }}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Rejection Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
         <DialogContent>
@@ -1164,6 +1343,63 @@ const ExamResults = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// Report Card Item Component
+const ReportCardItem = ({ 
+  report, 
+  onView, 
+  onApprove, 
+  onReject,
+  getStatusBadge 
+}: { 
+  report: ReportCardResult | SecondaryReportCard;
+  onView: () => void;
+  onApprove: () => void;
+  onReject: () => void;
+  getStatusBadge: (status: string) => React.ReactNode;
+}) => {
+  const isSecondary = 'student_average' in report;
+  
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-background border rounded-lg gap-3">
+      <div className="flex-1">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className="font-medium">{report.student_name}</span>
+          <Badge variant="outline" className="text-xs">{report.admission_no}</Badge>
+          {getStatusBadge(report.status)}
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {report.term} • {report.academic_session}
+          {isSecondary && (report as SecondaryReportCard).student_average && (
+            <span> • Avg: {(report as SecondaryReportCard).student_average?.toFixed(1)}%</span>
+          )}
+        </div>
+        {report.rejection_reason && (
+          <div className="mt-1 text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {report.rejection_reason}
+          </div>
+        )}
+      </div>
+      
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={onView}>
+          <Eye className="w-4 h-4" />
+        </Button>
+        {(report.status === 'submitted' || report.status === 'pending') && (
+          <>
+            <Button size="sm" onClick={onApprove}>
+              <CheckCircle className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="destructive" onClick={onReject}>
+              <XCircle className="w-4 h-4" />
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 };

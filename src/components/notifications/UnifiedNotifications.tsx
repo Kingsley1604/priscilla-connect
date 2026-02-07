@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 
 interface Notification {
   id: string;
-  type: 'message' | 'call' | 'event' | 'announcement' | 'group_call' | 'exam_complete' | 'report_approved';
+  type: 'message' | 'call' | 'event' | 'announcement' | 'group_call' | 'exam_complete' | 'report_approved' | 'report_rejected';
   title: string;
   message: string;
   timestamp: Date;
@@ -219,21 +219,67 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
           .from('secondary_report_cards')
           .select('id, student_name, class_level, approved_at')
           .eq('created_by', user.id)
-          .eq('status', 'approved')
+          .eq('status', 'published')
           .not('approved_at', 'is', null)
           .order('approved_at', { ascending: false })
           .limit(5);
 
         if (approvedReports) {
           for (const report of approvedReports) {
-            const notifId = `report-${report.id}`;
+            const notifId = `report-approved-${report.id}`;
             allNotifications.push({
               id: notifId,
               type: 'report_approved',
               title: 'Report Approved',
-              message: `${report.student_name}'s ${report.class_level} result has been approved`,
+              message: `${report.student_name}'s ${report.class_level} result has been approved and published`,
               timestamp: new Date(report.approved_at!),
               read: readNotifications.has(notifId)
+            });
+          }
+        }
+
+        // Load rejected reports for teachers
+        const { data: rejectedReports } = await supabase
+          .from('secondary_report_cards')
+          .select('id, student_name, class_level, updated_at, rejection_reason')
+          .eq('created_by', user.id)
+          .eq('status', 'rejected')
+          .order('updated_at', { ascending: false })
+          .limit(5);
+
+        if (rejectedReports) {
+          for (const report of rejectedReports) {
+            const notifId = `report-rejected-${report.id}`;
+            allNotifications.push({
+              id: notifId,
+              type: 'report_rejected',
+              title: 'Report Rejected',
+              message: `${report.student_name}'s ${report.class_level} result was rejected: ${report.rejection_reason || 'Please check and resubmit'}`,
+              timestamp: new Date(report.updated_at!),
+              read: readNotifications.has(notifId)
+            });
+          }
+        }
+
+        // Also load from admin_notifications for teachers
+        const { data: teacherNotifications } = await supabase
+          .from('admin_notifications')
+          .select('*')
+          .eq('target_admin_id', user.id)
+          .in('type', ['report_approved', 'report_rejected'])
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (teacherNotifications) {
+          for (const notif of teacherNotifications) {
+            const notifId = `admin-notif-${notif.id}`;
+            allNotifications.push({
+              id: notifId,
+              type: notif.type === 'report_approved' ? 'report_approved' : 'report_rejected',
+              title: notif.title,
+              message: notif.message,
+              timestamp: new Date(notif.created_at),
+              read: notif.is_read || readNotifications.has(notifId)
             });
           }
         }
@@ -331,6 +377,9 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       navigate('/dashboard');
     } else if (notification.type === 'report_approved') {
       navigate('/reports');
+    } else if (notification.type === 'report_rejected') {
+      // Navigate to a drafts/rejected page for teachers
+      navigate('/reports');
     }
   };
 
@@ -357,7 +406,8 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       case 'announcement': return <Megaphone className="h-4 w-4 text-purple-500" />;
       case 'group_call': return <Video className="h-4 w-4 text-orange-500" />;
       case 'exam_complete': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'report_approved': return <FileText className="h-4 w-4 text-blue-500" />;
+      case 'report_approved': return <FileText className="h-4 w-4 text-green-500" />;
+      case 'report_rejected': return <FileText className="h-4 w-4 text-red-500" />;
       default: return <Bell className="h-4 w-4" />;
     }
   };
@@ -370,7 +420,8 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       case 'announcement': return 'Announcement';
       case 'group_call': return 'Group Call';
       case 'exam_complete': return 'Exam';
-      case 'report_approved': return 'Report';
+      case 'report_approved': return 'Approved';
+      case 'report_rejected': return 'Rejected';
       default: return 'Notification';
     }
   };
