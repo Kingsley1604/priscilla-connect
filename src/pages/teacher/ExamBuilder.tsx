@@ -103,9 +103,16 @@ const ExamBuilder = () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Check if user is super admin - if so, load all stats
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', user.user.id)
+        .maybeSingle();
+
       const { data, error } = await supabase
         .rpc('get_exam_statistics', {
-          creator_id: user.user.id
+          creator_id: profile?.is_super_admin ? null : user.user.id
         });
 
       if (error) throw error;
@@ -217,6 +224,25 @@ const ExamBuilder = () => {
         .single();
 
       if (error) throw error;
+
+      // Notify super admin about exam creation
+      try {
+        const { data: superAdmin } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('is_super_admin', true)
+          .maybeSingle();
+        if (superAdmin) {
+          await supabase.from('admin_notifications').insert({
+            title: 'Exam Created',
+            message: `Teacher created a new ${newExam.exam_type} examination: "${newExam.title}"`,
+            type: 'info',
+            target_admin_id: superAdmin.id
+          });
+        }
+      } catch (notifyErr) {
+        console.error('Error notifying super admin:', notifyErr);
+      }
 
       toast.success("Exam created successfully! Redirecting to exam overview...");
       const examId = data.id;
