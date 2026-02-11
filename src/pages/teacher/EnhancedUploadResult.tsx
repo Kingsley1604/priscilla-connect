@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,16 @@ import { ArrowLeft, Send } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAdminSector } from "@/hooks/useAdminSector";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const EnhancedUploadResult = () => {
   const navigate = useNavigate();
-  const { adminSector, canManageClassLevel, isSuperAdmin } = useAdminSector();
+  const { adminSector, isSuperAdmin } = useAdminSector();
+  const { user } = useAuth();
+  
+  const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
+  const [isClassTeacher, setIsClassTeacher] = useState(false);
   
   const [formData, setFormData] = useState({
     academicSession: new Date().getFullYear() + "/" + (new Date().getFullYear() + 1),
@@ -22,11 +28,40 @@ const EnhancedUploadResult = () => {
     grade: ""
   });
 
-  // Task H: Filter class levels based on teacher's sector
-  // Primary teachers can only see Primary classes
-  // Secondary teachers can only see Secondary classes
+  // Fetch teacher's assigned class from teacher_assignments
+  useEffect(() => {
+    const fetchAssignment = async () => {
+      if (!user?.id) return;
+      
+      const { data: assignments } = await supabase
+        .from('teacher_assignments')
+        .select('class_level, is_class_teacher')
+        .eq('teacher_id', user.id)
+        .eq('is_active', true)
+        .eq('is_class_teacher', true);
+      
+      if (assignments && assignments.length > 0) {
+        setIsClassTeacher(true);
+        const classes = [...new Set(assignments.map(a => a.class_level))];
+        setAssignedClasses(classes);
+      }
+    };
+    fetchAssignment();
+  }, [user?.id]);
+
+  // Determine sector from assigned class
+  const getClassSector = (className: string) => {
+    const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery One', 'Nursery Two', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6',
+      'First Grade', 'Second Grade', 'Third Grade', 'Fourth Grade', 'Fifth Grade', 'Sixth Grade'];
+    if (primaryClasses.some(c => className.toLowerCase().includes(c.toLowerCase()))) return 'Primary';
+    if (className.toLowerCase().includes('jss') || className.toLowerCase().includes('junior')) return 'Junior Secondary';
+    if (className.toLowerCase().includes('ss') || className.toLowerCase().includes('senior')) return 'Senior Secondary';
+    return 'Primary';
+  };
+
+  // If teacher is a class teacher, restrict to assigned classes only
   const getClassLevelOptions = () => {
-    if (isSuperAdmin || !adminSector || adminSector === 'both') {
+    if (isSuperAdmin) {
       return [
         { value: "Primary", label: "Primary" },
         { value: "Junior Secondary", label: "Junior Secondary" },
@@ -34,22 +69,35 @@ const EnhancedUploadResult = () => {
       ];
     }
     
+    if (isClassTeacher && assignedClasses.length > 0) {
+      const sectors = new Set(assignedClasses.map(getClassSector));
+      return Array.from(sectors).map(s => ({ value: s, label: s }));
+    }
+    
     if (adminSector === 'primary') {
       return [{ value: "Primary", label: "Primary" }];
     }
-    
     if (adminSector === 'secondary') {
       return [
         { value: "Junior Secondary", label: "Junior Secondary" },
         { value: "Senior Secondary", label: "Senior Secondary" }
       ];
     }
-    
-    return [];
+    return [
+      { value: "Primary", label: "Primary" },
+      { value: "Junior Secondary", label: "Junior Secondary" },
+      { value: "Senior Secondary", label: "Senior Secondary" }
+    ];
   };
 
   const getGradeOptions = () => {
     const { classLevel } = formData;
+    
+    // If class teacher, only show their assigned class
+    if (isClassTeacher && assignedClasses.length > 0 && !isSuperAdmin) {
+      return assignedClasses.filter(c => getClassSector(c) === classLevel);
+    }
+    
     if (classLevel === "Primary") {
       return [
         "Play Group 1", "Play Group 2", 
