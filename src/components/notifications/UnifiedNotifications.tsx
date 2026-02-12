@@ -359,13 +359,27 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
   }, [loadNotifications, user]);
 
   // Task H: Navigate to relevant page on notification click
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     // Mark as read locally and persist
     saveReadNotification(notification.id);
     setNotifications(prev =>
       prev.map(n => (n.id === notification.id ? { ...n, read: true } : n))
     );
     setUnreadCount(prev => Math.max(0, prev - 1));
+
+    // Also mark in database if it's an admin_notification
+    if (notification.id.startsWith('admin-notif-') && user) {
+      const dbId = notification.id.replace('admin-notif-', '');
+      try {
+        await supabase
+          .from('admin_notifications')
+          .update({ is_read: true })
+          .eq('id', dbId);
+      } catch (e) {
+        console.error('Error marking notification as read in DB:', e);
+      }
+    }
+
     setIsOpen(false);
 
     // Navigate based on notification type
@@ -378,24 +392,48 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
     } else if (notification.type === 'report_approved') {
       navigate('/reports');
     } else if (notification.type === 'report_rejected') {
-      // Navigate to a drafts/rejected page for teachers
-      navigate('/reports');
+      navigate('/teacher/draft-results');
     }
   };
 
   // Task I: Mark all as read with persistence
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     const allIds = notifications.map(n => n.id);
     saveAllAsRead(allIds);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
+
+    // Also mark admin_notifications as read in the database
+    if (user) {
+      try {
+        await supabase
+          .from('admin_notifications')
+          .update({ is_read: true })
+          .eq('target_admin_id', user.id)
+          .eq('is_read', false);
+      } catch (e) {
+        console.error('Error marking DB notifications as read:', e);
+      }
+    }
   };
 
-  const clearNotifications = () => {
+  const clearNotifications = async () => {
     const allIds = notifications.map(n => n.id);
     saveAllAsRead(allIds);
     setNotifications([]);
     setUnreadCount(0);
+
+    if (user) {
+      try {
+        await supabase
+          .from('admin_notifications')
+          .update({ is_read: true })
+          .eq('target_admin_id', user.id)
+          .eq('is_read', false);
+      } catch (e) {
+        console.error('Error marking DB notifications as read:', e);
+      }
+    }
   };
 
   const getTypeIcon = (type: Notification['type']) => {
