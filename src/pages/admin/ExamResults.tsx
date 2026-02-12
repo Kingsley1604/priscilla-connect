@@ -291,10 +291,11 @@ const ExamResults = () => {
   const organizeIntoFolders =
     (primaryReports: ReportCardResult[],
      secondaryReportsData: SecondaryReportCard[]) => {
+      // Group by teacher only (one folder per teacher, not per teacher+class)
       const folderMap = new Map<string, TeacherFolder>();
 
-      primaryReports.forEach(report => {
-        const key = `${report.created_by}-${report.class_level}`;
+      const addToFolder = (report: ReportCardResult | SecondaryReportCard) => {
+        const key = report.created_by; // One folder per teacher
         if (!folderMap.has(key)) {
           folderMap.set(key, {
             teacherId: report.created_by,
@@ -308,28 +309,16 @@ const ExamResults = () => {
           });
         }
         const folder = folderMap.get(key)!;
+        // Update className to show all classes
+        if (!folder.className.includes(report.class_level)) {
+          folder.className = folder.className === report.class_level ? report.class_level : `${folder.className}, ${report.class_level}`;
+        }
         if (report.report_type === 'midterm') folder.midtermReports.push(report);
         else folder.termlyReports.push(report);
-      });
+      };
 
-      secondaryReportsData.forEach(report => {
-        const key = `${report.created_by}-${report.class_level}`;
-        if (!folderMap.has(key)) {
-          folderMap.set(key, {
-            teacherId: report.created_by,
-            teacherName: report.teacher_name || 'Unknown Teacher',
-            className: report.class_level,
-            midtermReports: [],
-            termlyReports: [],
-            isOpen: false,
-            midtermOpen: false,
-            termlyOpen: false
-          });
-        }
-        const folder = folderMap.get(key)!;
-        if (report.report_type === 'midterm') folder.midtermReports.push(report);
-        else folder.termlyReports.push(report);
-      });
+      primaryReports.forEach(addToFolder);
+      secondaryReportsData.forEach(addToFolder);
 
       setTeacherFolders(Array.from(folderMap.values()));
     };
@@ -837,8 +826,8 @@ const ExamResults = () => {
                               <div className="flex items-center gap-3">
                                 {folder.isOpen ? <FolderOpen className="h-5 w-5 text-primary" /> : <Folder className="h-5 w-5 text-muted-foreground" />}
                                 <div>
-                                  <p className="font-medium">{folder.teacherName} — {folder.className}</p>
-                                  <p className="text-xs text-muted-foreground">{folder.midtermReports.length} midterm, {folder.termlyReports.length} termly</p>
+                                  <p className="font-medium">{folder.teacherName}</p>
+                                  <p className="text-xs text-muted-foreground">{folder.className} • {folder.midtermReports.length} midterm, {folder.termlyReports.length} termly</p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">

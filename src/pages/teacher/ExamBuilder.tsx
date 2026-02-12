@@ -59,6 +59,9 @@ const ExamBuilder = () => {
   const [examStats, setExamStats] = useState<ExamStatistics[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  type QuestionTypeOption = 'objective' | 'essay' | 'fill-blank' | 'true-false';
+  const [questionType, setQuestionType] = useState<QuestionTypeOption>('objective');
+
   // Create exam form state
   const [newExam, setNewExam] = useState<{
     title: string;
@@ -420,6 +423,108 @@ const ExamBuilder = () => {
       correct_answer: 'a',
       question_order: questions.length + 1
     });
+    setQuestionType('objective');
+  };
+
+  const handleCreateQuestionWithType = async () => {
+    if (!selectedExam) return;
+    if (!newQuestion.question_text.trim()) {
+      toast.error("Please enter a question");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const questionOrder = editingQuestion?.question_order || (questions.length + 1);
+      let questionData: any = {
+        exam_id: selectedExam.id,
+        question_order: questionOrder,
+      };
+
+      switch (questionType) {
+        case 'objective':
+          if (!newQuestion.option_a || !newQuestion.option_b) {
+            toast.error("Please fill in at least options A and B");
+            setIsLoading(false);
+            return;
+          }
+          questionData = {
+            ...questionData,
+            question_text: newQuestion.question_text,
+            option_a: newQuestion.option_a,
+            option_b: newQuestion.option_b,
+            option_c: newQuestion.option_c || "N/A",
+            option_d: newQuestion.option_d || "N/A",
+            correct_answer: newQuestion.correct_answer
+          };
+          break;
+        case 'true-false':
+          questionData = {
+            ...questionData,
+            question_text: `[TF] ${newQuestion.question_text}`,
+            option_a: "True",
+            option_b: "False",
+            option_c: "N/A",
+            option_d: "N/A",
+            correct_answer: newQuestion.correct_answer
+          };
+          break;
+        case 'essay':
+          questionData = {
+            ...questionData,
+            question_text: `[ESSAY] ${newQuestion.question_text}`,
+            option_a: "Manual grading required",
+            option_b: "ESSAY",
+            option_c: "N/A",
+            option_d: "N/A",
+            correct_answer: "a"
+          };
+          break;
+        case 'fill-blank':
+          questionData = {
+            ...questionData,
+            question_text: `[FILL] ${newQuestion.question_text}`,
+            option_a: newQuestion.option_a || "Answer required",
+            option_b: "FILL_BLANK",
+            option_c: "N/A",
+            option_d: "N/A",
+            correct_answer: "a"
+          };
+          break;
+      }
+
+      if (editingQuestion?.id) {
+        const { error } = await supabase
+          .from("exam_questions")
+          .update({
+            question_text: questionData.question_text,
+            option_a: questionData.option_a,
+            option_b: questionData.option_b,
+            option_c: questionData.option_c,
+            option_d: questionData.option_d,
+            correct_answer: questionData.correct_answer
+          })
+          .eq("id", editingQuestion.id);
+        if (error) throw error;
+        toast.success("Question updated successfully!");
+      } else {
+        const { error } = await supabase
+          .from("exam_questions")
+          .insert(questionData);
+        if (error) throw error;
+        toast.success("Question added successfully!");
+      }
+
+      setIsCreateQuestionOpen(false);
+      setEditingQuestion(null);
+      resetQuestionForm();
+      loadQuestions(selectedExam.id);
+      loadExams();
+    } catch (error) {
+      toast.error("Failed to save question");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const editQuestion = (question: Question) => {
@@ -785,55 +890,124 @@ const ExamBuilder = () => {
                           <DialogTitle>
                             {editingQuestion ? 'Edit Question' : 'Add New Question'}
                           </DialogTitle>
+                          <DialogDescription>
+                            Select a question type and fill in the details.
+                          </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
+                          {/* Question Type Selector */}
+                          <div>
+                            <Label>Question Type</Label>
+                            <Select 
+                              value={questionType}
+                              onValueChange={(value) => setQuestionType(value as QuestionTypeOption)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="objective">Objective (Multiple Choice)</SelectItem>
+                                <SelectItem value="essay">Essay (Free Text)</SelectItem>
+                                <SelectItem value="fill-blank">Fill in the Blank</SelectItem>
+                                <SelectItem value="true-false">True / False</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Question Text - common to all types */}
                           <div>
                             <Label htmlFor="question">Question</Label>
                             <Textarea
                               id="question"
                               value={newQuestion.question_text}
                               onChange={(e) => setNewQuestion(prev => ({ ...prev, question_text: e.target.value }))}
-                              placeholder="Enter your question"
+                              placeholder={questionType === 'fill-blank' ? 'Use ___ for blanks (e.g., "The capital of France is ___")' : 'Enter your question'}
                               rows={3}
                             />
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {['a', 'b', 'c', 'd'].map((option) => (
-                              <div key={option}>
-                                <Label htmlFor={`option_${option}`}>Option {option.toUpperCase()}</Label>
-                                <Input
-                                  id={`option_${option}`}
-                                  value={newQuestion[`option_${option}` as keyof Question] as string}
-                                  onChange={(e) => setNewQuestion(prev => ({ 
-                                    ...prev, 
-                                    [`option_${option}`]: e.target.value 
-                                  }))}
-                                  placeholder={`Option ${option.toUpperCase()}`}
-                                />
+                          {/* Objective: show options + correct answer */}
+                          {questionType === 'objective' && (
+                            <>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {['a', 'b', 'c', 'd'].map((option) => (
+                                  <div key={option}>
+                                    <Label htmlFor={`option_${option}`}>Option {option.toUpperCase()}</Label>
+                                    <Input
+                                      id={`option_${option}`}
+                                      value={newQuestion[`option_${option}` as keyof Question] as string}
+                                      onChange={(e) => setNewQuestion(prev => ({ 
+                                        ...prev, 
+                                        [`option_${option}`]: e.target.value 
+                                      }))}
+                                      placeholder={`Option ${option.toUpperCase()}`}
+                                    />
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                              <div>
+                                <Label htmlFor="correct">Correct Answer</Label>
+                                <Select 
+                                  value={newQuestion.correct_answer} 
+                                  onValueChange={(value) => setNewQuestion(prev => ({ ...prev, correct_answer: value as 'a' | 'b' | 'c' | 'd' }))}
+                                >
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="a">Option A</SelectItem>
+                                    <SelectItem value="b">Option B</SelectItem>
+                                    <SelectItem value="c">Option C</SelectItem>
+                                    <SelectItem value="d">Option D</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </>
+                          )}
 
-                          <div>
-                            <Label htmlFor="correct">Correct Answer</Label>
-                            <Select 
-                              value={newQuestion.correct_answer} 
-                              onValueChange={(value) => setNewQuestion(prev => ({ ...prev, correct_answer: value as 'a' | 'b' | 'c' | 'd' }))}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="a">Option A</SelectItem>
-                                <SelectItem value="b">Option B</SelectItem>
-                                <SelectItem value="c">Option C</SelectItem>
-                                <SelectItem value="d">Option D</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          {/* True/False */}
+                          {questionType === 'true-false' && (
+                            <div>
+                              <Label>Correct Answer</Label>
+                              <Select 
+                                value={newQuestion.correct_answer === 'a' ? 'true' : 'false'} 
+                                onValueChange={(value) => setNewQuestion(prev => ({
+                                  ...prev,
+                                  option_a: 'True',
+                                  option_b: 'False',
+                                  option_c: 'N/A',
+                                  option_d: 'N/A',
+                                  correct_answer: value === 'true' ? 'a' as const : 'b' as const
+                                }))}
+                              >
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="true">True</SelectItem>
+                                  <SelectItem value="false">False</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
 
-                          <Button onClick={createQuestion} disabled={isLoading} className="w-full">
+                          {/* Essay: just question text + optional word limit note */}
+                          {questionType === 'essay' && (
+                            <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                              Essay questions require manual grading. Students will see a text area to write their response.
+                            </div>
+                          )}
+
+                          {/* Fill in the blank */}
+                          {questionType === 'fill-blank' && (
+                            <div>
+                              <Label>Correct Answer(s)</Label>
+                              <Input
+                                value={newQuestion.option_a}
+                                onChange={(e) => setNewQuestion(prev => ({ ...prev, option_a: e.target.value }))}
+                                placeholder="Enter the correct answer for the blank"
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">Use ___ in your question to indicate where the blank is.</p>
+                            </div>
+                          )}
+
+                          <Button onClick={handleCreateQuestionWithType} disabled={isLoading} className="w-full">
                             {isLoading ? "Saving..." : editingQuestion ? "Update Question" : "Add Question"}
                           </Button>
                         </div>
@@ -843,42 +1017,62 @@ const ExamBuilder = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {questions.map((question, index) => (
-                      <div key={question.id} className="border rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium">Question {index + 1}</h4>
-                          <div className="flex space-x-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => editQuestion(question)}
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => deleteQuestion(question.id!)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <p className="text-sm mb-3">{question.question_text}</p>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                          {['a', 'b', 'c', 'd'].map((option) => (
-                            <div 
-                              key={option}
-                              className={`p-2 rounded ${question.correct_answer === option ? 'bg-primary/10 border border-primary' : 'bg-muted'}`}
-                            >
-                              <span className="font-medium">{option.toUpperCase()}.</span> {question[`option_${option}` as keyof Question]}
+                    {questions.map((question, index) => {
+                      // Detect question type from stored prefix
+                      const qText = question.question_text;
+                      const isEssay = qText.startsWith('[ESSAY]');
+                      const isTF = qText.startsWith('[TF]');
+                      const isFill = qText.startsWith('[FILL]');
+                      const isMulti = qText.startsWith('[MULTI]');
+                      const displayText = qText.replace(/^\[(ESSAY|TF|FILL|MULTI|MATCH|NUM|SHORT|FILE)\]\s*/, '');
+                      const typeBadge = isEssay ? 'Essay' : isTF ? 'True/False' : isFill ? 'Fill in Blank' : isMulti ? 'Multi-Response' : 'Objective';
+
+                      return (
+                        <div key={question.id} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">Question {index + 1}</h4>
+                              <Badge variant="outline" className="text-xs">{typeBadge}</Badge>
                             </div>
-                          ))}
+                            <div className="flex space-x-2">
+                              <Button size="sm" variant="outline" onClick={() => editQuestion(question)}>
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => deleteQuestion(question.id!)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <p className="text-sm mb-3">{displayText}</p>
+                          
+                          {/* Render based on question type */}
+                          {(isEssay) ? (
+                            <div className="text-xs text-muted-foreground p-2 bg-muted rounded">Requires manual grading</div>
+                          ) : (isTF) ? (
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              {['a', 'b'].map((option) => (
+                                <div key={option} className={`p-2 rounded ${question.correct_answer === option ? 'bg-primary/10 border border-primary' : 'bg-muted'}`}>
+                                  <span className="font-medium">{option.toUpperCase()}.</span> {question[`option_${option}` as keyof Question]}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (isFill) ? (
+                            <div className="text-sm p-2 bg-muted rounded">
+                              <span className="font-medium">Answer:</span> {question.option_a}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                              {['a', 'b', 'c', 'd'].map((option) => (
+                                <div key={option} className={`p-2 rounded ${question.correct_answer === option ? 'bg-primary/10 border border-primary' : 'bg-muted'}`}>
+                                  <span className="font-medium">{option.toUpperCase()}.</span> {question[`option_${option}` as keyof Question]}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
 
                     {questions.length === 0 && (
                       <div className="text-center py-8 text-muted-foreground">
