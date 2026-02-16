@@ -174,9 +174,8 @@ const ExamBuilder = () => {
     }
   };
 
-  const loadQuestions = async (examId: string) => {
+  const loadQuestions = async (examId: string, retryCount = 0) => {
     try {
-      console.log("Loading questions for exam:", examId);
       const { data, error } = await supabase
         .from("exam_questions")
         .select("*")
@@ -184,18 +183,22 @@ const ExamBuilder = () => {
         .order("question_order");
 
       if (error) {
-        console.error("Error loading questions:", error);
         throw error;
       }
       
-      console.log("Loaded questions:", data?.length || 0);
-      setQuestions((data || []).map(q => ({
+      const mapped = (data || []).map(q => ({
         ...q,
         correct_answer: q.correct_answer as 'a' | 'b' | 'c' | 'd'
-      })));
+      }));
+      setQuestions(mapped);
     } catch (error) {
       console.error("Error loading questions:", error);
-      toast.error("Failed to load questions");
+      if (retryCount < 2) {
+        // Retry gracefully up to 2 times
+        setTimeout(() => loadQuestions(examId, retryCount + 1), 1000);
+      } else {
+        toast.error("Failed to load questions. Please try selecting the exam again.");
+      }
     }
   };
 

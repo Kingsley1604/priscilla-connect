@@ -291,10 +291,10 @@ const ExamResults = () => {
   const organizeIntoFolders =
     (primaryReports: ReportCardResult[],
      secondaryReportsData: SecondaryReportCard[]) => {
-      // Group by teacher only (one folder per teacher, not per teacher+class)
+      // Group by teacher only (one folder per teacher)
       const folderMap = new Map<string, TeacherFolder>();
 
-      const addToFolder = (report: ReportCardResult | SecondaryReportCard) => {
+      const validateAndAddToFolder = (report: ReportCardResult | SecondaryReportCard) => {
         const key = report.created_by; // One folder per teacher
         if (!folderMap.has(key)) {
           folderMap.set(key, {
@@ -311,14 +311,30 @@ const ExamResults = () => {
         const folder = folderMap.get(key)!;
         // Update className to show all classes
         if (!folder.className.includes(report.class_level)) {
-          folder.className = folder.className === report.class_level ? report.class_level : `${folder.className}, ${report.class_level}`;
+          folder.className = `${folder.className}, ${report.class_level}`;
         }
-        if (report.report_type === 'midterm') folder.midtermReports.push(report);
-        else folder.termlyReports.push(report);
+
+        // Strict validation: enforce exam type placement
+        // midterm reports ONLY go into midtermReports, termly ONLY into termlyReports
+        if (report.report_type === 'midterm') {
+          // Double-check: never allow midterm into termly
+          folder.midtermReports.push(report);
+        } else if (report.report_type === 'termly') {
+          // Double-check: never allow termly into midterm
+          folder.termlyReports.push(report);
+        } else {
+          // Fallback: determine from term string
+          const termLower = report.term?.toLowerCase() || '';
+          if (termLower.includes('mid')) {
+            folder.midtermReports.push(report);
+          } else {
+            folder.termlyReports.push(report);
+          }
+        }
       };
 
-      primaryReports.forEach(addToFolder);
-      secondaryReportsData.forEach(addToFolder);
+      primaryReports.forEach(validateAndAddToFolder);
+      secondaryReportsData.forEach(validateAndAddToFolder);
 
       setTeacherFolders(Array.from(folderMap.values()));
     };
@@ -839,19 +855,21 @@ const ExamResults = () => {
 
                           <CollapsibleContent>
                             <div className="ml-4 mt-2 space-y-3 border-l-2 border-muted pl-4">
-                              {/* Mid Term Reports Subfolder */}
-                              {folder.midtermReports.length > 0 && (
-                                <Collapsible open={folder.midtermOpen} onOpenChange={() => toggleSubfolder(folderIndex, 'midterm')}>
-                                  <CollapsibleTrigger asChild>
-                                    <div className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/30 transition-colors">
-                                      {folder.midtermOpen ? <FolderOpen className="h-4 w-4 text-blue-600" /> : <Folder className="h-4 w-4 text-blue-600" />}
-                                      <span className="text-sm font-medium text-blue-600">Mid Term Report ({folder.midtermReports.length})</span>
-                                      {folder.midtermOpen ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
-                                    </div>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent>
-                                    <div className="space-y-2 ml-6 mt-1">
-                                      {folder.midtermReports.map((report) => (
+                              {/* Mid Term Reports Subfolder - ALWAYS shown */}
+                              <Collapsible open={folder.midtermOpen} onOpenChange={() => toggleSubfolder(folderIndex, 'midterm')}>
+                                <CollapsibleTrigger asChild>
+                                  <div className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/30 transition-colors">
+                                    {folder.midtermOpen ? <FolderOpen className="h-4 w-4 text-blue-600" /> : <Folder className="h-4 w-4 text-blue-600" />}
+                                    <span className="text-sm font-medium text-blue-600">Mid Term Report ({folder.midtermReports.length})</span>
+                                    {folder.midtermOpen ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
+                                  </div>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="space-y-2 ml-6 mt-1">
+                                    {folder.midtermReports.length === 0 ? (
+                                      <p className="text-xs text-muted-foreground py-2 pl-2">No mid-term reports yet</p>
+                                    ) : (
+                                      folder.midtermReports.map((report) => (
                                         <ReportCardItem
                                           key={report.id}
                                           report={report}
@@ -860,25 +878,27 @@ const ExamResults = () => {
                                           onReject={() => openRejectDialog(report.id, 'student_average' in report ? 'secondary' : 'primary')}
                                           getStatusBadge={getStatusBadge}
                                         />
-                                      ))}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              )}
+                                      ))
+                                    )}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
 
-                              {/* Termly Examination Reports Subfolder */}
-                              {folder.termlyReports.length > 0 && (
-                                <Collapsible open={folder.termlyOpen} onOpenChange={() => toggleSubfolder(folderIndex, 'termly')}>
-                                  <CollapsibleTrigger asChild>
-                                    <div className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/30 transition-colors">
-                                      {folder.termlyOpen ? <FolderOpen className="h-4 w-4 text-green-600" /> : <Folder className="h-4 w-4 text-green-600" />}
-                                      <span className="text-sm font-medium text-green-600">Termly Examination Report ({folder.termlyReports.length})</span>
-                                      {folder.termlyOpen ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
-                                    </div>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent>
-                                    <div className="space-y-2 ml-6 mt-1">
-                                      {folder.termlyReports.map((report) => (
+                              {/* Termly Examination Reports Subfolder - ALWAYS shown */}
+                              <Collapsible open={folder.termlyOpen} onOpenChange={() => toggleSubfolder(folderIndex, 'termly')}>
+                                <CollapsibleTrigger asChild>
+                                  <div className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted/30 transition-colors">
+                                    {folder.termlyOpen ? <FolderOpen className="h-4 w-4 text-green-600" /> : <Folder className="h-4 w-4 text-green-600" />}
+                                    <span className="text-sm font-medium text-green-600">Termly Examination Report ({folder.termlyReports.length})</span>
+                                    {folder.termlyOpen ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
+                                  </div>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="space-y-2 ml-6 mt-1">
+                                    {folder.termlyReports.length === 0 ? (
+                                      <p className="text-xs text-muted-foreground py-2 pl-2">No termly examination reports yet</p>
+                                    ) : (
+                                      folder.termlyReports.map((report) => (
                                         <ReportCardItem
                                           key={report.id}
                                           report={report}
@@ -887,11 +907,11 @@ const ExamResults = () => {
                                           onReject={() => openRejectDialog(report.id, 'student_average' in report ? 'secondary' : 'primary')}
                                           getStatusBadge={getStatusBadge}
                                         />
-                                      ))}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
-                              )}
+                                      ))
+                                    )}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
                             </div>
                           </CollapsibleContent>
                         </Collapsible>

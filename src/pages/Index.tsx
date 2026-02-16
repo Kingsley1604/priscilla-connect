@@ -27,8 +27,8 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-6">
         <div className="max-w-md w-full space-y-4 text-center">
-          <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm animate-pulse">
-            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-cover" />
+          <div className="inline-flex items-center justify-center p-0 m-0 bg-white/20 rounded-full mb-6 backdrop-blur-sm animate-pulse overflow-hidden">
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 block m-0 p-0 object-cover" />
           </div>
           <Skeleton className="h-8 w-48 mx-auto bg-white/20" />
           <Skeleton className="h-4 w-32 mx-auto bg-white/20" />
