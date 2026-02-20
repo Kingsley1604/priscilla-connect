@@ -176,14 +176,28 @@ const ExamBuilder = () => {
 
   const loadQuestions = async (examId: string, retryCount = 0) => {
     try {
-      const { data, error } = await supabase
+      console.log("[ExamBuilder] Fetching questions for exam:", examId);
+      
+      const { data, error, status } = await supabase
         .from("exam_questions")
         .select("*")
         .eq("exam_id", examId)
         .order("question_order");
 
+      console.log("[ExamBuilder] Questions response:", { count: data?.length, error, status });
+
       if (error) {
         throw error;
+      }
+      
+      // If data is empty but we expected questions, try fetching count via RPC as fallback
+      if ((!data || data.length === 0)) {
+        console.warn("[ExamBuilder] No questions returned - possible privilege issue. Trying RPC fallback...");
+        const { data: countData } = await supabase.rpc('get_exam_question_count', { exam_id: examId });
+        if (countData && countData > 0) {
+          console.error("[ExamBuilder] Backend has", countData, "questions but SELECT is blocked. Run in Cloud SQL: GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.exam_questions TO authenticated;");
+          toast.error(`${countData} questions exist but can't be loaded. Ask your admin to fix database permissions.`);
+        }
       }
       
       const mapped = (data || []).map(q => ({
@@ -194,7 +208,6 @@ const ExamBuilder = () => {
     } catch (error) {
       console.error("Error loading questions:", error);
       if (retryCount < 2) {
-        // Retry gracefully up to 2 times
         setTimeout(() => loadQuestions(examId, retryCount + 1), 1000);
       } else {
         toast.error("Failed to load questions. Please try selecting the exam again.");
