@@ -1,16 +1,1 @@
 project_id = "fctarpegeatdizeuzzyb"
-
-[functions.setup-demo-users]
-verify_jwt = false
-
-[functions.priscilla-brain]
-verify_jwt = false
-
-[functions.lesson-planner]
-verify_jwt = false
-
-[functions.send-email-notification]
-verify_jwt = false
-
-[functions.set-super-admin]
-verify_jwt = false
