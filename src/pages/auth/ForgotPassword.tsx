@@ -59,8 +59,8 @@ const ForgotPassword = () => {
         </div>
         <div className="max-w-md w-full">
           <div className="text-center mb-6 animate-fade-in">
-            <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-              <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
+            <div className="inline-flex items-center justify-center rounded-full mb-6 backdrop-blur-sm overflow-hidden p-0 m-0">
+              <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 block m-0 p-0 object-cover" />
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Check Your Email</h1>
           </div>
@@ -109,8 +109,8 @@ const ForgotPassword = () => {
 
       <div className="max-w-md w-full">
         <div className="text-center mb-6 animate-fade-in">
-          <div className="inline-flex items-center justify-center p-4 bg-white/20 rounded-full mb-6 backdrop-blur-sm">
-            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 object-contain" />
+          <div className="inline-flex items-center justify-center rounded-full mb-6 backdrop-blur-sm overflow-hidden p-0 m-0">
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-16 w-16 block m-0 p-0 object-cover" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">Reset Password</h1>
           <p className="text-white/80">Enter your email to receive a reset link</p>
