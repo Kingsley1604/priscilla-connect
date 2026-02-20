@@ -296,8 +296,8 @@ const Dashboard = ({
       <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-hero text-white py-3 sm:py-6 px-3 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
-            <div className="bg-white/20 rounded-lg backdrop-blur-sm flex-shrink-0 overflow-hidden">
-              <img src={priscillaLogo} alt="Priscilla Connect" className="h-10 w-10 sm:h-14 sm:w-14 object-cover" />
+            <div className="rounded-lg backdrop-blur-sm flex-shrink-0 overflow-hidden p-0 m-0">
+              <img src={priscillaLogo} alt="Priscilla Connect" className="h-10 w-10 sm:h-14 sm:w-14 block m-0 p-0 object-cover" />
             </div>
             <div className="min-w-0">
               <h1 className="text-base sm:text-2xl md:text-3xl font-bold truncate">Priscilla Connect</h1>
