@@ -182,8 +182,8 @@ const AdminSignupForm = ({ onBack, onSwitchToLogin }: AdminSignupFormProps) => {
       
       <div className="max-w-md w-full">
         <div className="text-center mb-6 sm:mb-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center p-3 sm:p-4 bg-white/20 rounded-full mb-4 sm:mb-6 backdrop-blur-sm">
-            <img src={priscillaLogo} alt="Priscilla Connect" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" />
+          <div className="inline-flex items-center justify-center rounded-full mb-4 sm:mb-6 backdrop-blur-sm overflow-hidden p-0 m-0">
+            <img src={priscillaLogo} alt="Priscilla Connect" className="h-12 w-12 sm:h-16 sm:w-16 block m-0 p-0 object-cover" />
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">Priscilla Connect</h1>
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-600 to-pink-700 text-white text-sm font-medium">
