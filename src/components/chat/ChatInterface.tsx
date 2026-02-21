@@ -359,7 +359,7 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col relative">
       {/* Chat Header */}
       <header className="bg-gradient-hero text-white py-4 px-6 shadow-medium">
         <div className="flex items-center space-x-4">
