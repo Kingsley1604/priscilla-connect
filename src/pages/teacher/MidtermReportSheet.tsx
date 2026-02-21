@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Upload, Printer, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, Printer, Plus, Trash2, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -244,17 +245,18 @@ const MidtermReportSheet = () => {
       `}</style>
 
       {/* Header - Hide on print */}
-      <header className="bg-gradient-hero text-white py-6 px-6 shadow-medium no-print">
+      <header className="bg-gradient-hero text-white py-4 sm:py-6 px-4 sm:px-6 shadow-medium no-print overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={() => navigate("/reports")}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Reports
+            <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 flex-shrink-0" onClick={() => navigate("/reports")}>
+                <ArrowLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Back to Reports</span>
               </Button>
-              <h1 className="text-3xl font-bold">Mid-Term Assessment Report</h1>
+              <h1 className="text-lg sm:text-3xl font-bold truncate">Mid-Term Assessment Report</h1>
             </div>
-            <div className="flex gap-2">
+            {/* Desktop buttons */}
+            <div className="hidden sm:flex gap-2 flex-shrink-0">
               <Button onClick={handlePrint} variant="secondary">
                 <Printer className="h-4 w-4 mr-2" />
                 Print
@@ -263,6 +265,26 @@ const MidtermReportSheet = () => {
                 <Upload className="h-4 w-4 mr-2" />
                 {isSubmitting ? "Submitting..." : "Submit Report"}
               </Button>
+            </div>
+            {/* Mobile three-dot menu */}
+            <div className="sm:hidden flex-shrink-0">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print Report
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSubmit} disabled={isSubmitting}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isSubmitting ? "Submitting..." : "Submit Report"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -316,7 +338,7 @@ const MidtermReportSheet = () => {
                     <Label>Term</Label>
                     <Select value={reportData.term} onValueChange={(value) => setReportData({...reportData, term: value})}>
                       <SelectTrigger className="no-print"><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent><SelectItem value="First">First</SelectItem><SelectItem value="Second">Second</SelectItem><SelectItem value="Third">Third</SelectItem></SelectContent>
+                      <SelectContent><SelectItem value="First Mid-Term">First Mid-Term</SelectItem><SelectItem value="Second Mid-Term">Second Mid-Term</SelectItem><SelectItem value="Third Mid-Term">Third Mid-Term</SelectItem></SelectContent>
                     </Select>
                     <p className="print:block hidden">{reportData.term}</p>
                   </div>
