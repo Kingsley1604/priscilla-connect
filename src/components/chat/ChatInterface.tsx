@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Send, MoreVertical, CheckCheck, Check, Mic, Paperclip, Phone, Video, Play, Download, FileText, Image as ImageIcon, Music, VideoIcon } from 'lucide-react';
+import { ArrowLeft, Send, MoreVertical, CheckCheck, Check, Mic, Paperclip, Phone, Video, Play, Download, FileText, Image as ImageIcon, Music, VideoIcon, ArrowDown } from 'lucide-react';
 import VoiceRecorder from './VoiceRecorder';
 import FileUpload from './FileUpload';
 import CallInterface from './CallInterface';
@@ -56,8 +56,10 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
     type: 'audio' | 'video';
     status: 'connecting' | 'ringing' | 'active' | 'ended';
   } | null>(null);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set(['1', '2'])); // Mock online users
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set(['1', '2']));
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
 
   // Mock messages for demo
   const mockMessages: Record<string, Message[]> = {
@@ -121,6 +123,17 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowJumpToLatest(distanceFromBottom > 150);
+  }, []);
+
+  const scrollToLatest = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Simulate real-time messaging
   useEffect(() => {
@@ -395,7 +408,7 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
         {messages.map((message) => (
           <MessageBubble 
             key={message.id} 
@@ -405,6 +418,19 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
         ))}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Jump to Latest Button */}
+      {showJumpToLatest && (
+        <div className="absolute bottom-24 right-6 z-10">
+          <Button
+            onClick={scrollToLatest}
+            size="sm"
+            className="rounded-full shadow-lg bg-primary hover:bg-primary/90 h-10 w-10 p-0"
+          >
+            <ArrowDown className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Message Input */}
       <div className="border-t p-4">
