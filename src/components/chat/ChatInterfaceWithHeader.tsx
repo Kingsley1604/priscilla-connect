@@ -24,7 +24,7 @@ interface ChatInterfaceWithHeaderProps {
 
 const ChatInterfaceWithHeader = ({ contacts, currentUser }: ChatInterfaceWithHeaderProps) => {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <header className="bg-gradient-hero text-white py-4 px-4 sm:py-6 sm:px-6 shadow-medium">
         <div className="max-w-7xl mx-auto">
