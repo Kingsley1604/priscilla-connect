@@ -408,29 +408,31 @@ const ChatInterface = ({ contacts, currentUser }: ChatInterfaceProps) => {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 relative" ref={messagesContainerRef} onScroll={handleScroll}>
-        {messages.map((message) => (
-          <MessageBubble 
-            key={message.id} 
-            message={message} 
-            getStatusIndicator={getStatusIndicator}
-          />
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Jump to Latest Button */}
-      {showJumpToLatest && (
-        <div className="absolute bottom-24 right-6 z-10">
-          <Button
-            onClick={scrollToLatest}
-            size="sm"
-            className="rounded-full shadow-lg bg-primary hover:bg-primary/90 h-10 w-10 p-0"
-          >
-            <ArrowDown className="h-5 w-5" />
-          </Button>
+      <div className="flex-1 overflow-y-auto relative" ref={messagesContainerRef} onScroll={handleScroll}>
+        <div className="p-4 space-y-4">
+          {messages.map((message) => (
+            <MessageBubble 
+              key={message.id} 
+              message={message} 
+              getStatusIndicator={getStatusIndicator}
+            />
+          ))}
+          <div ref={messagesEndRef} />
         </div>
-      )}
+
+        {/* Jump to Latest Button - inside scroll container */}
+        {showJumpToLatest && (
+          <div className="sticky bottom-4 flex justify-end pr-4 pointer-events-none">
+            <Button
+              onClick={scrollToLatest}
+              size="sm"
+              className="rounded-full shadow-lg bg-primary hover:bg-primary/90 h-10 w-10 p-0 pointer-events-auto"
+            >
+              <ArrowDown className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Message Input */}
       <div className="border-t p-4">
