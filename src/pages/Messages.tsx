@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall, Download, Play, Pause, FileText, Image, Music, Settings } from "lucide-react";
+import { ArrowLeft, Send, Phone, Video, MoreVertical, CheckCheck, Check, Mic, Paperclip, MessageSquare, AlertTriangle, Trash2, PhoneMissed, PhoneIncoming, X, Users, Plus, UserMinus, UserPlus, Edit2, VideoIcon, PhoneCall, Download, Play, Pause, FileText, Image, Music, Settings, ArrowDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import VoiceRecorder from '@/components/chat/VoiceRecorder';
@@ -136,6 +136,19 @@ const Messages = () => {
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+
+  const handleMessagesScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowJumpToLatest(distanceFromBottom > 100);
+  }, []);
+
+  const scrollToLatest = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   // Task G: Fetch all users from the system - Get ALL users with profiles
   // Fixed to show ALL users (students, teachers, admins) to everyone for chat
@@ -1686,7 +1699,7 @@ const Messages = () => {
     const isGroupAdmin = currentUserMember?.is_admin === true;
 
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="h-screen bg-background flex flex-col overflow-hidden">
         <header className="bg-gradient-hero text-white py-4 px-6 shadow-medium sticky top-0 z-50">
           <div className="flex items-center space-x-4">
             <Button
@@ -1771,8 +1784,8 @@ const Messages = () => {
           </div>
         )}
 
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto relative" ref={messagesContainerRef} onScroll={handleMessagesScroll}>
+          <div className="p-4 space-y-4">
             {groupMessages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -1799,7 +1812,6 @@ const Messages = () => {
                         <p className="text-xs font-medium mb-1 opacity-70">{message.sender_name}</p>
                       )}
                       
-                      {/* Task K: Voice message with playback */}
                       {isVoiceMessage ? (
                         <div className="flex items-center gap-2">
                           <Button
@@ -1830,7 +1842,6 @@ const Messages = () => {
                           <span className="text-sm">{message.content}</span>
                         </div>
                       ) : isFileMessage ? (
-                        /* Task A: File message with actual download - force save to device */
                         <div className="flex items-center gap-2">
                           <FileText className="h-4 w-4" />
                           <span className="text-sm">{message.content}</span>
@@ -1884,7 +1895,17 @@ const Messages = () => {
             )}
             <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
+
+          {/* Jump to Latest Button */}
+          {showJumpToLatest && (
+            <button
+              onClick={scrollToLatest}
+              className="absolute bottom-4 right-4 z-10 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 flex items-center justify-center transition-all"
+            >
+              <ArrowDown className="h-5 w-5" />
+            </button>
+          )}
+        </div>
 
         {/* Task H: Group voice recorder */}
         {showGroupVoiceRecorder && (
@@ -2144,7 +2165,7 @@ const Messages = () => {
 
   // Chat view with selected user
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <header className="bg-gradient-hero text-white py-4 px-6 shadow-medium sticky top-0 z-50">
         <div className="flex items-center space-x-4">
           <Button
@@ -2221,8 +2242,8 @@ const Messages = () => {
         </div>
       )}
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <div className="flex-1 overflow-y-auto relative" ref={messagesContainerRef} onScroll={handleMessagesScroll}>
+        <div className="p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
@@ -2230,7 +2251,6 @@ const Messages = () => {
             </div>
           ) : (
             messages.map((message) => {
-              // Task H: Check if this is a missed call indicator
               const isMissedCallMessage = message.content.startsWith('📞 Missed') || message.content.startsWith('📹 Missed');
               const isEditable = canEditMessage(message);
               const isEditing = editingMessageId === message.id;
@@ -2243,7 +2263,6 @@ const Messages = () => {
                   className={`flex ${message.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
                 >
                   {isEditing ? (
-                    // Edit mode
                     <div className="max-w-[75%] space-y-2">
                       <Input
                         value={editedContent}
@@ -2276,7 +2295,6 @@ const Messages = () => {
                             </div>
                           )}
                           
-                          {/* Task K: Voice message with actual playback */}
                           {isVoiceMessage ? (
                             <div className="flex items-center gap-2">
                               <Button
@@ -2311,7 +2329,6 @@ const Messages = () => {
                               <span className="text-sm">{message.content}</span>
                             </div>
                           ) : isFileMessage ? (
-                            /* Task K: File message with actual download */
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4" />
                               <span className="text-sm flex-1">{message.content}</span>
@@ -2326,7 +2343,6 @@ const Messages = () => {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   if (message.file_url) {
-                                    // Task A: Force download by fetching the file and creating blob
                                     try {
                                       toast.info('Starting download...');
                                       const response = await fetch(message.file_url);
@@ -2393,7 +2409,17 @@ const Messages = () => {
           )}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+
+        {/* Jump to Latest Button */}
+        {showJumpToLatest && (
+          <button
+            onClick={scrollToLatest}
+            className="absolute bottom-4 right-4 z-10 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 flex items-center justify-center transition-all"
+          >
+            <ArrowDown className="h-5 w-5" />
+          </button>
+        )}
+      </div>
 
       {/* Task G: Fixed chat input at bottom */}
       <div className="border-t p-4 sticky bottom-0 bg-background">
