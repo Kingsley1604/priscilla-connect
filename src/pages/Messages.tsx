@@ -136,8 +136,11 @@ const Messages = () => {
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const groupMessagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const groupMessagesContainerRef = useRef<HTMLDivElement>(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [showGroupJumpToLatest, setShowGroupJumpToLatest] = useState(false);
 
   const handleMessagesScroll = useCallback(() => {
     const container = messagesContainerRef.current;
@@ -146,8 +149,19 @@ const Messages = () => {
     setShowJumpToLatest(distanceFromBottom > 100);
   }, []);
 
+  const handleGroupMessagesScroll = useCallback(() => {
+    const container = groupMessagesContainerRef.current;
+    if (!container) return;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowGroupJumpToLatest(distanceFromBottom > 100);
+  }, []);
+
   const scrollToLatest = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  const scrollToGroupLatest = useCallback(() => {
+    groupMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   // Task G: Fetch all users from the system - Get ALL users with profiles
@@ -1784,7 +1798,7 @@ const Messages = () => {
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto relative" ref={messagesContainerRef} onScroll={handleMessagesScroll}>
+        <div className="flex-1 overflow-y-auto relative" ref={groupMessagesContainerRef} onScroll={handleGroupMessagesScroll}>
           <div className="p-4 space-y-4">
             {groupMessages.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
@@ -1893,17 +1907,19 @@ const Messages = () => {
                 );
               })
             )}
-            <div ref={messagesEndRef} />
+            <div ref={groupMessagesEndRef} />
           </div>
 
           {/* Jump to Latest Button */}
-          {showJumpToLatest && (
-            <button
-              onClick={scrollToLatest}
-              className="absolute bottom-4 right-4 z-10 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 flex items-center justify-center transition-all"
-            >
-              <ArrowDown className="h-5 w-5" />
-            </button>
+          {showGroupJumpToLatest && (
+            <div className="sticky bottom-4 flex justify-end pr-4 pointer-events-none">
+              <button
+                onClick={scrollToGroupLatest}
+                className="rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 flex items-center justify-center transition-all pointer-events-auto"
+              >
+                <ArrowDown className="h-5 w-5" />
+              </button>
+            </div>
           )}
         </div>
 
@@ -2412,12 +2428,14 @@ const Messages = () => {
 
         {/* Jump to Latest Button */}
         {showJumpToLatest && (
-          <button
-            onClick={scrollToLatest}
-            className="absolute bottom-4 right-4 z-10 rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 flex items-center justify-center transition-all"
-          >
-            <ArrowDown className="h-5 w-5" />
-          </button>
+          <div className="sticky bottom-4 flex justify-end pr-4 pointer-events-none">
+            <button
+              onClick={scrollToLatest}
+              className="rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground h-10 w-10 flex items-center justify-center transition-all pointer-events-auto"
+            >
+              <ArrowDown className="h-5 w-5" />
+            </button>
+          </div>
         )}
       </div>
 
