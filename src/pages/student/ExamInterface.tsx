@@ -494,7 +494,7 @@ const ExamInterface = () => {
       // Get question count securely
       const { data: questionCount, error: countError } = await supabase
         .rpc('get_exam_question_count', {
-          exam_id: examData.id
+          p_exam_id: examData.id
         });
 
       if (countError || questionCount === null) {
@@ -523,7 +523,7 @@ const ExamInterface = () => {
       // Now fetch questions securely (without correct answers)
       const { data: questionsData, error: questionsError } = await supabase
         .rpc('get_exam_questions_for_attempt', {
-          exam_attempt_id: attemptData.id
+          p_exam_attempt_id: attemptData.id
         });
 
       if (questionsError || !questionsData) {
@@ -534,8 +534,8 @@ const ExamInterface = () => {
       // Shuffle questions for this student
       const shuffledQuestions = [...questionsData].sort(() => Math.random() - 0.5);
 
-      setExam(examData);
-      setQuestions(shuffledQuestions);
+      setExam(examData as any);
+      setQuestions(shuffledQuestions as any);
       setCurrentAttempt({
         ...attemptData,
         answers: attemptData.answers as Record<string, string>

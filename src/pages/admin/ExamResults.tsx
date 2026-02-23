@@ -222,7 +222,7 @@ const ExamResults = () => {
       setResults((resultsData || []).map(result => ({
         ...result,
         exam_attempts: { ...result.exam_attempts, answers: result.exam_attempts.answers as Record<string, string> }
-      })));
+      })) as any);
 
       // Load primary/nursery report cards with full details
       const { data: reportCardsData, error: reportCardsError } = await supabase
@@ -270,7 +270,7 @@ const ExamResults = () => {
         .select(`*, exams!inner (title, exam_type)`)
         .order("created_at", { ascending: false });
       if (tokensError) throw tokensError;
-      setTokens(tokensData || []);
+      setTokens((tokensData || []) as any);
 
       // Load recent attempts
       const { data: attemptsData, error: attemptsError } = await supabase
@@ -280,7 +280,7 @@ const ExamResults = () => {
         .order("submitted_at", { ascending: false })
         .limit(50);
       if (attemptsError) throw attemptsError;
-      setAttempts(attemptsData || []);
+      setAttempts((attemptsData || []) as any);
 
     } catch (error) {
       console.error("Error loading data:", error);
