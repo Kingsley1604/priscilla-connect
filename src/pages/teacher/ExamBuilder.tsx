@@ -124,8 +124,8 @@ const ExamBuilder = () => {
 
       const { data, error } = await supabase
         .rpc('get_exam_statistics', {
-          creator_id: profile?.is_super_admin ? null : user.user.id
-        });
+          p_teacher_id: profile?.is_super_admin ? null : user.user.id
+        } as any);
 
       if (error) throw error;
       setExamStats(data || []);
@@ -176,7 +176,7 @@ const ExamBuilder = () => {
         })
       );
 
-      setExams(examsWithCounts);
+      setExams(examsWithCounts as any);
     } catch (error) {
       console.error("Error loading exams:", error);
       toast.error("Failed to load exams");
@@ -202,7 +202,7 @@ const ExamBuilder = () => {
       // If data is empty but we expected questions, try fetching count via RPC as fallback
       if ((!data || data.length === 0)) {
         console.warn("[ExamBuilder] No questions returned - possible privilege issue. Trying RPC fallback...");
-        const { data: countData } = await supabase.rpc('get_exam_question_count', { exam_id: examId });
+        const { data: countData } = await supabase.rpc('get_exam_question_count', { p_exam_id: examId });
         if (countData && countData > 0) {
           console.error("[ExamBuilder] Backend has", countData, "questions but SELECT is blocked. Run in Cloud SQL: GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.exam_questions TO authenticated;");
           toast.error(`${countData} questions exist but can't be loaded. Ask your admin to fix database permissions.`);
