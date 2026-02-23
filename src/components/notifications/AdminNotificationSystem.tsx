@@ -423,6 +423,10 @@ const AdminNotificationSystem = () => {
                               markAsRead(notification.id);
                               setIsOpen(false);
                               navigate('/admin/exam-results');
+                            } else if (notification.type === 'exam_approval' || notification.type === 'exam_approved' || notification.type === 'exam_rejected') {
+                              markAsRead(notification.id);
+                              setIsOpen(false);
+                              navigate('/admin/exam-approval');
                             } else {
                               markAsRead(notification.id);
                             }

@@ -422,31 +422,8 @@ const ExamBuilder = () => {
     }
   };
 
-  const toggleExamStatus = async (examId: string, currentStatus: string) => {
-    // Only allow toggling between draft and active for creator's own exams
-    // Don't allow toggling if pending_approval
-    if (currentStatus === 'pending_approval') {
-      toast.error("This exam is pending admin approval");
-      return;
-    }
-    const newStatus = currentStatus === 'active' ? 'draft' : 'active';
-    
-    try {
-      const { error } = await supabase
-        .from("exams")
-        .update({ status: newStatus })
-        .eq("id", examId);
-
-      if (error) throw error;
-
-      toast.success(`Exam ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully!`);
-      loadExams();
-      loadExamStatistics();
-    } catch (error) {
-      console.error("Error updating exam status:", error);
-      toast.error("Failed to update exam status");
-    }
-  };
+  // Teachers cannot toggle exam status directly - only admins can approve/activate exams
+  // This function is intentionally removed to enforce the admin approval workflow
 
   // Submit exam for admin approval
   const submitForApproval = async (exam: Exam) => {
@@ -934,9 +911,11 @@ const ExamBuilder = () => {
                             {exam.status === 'pending_approval' ? 'Pending Approval' : 
                              exam.status === 'rejected' ? 'Rejected' : exam.status}
                           </Badge>
-                      {/* Show rejection reason */}
+                      {/* Show rejection reason prominently */}
                       {exam.status === 'rejected' && exam.rejection_reason && (
-                        <span className="text-xs text-destructive" title={exam.rejection_reason}>⚠</span>
+                        <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
+                          <strong>Decline reason:</strong> {exam.rejection_reason}
+                        </div>
                       )}
                       {/* Only show delete for exam creator on draft/rejected exams */}
                       {exam.created_by === currentUserId && (exam.status === 'draft' || exam.status === 'rejected') && (

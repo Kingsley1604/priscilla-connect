@@ -5,8 +5,7 @@ import RoleLoginForm from "@/components/auth/RoleLoginForm";
 import StudentSignupForm from "@/components/auth/StudentSignupForm";
 import AdminSignupForm from "@/components/auth/AdminSignupForm";
 import { useAuth } from "@/hooks/useAuth";
-import { Skeleton } from "@/components/ui/skeleton";
-import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
+import LoadingScreen from "@/components/LoadingScreen";
 
 type AuthView = 'landing' | 'login' | 'signup';
 
@@ -22,19 +21,9 @@ const Index = () => {
     }
   }, [isAuthenticated, user?.role]);
 
-  // Show loading state while checking auth
+  // Show loading state - reuse LoadingScreen component
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-6">
-        <div className="max-w-md w-full space-y-4 text-center">
-          <div className="inline-flex items-center justify-center rounded-full mb-6 backdrop-blur-sm animate-pulse overflow-hidden p-0 m-0">
-            <img src={priscillaLogo} alt="Priscilla Connect" className="h-20 w-20 sm:h-24 sm:w-24 block m-0 p-0 object-cover" />
-          </div>
-          <Skeleton className="h-8 w-48 mx-auto bg-white/20" />
-          <Skeleton className="h-4 w-32 mx-auto bg-white/20" />
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   // Show dashboard if authenticated

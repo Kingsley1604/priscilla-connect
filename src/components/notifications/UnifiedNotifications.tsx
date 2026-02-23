@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 
 interface Notification {
   id: string;
-  type: 'message' | 'call' | 'event' | 'announcement' | 'group_call' | 'exam_complete' | 'report_approved' | 'report_rejected';
+  type: 'message' | 'call' | 'event' | 'announcement' | 'group_call' | 'exam_complete' | 'report_approved' | 'report_rejected' | 'exam_approved' | 'exam_rejected';
   title: string;
   message: string;
   timestamp: Date;
@@ -393,6 +393,8 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       navigate('/reports');
     } else if (notification.type === 'report_rejected') {
       navigate('/teacher/draft-results');
+    } else if (notification.type === 'exam_complete') {
+      navigate('/teacher/exam-builder');
     }
   };
 

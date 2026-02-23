@@ -8,7 +8,7 @@ const LoadingScreen = () => {
           <img 
             src={logo} 
             alt="Priscilla Connect Logo" 
-            className="h-20 w-20 sm:h-24 sm:w-24 block m-0 p-0 animate-pulse rounded-full object-cover"
+            className="h-40 w-40 block m-0 p-0 animate-pulse rounded-full object-cover"
           />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-2">Priscilla Connect</h2>
