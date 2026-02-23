@@ -1001,8 +1001,8 @@ const ExamBuilder = () => {
             </Card>
           </div>
 
-          {/* Questions Management */}
-          <div className="lg:col-span-2">
+          {/* Questions Management - Scrollable container */}
+          <div className="w-full lg:flex-1 lg:min-w-0 max-h-[calc(100vh-7rem)] overflow-y-auto">
             {selectedExam ? (
               <Card>
                 <CardHeader>
