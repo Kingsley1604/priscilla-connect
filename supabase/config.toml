@@ -1,7 +1,1 @@
-project_id = "fctarpegeatdizeuzzyb"
-
-[functions.priscilla-brain]
-verify_jwt = false
-
-[functions.lesson-planner]
-verify_jwt = false
+project_id = "iabkxcbxdypdcknqlstr"
