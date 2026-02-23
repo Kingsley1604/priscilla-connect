@@ -453,6 +453,56 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_approval_notifications: {
+        Row: {
+          action: string
+          admin_comment: string | null
+          admin_id: string | null
+          created_at: string
+          exam_id: string
+          exam_title: string
+          exam_type: string
+          id: string
+          is_read: boolean | null
+          teacher_id: string
+          teacher_name: string
+        }
+        Insert: {
+          action?: string
+          admin_comment?: string | null
+          admin_id?: string | null
+          created_at?: string
+          exam_id: string
+          exam_title: string
+          exam_type: string
+          id?: string
+          is_read?: boolean | null
+          teacher_id: string
+          teacher_name: string
+        }
+        Update: {
+          action?: string
+          admin_comment?: string | null
+          admin_id?: string | null
+          created_at?: string
+          exam_id?: string
+          exam_title?: string
+          exam_type?: string
+          id?: string
+          is_read?: boolean | null
+          teacher_id?: string
+          teacher_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_approval_notifications_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_attempts: {
         Row: {
           answers: Json
@@ -641,36 +691,54 @@ export type Database = {
       }
       exams: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           created_by: string
           duration_minutes: number
           exam_type: Database["public"]["Enums"]["exam_type"]
           id: string
+          marks_per_question: number | null
           randomize_questions: boolean | null
+          rejection_reason: string | null
           status: Database["public"]["Enums"]["exam_status"]
+          submitted_for_approval_at: string | null
           title: string
+          total_marks: number | null
           updated_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by: string
           duration_minutes?: number
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
+          marks_per_question?: number | null
           randomize_questions?: boolean | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
+          submitted_for_approval_at?: string | null
           title: string
+          total_marks?: number | null
           updated_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           created_by?: string
           duration_minutes?: number
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
+          marks_per_question?: number | null
           randomize_questions?: boolean | null
+          rejection_reason?: string | null
           status?: Database["public"]["Enums"]["exam_status"]
+          submitted_for_approval_at?: string | null
           title?: string
+          total_marks?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -1907,7 +1975,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher" | "student"
-      exam_status: "draft" | "active" | "completed"
+      exam_status:
+        | "draft"
+        | "active"
+        | "completed"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
       exam_type: "entrance" | "cbt" | "termly"
       result_status: "pending" | "approved" | "rejected"
     }
@@ -2038,7 +2112,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher", "student"],
-      exam_status: ["draft", "active", "completed"],
+      exam_status: [
+        "draft",
+        "active",
+        "completed",
+        "pending_approval",
+        "approved",
+        "rejected",
+      ],
       exam_type: ["entrance", "cbt", "termly"],
       result_status: ["pending", "approved", "rejected"],
     },
