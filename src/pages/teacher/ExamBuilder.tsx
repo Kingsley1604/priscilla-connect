@@ -862,9 +862,9 @@ const ExamBuilder = () => {
       </header>
       
       <div className="max-w-6xl mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Exams List */}
-          <div className="lg:col-span-1">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Exams List - Sticky on desktop */}
+          <div className="w-full lg:w-[340px] lg:flex-shrink-0 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
             <Card>
               <CardHeader>
                 <CardTitle>Your Exams</CardTitle>
@@ -1001,8 +1001,8 @@ const ExamBuilder = () => {
             </Card>
           </div>
 
-          {/* Questions Management */}
-          <div className="lg:col-span-2">
+          {/* Questions Management - Scrollable container */}
+          <div className="w-full lg:flex-1 lg:min-w-0 max-h-[calc(100vh-7rem)] overflow-y-auto">
             {selectedExam ? (
               <Card>
                 <CardHeader>
