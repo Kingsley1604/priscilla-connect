@@ -74,6 +74,38 @@ serve(async (req) => {
       }
     });
 
+    // Verify caller is an authenticated super admin
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !caller) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('is_super_admin')
+      .eq('id', caller.id)
+      .single();
+
+    if (!profile?.is_super_admin) {
+      return new Response(
+        JSON.stringify({ error: 'Super admin access required' }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const results = [];
 
     for (const user of DEMO_USERS) {

@@ -494,7 +494,7 @@ const ExamInterface = () => {
       // Get question count securely
       const { data: questionCount, error: countError } = await supabase
         .rpc('get_exam_question_count', {
-          p_exam_id: examData.id
+          exam_id: examData.id
         });
 
       if (countError || questionCount === null) {
@@ -523,7 +523,7 @@ const ExamInterface = () => {
       // Now fetch questions securely (without correct answers)
       const { data: questionsData, error: questionsError } = await supabase
         .rpc('get_exam_questions_for_attempt', {
-          p_exam_attempt_id: attemptData.id
+          exam_attempt_id: attemptData.id
         });
 
       if (questionsError || !questionsData) {

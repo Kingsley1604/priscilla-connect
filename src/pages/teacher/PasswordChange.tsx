@@ -30,6 +30,25 @@ const PasswordChange = () => {
 
     setIsChanging(true);
     try {
+      // Verify current password first by re-authenticating
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser?.email) {
+        toast.error("Unable to verify user session");
+        setIsChanging(false);
+        return;
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: formData.currentPassword
+      });
+
+      if (verifyError) {
+        toast.error("Current password is incorrect");
+        setIsChanging(false);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: formData.newPassword
       });
