@@ -541,6 +541,12 @@ const Messages = () => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedUser || !user) return;
 
+    // Input validation: message length
+    if (newMessage.trim().length > 10000) {
+      toast.error('Message too long (max 10,000 characters)');
+      return;
+    }
+
     const contentResult = checkContent(newMessage);
     
     // Block critical content
@@ -1159,6 +1165,12 @@ const Messages = () => {
   const handleSendGroupMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedGroup || !user) return;
+
+    // Input validation: message length
+    if (newMessage.trim().length > 10000) {
+      toast.error('Message too long (max 10,000 characters)');
+      return;
+    }
 
     // Content monitoring for group chat
     const contentResult = checkContent(newMessage);

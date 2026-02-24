@@ -106,6 +106,25 @@ const ProfileSettings = () => {
 
     setIsSaving(true);
     try {
+      // Verify current password first by re-authenticating
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser?.email) {
+        toast.error("Unable to verify user session");
+        setIsSaving(false);
+        return;
+      }
+
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: currentUser.email,
+        password: passwordData.currentPassword
+      });
+
+      if (verifyError) {
+        toast.error("Current password is incorrect");
+        setIsSaving(false);
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: passwordData.newPassword
       });

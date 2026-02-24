@@ -19,12 +19,6 @@ interface RoleLoginFormProps {
   onSwitchToSignup?: () => void;
 }
 
-// Demo credentials for each role
-const demoCredentials = {
-  student: { email: 'demo.student@priscilla.edu', password: 'Demo@Student2025' },
-  teacher: { email: 'demo.teacher@priscilla.edu', password: 'Demo@Teacher2025' },
-  admin: { email: 'demo.admin@priscilla.edu', password: 'Demo@Admin2025' },
-};
 
 const roleConfig = {
   student: {
