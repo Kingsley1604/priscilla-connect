@@ -169,7 +169,6 @@ export const useAuth = () => {
         async (payload) => {
           const updatedProfile = payload.new as any;
           if (updatedProfile.is_suspended === true) {
-            // Student has been suspended - force logout immediately
             console.log('[useAuth] Account suspended - forcing logout');
             await supabase.auth.signOut();
             setAuthState({
@@ -189,6 +188,40 @@ export const useAuth = () => {
     };
   }, [authState.user?.id]);
 
+  // Task F: Super admin single-device session enforcement
+  useEffect(() => {
+    if (!authState.user?.is_super_admin) return;
+
+    const sessionToken = localStorage.getItem('super_admin_session_token');
+    if (!sessionToken) return;
+
+    const checkInterval = setInterval(async () => {
+      try {
+        const { data: isValid } = await (supabase.rpc as any)('check_super_admin_session', {
+          p_session_token: sessionToken
+        });
+
+        if (isValid === false) {
+          console.log('[useAuth] Super admin session invalidated - another device logged in');
+          localStorage.removeItem('super_admin_session_token');
+          await supabase.auth.signOut();
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            session: null,
+            sessionId: null,
+            isLoading: false
+          });
+          alert('You have been logged out because your account was accessed from another device.');
+        }
+      } catch (e) {
+        // RPC might not exist yet - silently ignore
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(checkInterval);
+  }, [authState.user?.is_super_admin]);
+
   const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -207,6 +240,27 @@ export const useAuth = () => {
 
       if (data.user && data.session) {
         await fetchUserProfile(data.user.id, data.session);
+
+        // Task F: Register super admin session for single-device enforcement
+        const { data: profileCheck } = await supabase
+          .from('profiles')
+          .select('is_super_admin')
+          .eq('id', data.user.id)
+          .maybeSingle();
+
+        if (profileCheck?.is_super_admin) {
+          const sessionToken = data.session.access_token;
+          localStorage.setItem('super_admin_session_token', sessionToken);
+          try {
+            await (supabase.rpc as any)('register_super_admin_session', {
+              p_session_token: sessionToken,
+              p_device_info: navigator.userAgent
+            });
+          } catch (e) {
+            console.error('Failed to register super admin session:', e);
+          }
+        }
+
         return { success: true };
       }
 

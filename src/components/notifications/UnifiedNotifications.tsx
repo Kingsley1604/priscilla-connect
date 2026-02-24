@@ -420,8 +420,15 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       navigate('/reports');
     } else if (notification.type === 'report_rejected') {
       navigate('/teacher/draft-results');
-    } else if (notification.type === 'exam_complete' || notification.type === 'exam_approved' || notification.type === 'exam_rejected') {
+    } else if (notification.type === 'exam_complete') {
       navigate('/teacher/exam-builder');
+    } else if (notification.type === 'exam_approved' || notification.type === 'exam_rejected') {
+      // Task B: Route to unified ManageExamination for admins, exam-builder for teachers
+      if (userRole === 'admin') {
+        navigate('/admin/manage-examination');
+      } else {
+        navigate('/teacher/exam-builder');
+      }
     } else if (notification.type === 'info') {
       navigate('/dashboard');
     }

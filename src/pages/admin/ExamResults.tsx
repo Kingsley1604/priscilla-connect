@@ -16,6 +16,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 interface ExamResult {
   id: string;
@@ -142,6 +143,7 @@ interface TeacherFolder {
 
 const ExamResults = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin, adminSector, canManageClassLevel } = useAdminSector();
   const [results, setResults] = useState<ExamResult[]>([]);
   const [reportCards, setReportCards] = useState<ReportCardResult[]>([]);
   const [secondaryReports, setSecondaryReports] = useState<SecondaryReportCard[]>([]);
@@ -219,7 +221,7 @@ const ExamResults = () => {
         status: 'pending',
         teacher_name: teacherMap.get(rc.created_by) || 'Unknown Teacher',
         report_type: rc.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
-      }));
+      })).filter(rc => isSuperAdmin || !adminSector || adminSector === 'both' || canManageClassLevel(rc.class_level));
       setReportCards(processedReportCards);
 
       // Load secondary report cards with full details
@@ -237,7 +239,7 @@ const ExamResults = () => {
         ...sr,
         teacher_name: secondaryTeacherMap.get(sr.created_by) || 'Unknown Teacher',
         report_type: sr.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
-      }));
+      })).filter(sr => isSuperAdmin || !adminSector || adminSector === 'both' || canManageClassLevel(sr.class_level));
       setSecondaryReports(processedSecondaryReports);
 
       organizeIntoFolders(processedReportCards, processedSecondaryReports);

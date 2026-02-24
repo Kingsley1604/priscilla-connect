@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle, FileText, Calculator, Home } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ArrowLeft, Clock, Eye, EyeOff, AlertTriangle, FileText, Calculator, Home, MoreVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Question {
   id: string;
@@ -40,6 +42,7 @@ interface Exam {
 
 const ExamInterface = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [examToken, setExamToken] = useState("");
   const [exam, setExam] = useState<Exam | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -54,6 +57,7 @@ const ExamInterface = () => {
   const [warningCount, setWarningCount] = useState(0);
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState('0');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const timerRef = useRef<NodeJS.Timeout>();
   const examContainerRef = useRef<HTMLDivElement>(null);
 
@@ -743,14 +747,14 @@ const ExamInterface = () => {
       {/* Timer and Progress Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-4 overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Clock className="w-5 h-5 text-primary" />
+                <Clock className="w-5 h-5 text-primary flex-shrink-0" />
                 <span className="font-mono text-lg font-semibold">
                   {formatTime(timeRemaining)}
                 </span>
-                {warningCount > 0 && (
+                {warningCount > 0 && !isMobile && (
                   <Alert className="py-2 px-3">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
@@ -759,72 +763,134 @@ const ExamInterface = () => {
                   </Alert>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                {/* Task K: Calculator button */}
-                <Popover open={showCalculator} onOpenChange={setShowCalculator}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Calculator className="h-4 w-4 mr-2" />
-                      Calculator
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2" align="end">
-                    <div className="space-y-2">
-                      <div className="bg-muted p-3 rounded text-right text-xl font-mono overflow-hidden">
-                        {calcDisplay}
+              
+              {/* Desktop: show controls inline */}
+              {!isMobile && (
+                <div className="flex items-center gap-3">
+                  <Popover open={showCalculator} onOpenChange={setShowCalculator}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Calculator className="h-4 w-4 mr-2" />
+                        Calculator
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2" align="end">
+                      <div className="space-y-2">
+                        <div className="bg-muted p-3 rounded text-right text-xl font-mono overflow-hidden">
+                          {calcDisplay}
+                        </div>
+                        <div className="grid grid-cols-4 gap-1">
+                          {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map(btn => (
+                            <Button key={btn} variant={btn === '=' ? 'default' : 'outline'} size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
+                          ))}
+                          <Button variant="destructive" size="sm" className="col-span-2" onClick={() => handleCalcClick('C')}>Clear</Button>
+                          <Button variant="outline" size="sm" className="col-span-2" onClick={() => handleCalcClick('⌫')}>⌫</Button>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-4 gap-1">
-                        {['7', '8', '9', '/'].map(btn => (
-                          <Button key={btn} variant="outline" size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
-                        ))}
-                        {['4', '5', '6', '*'].map(btn => (
-                          <Button key={btn} variant="outline" size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
-                        ))}
-                        {['1', '2', '3', '-'].map(btn => (
-                          <Button key={btn} variant="outline" size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
-                        ))}
-                        {['0', '.', '=', '+'].map(btn => (
-                          <Button key={btn} variant={btn === '=' ? 'default' : 'outline'} size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
-                        ))}
-                        <Button variant="destructive" size="sm" className="col-span-2" onClick={() => handleCalcClick('C')}>Clear</Button>
-                        <Button variant="outline" size="sm" className="col-span-2" onClick={() => handleCalcClick('⌫')}>⌫</Button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                
-                {/* Task C & D: Back to Dashboard button with confirmation during exam */}
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Home className="h-4 w-4 mr-2" />
-                      Back to Dashboard
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Leave Exam?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to submit your exam and go back to your dashboard? 
-                        This action will submit all your current answers and cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Continue Exam</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => {
-                        submitExam();
-                        navigate("/dashboard");
-                      }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Submit & Leave
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                
-                <div className="text-sm text-muted-foreground">
-                  Question {currentQuestion + 1} of {questions.length}
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Home className="h-4 w-4 mr-2" />
+                        Back to Dashboard
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Leave Exam?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to submit your exam and go back to your dashboard? 
+                          This action will submit all your current answers and cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Continue Exam</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { submitExam(); navigate("/dashboard"); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Submit & Leave
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    Question {currentQuestion + 1} of {questions.length}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Mobile: three-dot menu */}
+              {isMobile && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    Q{currentQuestion + 1}/{questions.length}
+                  </span>
+                  <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                    <SheetTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="h-5 w-5" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-72">
+                      <div className="space-y-4 mt-6">
+                        <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                          <Clock className="h-5 w-5 text-primary" />
+                          <span className="font-mono text-lg font-semibold">{formatTime(timeRemaining)}</span>
+                        </div>
+                        {warningCount > 0 && (
+                          <div className="flex items-center gap-2 p-3 bg-amber-500/10 rounded-lg text-amber-700 text-sm">
+                            <AlertTriangle className="h-4 w-4" />
+                            Warnings: {warningCount}/3
+                          </div>
+                        )}
+                        <Popover open={showCalculator} onOpenChange={setShowCalculator}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start">
+                              <Calculator className="h-4 w-4 mr-2" />
+                              Calculator
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-2">
+                            <div className="space-y-2">
+                              <div className="bg-muted p-3 rounded text-right text-xl font-mono overflow-hidden">{calcDisplay}</div>
+                              <div className="grid grid-cols-4 gap-1">
+                                {['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map(btn => (
+                                  <Button key={btn} variant={btn === '=' ? 'default' : 'outline'} size="sm" onClick={() => handleCalcClick(btn)}>{btn}</Button>
+                                ))}
+                                <Button variant="destructive" size="sm" className="col-span-2" onClick={() => handleCalcClick('C')}>Clear</Button>
+                                <Button variant="outline" size="sm" className="col-span-2" onClick={() => handleCalcClick('⌫')}>⌫</Button>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" className="w-full justify-start text-destructive">
+                              <Home className="h-4 w-4 mr-2" />
+                              Back to Dashboard
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Leave Exam?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will submit all your current answers. This cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Continue Exam</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => { submitExam(); navigate("/dashboard"); }} className="bg-destructive text-destructive-foreground">
+                                Submit & Leave
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              )}
             </div>
             <Progress value={progress} className="mt-2" />
           </CardContent>
