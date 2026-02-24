@@ -115,18 +115,6 @@ interface ReportSubject {
   class_average?: number;
 }
 
-interface ExamToken {
-  id: string;
-  token_number: string;
-  student_id: string | null;
-  used_at: string | null;
-  created_at: string;
-  exam_id: string;
-  exams: {
-    title: string;
-    exam_type: 'entrance' | 'cbt' | 'termly';
-  };
-}
 
 interface ExamAttempt {
   id: string;
@@ -157,10 +145,8 @@ const ExamResults = () => {
   const [results, setResults] = useState<ExamResult[]>([]);
   const [reportCards, setReportCards] = useState<ReportCardResult[]>([]);
   const [secondaryReports, setSecondaryReports] = useState<SecondaryReportCard[]>([]);
-  const [tokens, setTokens] = useState<ExamToken[]>([]);
   const [attempts, setAttempts] = useState<ExamAttempt[]>([]);
-  const [activeTab, setActiveTab] = useState<'results' | 'report_cards' | 'tokens' | 'attempts'>('results');
-  const [isCreateTokenOpen, setIsCreateTokenOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'results' | 'report_cards' | 'attempts'>('results');
   const [selectedResult, setSelectedResult] = useState<ExamResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [examsList, setExamsList] = useState<Array<{id: string, title: string, exam_type: string}>>([]);
@@ -181,17 +167,9 @@ const ExamResults = () => {
   const [teacherFolders, setTeacherFolders] = useState<TeacherFolder[]>([]);
 
   // Filter states
-  const [tokenFilter, setTokenFilter] = useState<'all' | 'used' | 'available' | 'expired'>('all');
   const [resultFilter, setResultFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [reportFilter, setReportFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'draft'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Token creation form
-  const [newToken, setNewToken] = useState({
-    exam_id: "",
-    token_number: "",
-    count: 1
-  });
 
   useEffect(() => {
     loadData();
@@ -263,14 +241,6 @@ const ExamResults = () => {
       setSecondaryReports(processedSecondaryReports);
 
       organizeIntoFolders(processedReportCards, processedSecondaryReports);
-
-      // Load tokens
-      const { data: tokensData, error: tokensError } = await supabase
-        .from("exam_tokens")
-        .select(`*, exams!inner (title, exam_type)`)
-        .order("created_at", { ascending: false });
-      if (tokensError) throw tokensError;
-      setTokens((tokensData || []) as any);
 
       // Load recent attempts
       const { data: attemptsData, error: attemptsError } = await supabase
@@ -353,47 +323,8 @@ const ExamResults = () => {
     ));
   };
 
-  const createTokens = async () => {
-    if (!newToken.exam_id || !newToken.token_number.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) return;
-      const tokensList = [];
-      for (let i = 0; i < newToken.count; i++) {
-        const tokenNumber = newToken.count === 1
-          ? newToken.token_number
-          : `${newToken.token_number}-${(i + 1).toString().padStart(3, '0')}`;
-        tokensList.push({ exam_id: newToken.exam_id, token_number: tokenNumber, created_by: user.user.id });
-      }
-      const { error } = await supabase.from("exam_tokens").insert(tokensList);
-      if (error) throw error;
-      toast.success(`${newToken.count} token(s) created successfully!`);
-      setIsCreateTokenOpen(false);
-      setNewToken({ exam_id: "", token_number: "", count: 1 });
-      loadData();
-    } catch (error: any) {
-      if (error.message?.includes("duplicate")) toast.error("Token number already exists");
-      else toast.error("Failed to create tokens");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  const deleteToken = async (tokenId: string) => {
-    if (!confirm("Are you sure you want to delete this token?")) return;
-    try {
-      const { error } = await supabase.from("exam_tokens").delete().eq("id", tokenId);
-      if (error) throw error;
-      toast.success("Token deleted successfully!");
-      loadData();
-    } catch (error) {
-      toast.error("Failed to delete token");
-    }
-  };
+
 
   const calculateScore = async (result: ExamResult) => {
     try {
@@ -604,25 +535,8 @@ const ExamResults = () => {
     return <Badge variant={variants[status] || 'secondary'}>{labels[status] || status}</Badge>;
   };
 
-  const isTokenExpired = (token: ExamToken) => {
-    if (token.used_at) return false;
-    const createdDate = new Date(token.created_at);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    return createdDate < thirtyDaysAgo;
-  };
 
-  const filteredTokens = tokens.filter(token => {
-    const matchesSearch = token.token_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         token.exams.title.toLowerCase().includes(searchTerm.toLowerCase());
-    if (!matchesSearch) return false;
-    switch (tokenFilter) {
-      case 'used': return token.used_at !== null;
-      case 'available': return token.used_at === null && !isTokenExpired(token);
-      case 'expired': return isTokenExpired(token);
-      default: return true;
-    }
-  });
+
 
   const filteredResults = results.filter(result => {
     const matchesSearch = result.exam_attempts.token_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -645,8 +559,8 @@ const ExamResults = () => {
   const pendingReports = [...reportCards.filter(r => r.status === 'pending'), ...secondaryReports.filter(r => r.status === 'submitted' || r.status === 'pending')];
   const approvedResults = results.filter(r => r.status === 'approved');
   const totalAttempts = attempts.length;
-  const totalTokens = tokens.length;
-  const usedTokens = tokens.filter(t => t.used_at).length;
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -661,48 +575,17 @@ const ExamResults = () => {
               </Button>
               <h1 className="text-xl sm:text-3xl font-bold">Result Management</h1>
             </div>
-            <Dialog open={isCreateTokenOpen} onOpenChange={setIsCreateTokenOpen}>
-              <DialogTrigger asChild>
-                <Button>Create Exam Tokens</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Create Exam Tokens</DialogTitle></DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="exam">Select Exam</Label>
-                    <select id="exam" value={newToken.exam_id} onChange={(e) => setNewToken(prev => ({ ...prev, exam_id: e.target.value }))} className="w-full p-2 border rounded-md bg-background">
-                      <option value="">Select an exam...</option>
-                      {examsList.map(exam => (
-                        <option key={exam.id} value={exam.id}>{exam.title} ({exam.exam_type.toUpperCase()})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <Label htmlFor="token_number">Base Token Number</Label>
-                    <Input id="token_number" value={newToken.token_number} onChange={(e) => setNewToken(prev => ({ ...prev, token_number: e.target.value }))} placeholder="e.g., ENT2024" />
-                  </div>
-                  <div>
-                    <Label htmlFor="count">Number of Tokens</Label>
-                    <Input id="count" type="number" min="1" max="100" value={newToken.count} onChange={(e) => setNewToken(prev => ({ ...prev, count: parseInt(e.target.value) || 1 }))} />
-                  </div>
-                  <Button onClick={createTokens} disabled={isLoading} className="w-full">
-                    {isLoading ? "Creating..." : `Create ${newToken.count} Token(s)`}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-4">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card><CardContent className="p-4"><div className="flex items-center space-x-2"><Clock className="w-5 h-5 text-orange-500" /><div><p className="text-xs sm:text-sm text-muted-foreground">Pending Exams</p><p className="text-xl sm:text-2xl font-bold">{pendingResults.length}</p></div></div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center space-x-2"><FileText className="w-5 h-5 text-purple-500" /><div><p className="text-xs sm:text-sm text-muted-foreground">Pending Reports</p><p className="text-xl sm:text-2xl font-bold">{pendingReports.length}</p></div></div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center space-x-2"><Trophy className="w-5 h-5 text-primary" /><div><p className="text-xs sm:text-sm text-muted-foreground">Approved</p><p className="text-xl sm:text-2xl font-bold">{approvedResults.length}</p></div></div></CardContent></Card>
           <Card><CardContent className="p-4"><div className="flex items-center space-x-2"><Users className="w-5 h-5 text-blue-500" /><div><p className="text-xs sm:text-sm text-muted-foreground">Total Attempts</p><p className="text-xl sm:text-2xl font-bold">{totalAttempts}</p></div></div></CardContent></Card>
-          <Card><CardContent className="p-4"><div className="flex items-center space-x-2"><Calendar className="w-5 h-5 text-green-500" /><div><p className="text-xs sm:text-sm text-muted-foreground">Used Tokens</p><p className="text-xl sm:text-2xl font-bold">{usedTokens}/{totalTokens}</p></div></div></CardContent></Card>
         </div>
 
         {/* Search and Filters */}
@@ -713,17 +596,6 @@ const ExamResults = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input placeholder="Search by name, token, or class..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
               </div>
-              {activeTab === 'tokens' && (
-                <Select value={tokenFilter} onValueChange={(v: any) => setTokenFilter(v)}>
-                  <SelectTrigger className="w-full sm:w-[180px]"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Filter tokens" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Tokens</SelectItem>
-                    <SelectItem value="used">Used Tokens</SelectItem>
-                    <SelectItem value="available">Available Tokens</SelectItem>
-                    <SelectItem value="expired">Expired Tokens</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
               {activeTab === 'results' && (
                 <Select value={resultFilter} onValueChange={(v: any) => setResultFilter(v)}>
                   <SelectTrigger className="w-full sm:w-[180px]"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Filter results" /></SelectTrigger>
@@ -741,10 +613,9 @@ const ExamResults = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="results">Exam Results</TabsTrigger>
             <TabsTrigger value="report_cards">Report Cards</TabsTrigger>
-            <TabsTrigger value="tokens">Tokens</TabsTrigger>
             <TabsTrigger value="attempts">Attempts</TabsTrigger>
           </TabsList>
 
@@ -923,37 +794,8 @@ const ExamResults = () => {
             </Card>
           </TabsContent>
 
-          {/* Tokens Tab */}
-          <TabsContent value="tokens">
-            <Card>
-              <CardHeader><CardTitle>Exam Tokens ({filteredTokens.length})</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {filteredTokens.map((token) => (
-                    <div key={token.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-2 group hover:bg-muted/50 transition-colors">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{token.token_number}</span>
-                          <Badge variant={token.exams.exam_type === 'entrance' ? 'default' : 'secondary'}>{token.exams.exam_type.toUpperCase()}</Badge>
-                          <Badge variant={token.used_at ? 'destructive' : isTokenExpired(token) ? 'secondary' : 'default'}>
-                            {token.used_at ? 'Used' : isTokenExpired(token) ? 'Expired' : 'Available'}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {token.exams.title} • Created {formatDate(token.created_at)}
-                          {token.used_at && ` • Used ${formatDate(token.used_at)}`}
-                        </div>
-                      </div>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity self-end sm:self-center" onClick={() => deleteToken(token.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  {filteredTokens.length === 0 && <div className="text-center py-8 text-muted-foreground">No tokens found</div>}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+
+
 
           {/* Attempts Tab */}
           <TabsContent value="attempts">
