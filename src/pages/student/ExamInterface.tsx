@@ -478,7 +478,7 @@ const ExamInterface = () => {
         .from("exam_attempts")
         .insert({
           exam_id: examData.id,
-          student_id: user.user?.id,
+          student_id: userData.user?.id,
           token_number: examToken,
           total_questions: questionCount,
           time_remaining: examData.duration_minutes * 60
