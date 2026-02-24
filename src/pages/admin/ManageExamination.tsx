@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Eye, Edit, FileText, Users, EyeOff, Copy, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 interface ExamItem {
   id: string;
@@ -27,6 +29,7 @@ interface ExamItem {
   exam_token: string | null;
   question_count?: number;
   teacher_name?: string;
+  teacher_sector?: string | null;
 }
 
 interface Question {
@@ -40,8 +43,18 @@ interface Question {
   question_order: number;
 }
 
+interface StudentScore {
+  id: string;
+  student_name: string;
+  score: number;
+  percentage: number;
+  submitted_at: string;
+  total_questions: number;
+}
+
 const ManageExamination = () => {
   const navigate = useNavigate();
+  const { isSuperAdmin, adminSector } = useAdminSector();
   const [exams, setExams] = useState<ExamItem[]>([]);
   const [selectedExam, setSelectedExam] = useState<ExamItem | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -52,6 +65,9 @@ const ManageExamination = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'unpublished' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState("");
+  const [isScoresOpen, setIsScoresOpen] = useState(false);
+  const [studentScores, setStudentScores] = useState<StudentScore[]>([]);
+  const [scoresLoading, setScoresLoading] = useState(false);
 
   useEffect(() => {
     loadExams();
@@ -75,7 +91,7 @@ const ManageExamination = () => {
 
           const { data: profile } = await supabase
             .from("profiles")
-            .select("name")
+            .select("name, sector")
             .eq("id", exam.created_by)
             .maybeSingle();
 
@@ -83,6 +99,7 @@ const ManageExamination = () => {
             ...exam,
             question_count: count || 0,
             teacher_name: profile?.name || "Unknown",
+            teacher_sector: profile?.sector || null,
           };
         })
       );
@@ -93,6 +110,13 @@ const ManageExamination = () => {
       toast.error("Failed to load exams");
     }
   };
+
+  // Task D: Filter exams by admin sector
+  const sectorFilteredExams = exams.filter(exam => {
+    if (isSuperAdmin) return true;
+    if (!adminSector || adminSector === 'both') return true;
+    return exam.teacher_sector === adminSector || exam.teacher_sector === 'both';
+  });
 
   const loadQuestions = async (examId: string) => {
     const { data, error } = await supabase
@@ -113,6 +137,58 @@ const ManageExamination = () => {
     setEditDuration(exam.duration_minutes);
     await loadQuestions(exam.id);
     setIsPreviewOpen(true);
+  };
+
+  // Task D.3: View students & scores
+  const viewStudentScores = async (exam: ExamItem) => {
+    setSelectedExam(exam);
+    setScoresLoading(true);
+    setIsScoresOpen(true);
+    try {
+      const { data: attempts, error } = await supabase
+        .from("exam_attempts")
+        .select("id, student_id, score, total_questions, submitted_at")
+        .eq("exam_id", exam.id)
+        .not("submitted_at", "is", null)
+        .order("submitted_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Get student names
+      const studentIds = [...new Set((attempts || []).map(a => a.student_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, name")
+        .in("id", studentIds.length > 0 ? studentIds : ["none"]);
+
+      const nameMap = new Map(profiles?.map(p => [p.id, p.name]) || []);
+
+      // Also get exam_results for score/percentage
+      const { data: results } = await supabase
+        .from("exam_results")
+        .select("attempt_id, score, percentage")
+        .eq("exam_id", exam.id);
+
+      const resultMap = new Map(results?.map(r => [r.attempt_id, r]) || []);
+
+      const scores: StudentScore[] = (attempts || []).map(a => {
+        const result = resultMap.get(a.id);
+        return {
+          id: a.id,
+          student_name: nameMap.get(a.student_id) || "Unknown Student",
+          score: result?.score ?? a.score ?? 0,
+          percentage: result?.percentage ?? (a.score && a.total_questions ? Math.round((a.score / a.total_questions) * 100) : 0),
+          submitted_at: a.submitted_at!,
+          total_questions: a.total_questions,
+        };
+      });
+
+      setStudentScores(scores);
+    } catch (error) {
+      toast.error("Failed to load student scores");
+    } finally {
+      setScoresLoading(false);
+    }
   };
 
   const approveExam = async () => {
@@ -272,7 +348,7 @@ const ManageExamination = () => {
       case 'pending_approval': return 'bg-amber-500/20 text-amber-700 border-amber-300';
       case 'active': return 'bg-green-500/20 text-green-700 border-green-300';
       case 'rejected': return 'bg-destructive/20 text-destructive border-destructive/30';
-      case 'unpublished': return 'bg-gray-500/20 text-gray-600 border-gray-300';
+      case 'unpublished': return 'bg-muted text-muted-foreground border-border';
       case 'draft': return 'bg-blue-500/20 text-blue-700 border-blue-300';
       default: return '';
     }
@@ -287,7 +363,7 @@ const ManageExamination = () => {
     }
   };
 
-  const filteredExams = exams.filter(exam => {
+  const filteredExams = sectorFilteredExams.filter(exam => {
     const matchesFilter = filter === 'all' || 
       (filter === 'pending' && exam.status === 'pending_approval') ||
       exam.status === filter;
@@ -297,9 +373,9 @@ const ManageExamination = () => {
     return matchesFilter && matchesSearch;
   });
 
-  const pendingCount = exams.filter(e => e.status === 'pending_approval').length;
-  const activeCount = exams.filter(e => e.status === 'active').length;
-  const unpublishedCount = exams.filter(e => e.status === 'unpublished').length;
+  const pendingCount = sectorFilteredExams.filter(e => e.status === 'pending_approval').length;
+  const activeCount = sectorFilteredExams.filter(e => e.status === 'active').length;
+  const unpublishedCount = sectorFilteredExams.filter(e => e.status === 'unpublished').length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -326,7 +402,7 @@ const ManageExamination = () => {
         <div className="grid grid-cols-3 gap-3">
           <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Pending</p><p className="text-2xl font-bold text-amber-600">{pendingCount}</p></CardContent></Card>
           <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Published</p><p className="text-2xl font-bold text-green-600">{activeCount}</p></CardContent></Card>
-          <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Unpublished</p><p className="text-2xl font-bold text-gray-500">{unpublishedCount}</p></CardContent></Card>
+          <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Unpublished</p><p className="text-2xl font-bold text-muted-foreground">{unpublishedCount}</p></CardContent></Card>
         </div>
 
         {/* Search */}
@@ -338,7 +414,7 @@ const ManageExamination = () => {
         {/* Filter */}
         <Tabs value={filter} onValueChange={v => setFilter(v as any)}>
           <TabsList className="grid w-full grid-cols-5 h-auto">
-            <TabsTrigger value="all" className="text-xs sm:text-sm">All ({exams.length})</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs sm:text-sm">All ({sectorFilteredExams.length})</TabsTrigger>
             <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending ({pendingCount})</TabsTrigger>
             <TabsTrigger value="active" className="text-xs sm:text-sm">Published ({activeCount})</TabsTrigger>
             <TabsTrigger value="unpublished" className="text-xs sm:text-sm">Unpublished ({unpublishedCount})</TabsTrigger>
@@ -383,12 +459,16 @@ const ManageExamination = () => {
                   <Button size="sm" variant="outline" onClick={() => previewExam(exam)}>
                     <Eye className="w-3 h-3 mr-1" /> Preview
                   </Button>
+                  {/* Task D.3: View Students & Scores */}
+                  {(exam.status === 'active' || exam.status === 'unpublished') && (
+                    <Button size="sm" variant="outline" onClick={() => viewStudentScores(exam)}>
+                      <Users className="w-3 h-3 mr-1" /> Scores
+                    </Button>
+                  )}
                   {exam.status === 'pending_approval' && (
-                    <>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => previewExam(exam)}>
-                        <CheckCircle className="w-3 h-3 mr-1" /> Approve
-                      </Button>
-                    </>
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => previewExam(exam)}>
+                      <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                    </Button>
                   )}
                   {exam.status === 'active' && (
                     <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50" onClick={() => unpublishExam(exam)}>
@@ -500,6 +580,50 @@ const ManageExamination = () => {
               {isLoading ? "Rejecting..." : "Reject Exam"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Students & Scores Dialog */}
+      <Dialog open={isScoresOpen} onOpenChange={setIsScoresOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Students & Scores — {selectedExam?.title}</DialogTitle>
+            <DialogDescription>
+              {studentScores.length} student(s) have taken this exam
+            </DialogDescription>
+          </DialogHeader>
+          {scoresLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading scores...</div>
+          ) : studentScores.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No students have taken this exam yet.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead className="text-center">Score</TableHead>
+                  <TableHead className="text-center">Percentage</TableHead>
+                  <TableHead className="text-right">Submitted</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {studentScores.map(s => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.student_name}</TableCell>
+                    <TableCell className="text-center">{s.score}/{s.total_questions}</TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={s.percentage >= 50 ? "default" : "destructive"}>
+                        {s.percentage}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {new Date(s.submitted_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </DialogContent>
       </Dialog>
     </div>

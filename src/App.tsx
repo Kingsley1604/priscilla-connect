@@ -40,7 +40,7 @@ import TeacherCreation from "./pages/admin/TeacherCreation";
 import TeacherManagement from "./pages/admin/TeacherManagement";
 import DeactivateTeacher from "./pages/admin/DeactivateTeacher";
 import ExamResults from "./pages/admin/ExamResults";
-import ExamApproval from "./pages/admin/ExamApproval";
+import ExamApproval from "./pages/admin/ManageExamination";
 import PasswordChange from "./pages/teacher/PasswordChange";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 import SystemSettings from "./pages/admin/SystemSettings";
