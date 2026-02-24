@@ -696,6 +696,7 @@ export type Database = {
           created_at: string
           created_by: string
           duration_minutes: number
+          exam_token: string | null
           exam_type: Database["public"]["Enums"]["exam_type"]
           id: string
           marks_per_question: number | null
@@ -713,6 +714,7 @@ export type Database = {
           created_at?: string
           created_by: string
           duration_minutes?: number
+          exam_token?: string | null
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
           marks_per_question?: number | null
@@ -730,6 +732,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           duration_minutes?: number
+          exam_token?: string | null
           exam_type?: Database["public"]["Enums"]["exam_type"]
           id?: string
           marks_per_question?: number | null
@@ -1982,6 +1985,7 @@ export type Database = {
         | "pending_approval"
         | "approved"
         | "rejected"
+        | "unpublished"
       exam_type: "entrance" | "cbt" | "termly"
       result_status: "pending" | "approved" | "rejected"
     }
@@ -2119,6 +2123,7 @@ export const Constants = {
         "pending_approval",
         "approved",
         "rejected",
+        "unpublished",
       ],
       exam_type: ["entrance", "cbt", "termly"],
       result_status: ["pending", "approved", "rejected"],

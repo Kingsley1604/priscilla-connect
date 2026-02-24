@@ -1,0 +1,1 @@
+UPDATE public.exams SET status = 'unpublished', exam_token = NULL WHERE title IN ('Mid Term Examination', 'C.R.S Exam') AND status = 'active';
