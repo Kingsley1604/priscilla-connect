@@ -213,6 +213,12 @@ const Dashboard = ({
       color: "bg-gradient-secondary",
       path: "/admin/exam-results"
     }, {
+      title: "Manage Examination",
+      description: "Approve, decline, or unpublish exams",
+      icon: FileText,
+      color: "bg-gradient-primary",
+      path: "/admin/manage-examination"
+    }, {
       title: "Manage Store",
       description: "Add and manage store items",
       icon: ShoppingBag,

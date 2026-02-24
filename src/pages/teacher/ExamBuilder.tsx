@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause, Users, CheckCircle, Clock, AlertCircle, Send, Lock } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit, Save, Play, Pause, Users, CheckCircle, Clock, AlertCircle, Send, Lock, Copy, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -31,7 +31,7 @@ interface Exam {
   title: string;
   exam_type: 'entrance' | 'cbt' | 'termly';
   duration_minutes: number;
-  status: 'draft' | 'active' | 'completed' | 'pending_approval' | 'approved' | 'rejected';
+  status: 'draft' | 'active' | 'completed' | 'pending_approval' | 'approved' | 'rejected' | 'unpublished';
   created_at: string;
   total_questions?: number;
   randomize_questions: boolean;
@@ -41,6 +41,7 @@ interface Exam {
   rejection_reason?: string | null;
   approved_at?: string | null;
   approved_by?: string | null;
+  exam_token?: string | null;
 }
 
 interface ExamStatistics {
@@ -423,7 +424,27 @@ const ExamBuilder = () => {
   };
 
   // Teachers cannot toggle exam status directly - only admins can approve/activate exams
-  // This function is intentionally removed to enforce the admin approval workflow
+
+  // Update marks per question and total marks (Task B: editable marks)
+  const updateExamMarks = async (examId: string, field: 'marks_per_question' | 'total_marks', value: number) => {
+    try {
+      const { error } = await supabase
+        .from("exams")
+        .update({ [field]: value })
+        .eq("id", examId);
+      if (error) throw error;
+      
+      // Update local state
+      setExams(prev => prev.map(e => e.id === examId ? { ...e, [field]: value } : e));
+      if (selectedExam?.id === examId) {
+        setSelectedExam(prev => prev ? { ...prev, [field]: value } : prev);
+      }
+      toast.success(`${field === 'marks_per_question' ? 'Marks per question' : 'Total marks'} updated`);
+    } catch (error) {
+      toast.error("Failed to update marks");
+    }
+  };
+
 
   // Submit exam for admin approval
   const submitForApproval = async (exam: Exam) => {
@@ -905,11 +926,13 @@ const ExamBuilder = () => {
                             className={
                               exam.status === 'pending_approval' ? 'bg-amber-500/20 text-amber-700 border-amber-300' :
                               exam.status === 'rejected' ? 'bg-destructive/20 text-destructive border-destructive/30' :
-                              exam.status === 'active' ? 'bg-green-500/20 text-green-700 border-green-300' : ''
+                              exam.status === 'active' ? 'bg-green-500/20 text-green-700 border-green-300' :
+                              exam.status === 'unpublished' ? 'bg-gray-500/20 text-gray-600 border-gray-300' : ''
                             }
                           >
                             {exam.status === 'pending_approval' ? 'Pending Approval' : 
-                             exam.status === 'rejected' ? 'Rejected' : exam.status}
+                             exam.status === 'rejected' ? 'Rejected' : 
+                             exam.status === 'unpublished' ? 'Unpublished' : exam.status}
                           </Badge>
                       {/* Show rejection reason prominently */}
                       {exam.status === 'rejected' && exam.rejection_reason && (
@@ -918,7 +941,7 @@ const ExamBuilder = () => {
                         </div>
                       )}
                       {/* Only show delete for exam creator on draft/rejected exams */}
-                      {exam.created_by === currentUserId && (exam.status === 'draft' || exam.status === 'rejected') && (
+                      {exam.created_by === currentUserId && (exam.status === 'draft' || exam.status === 'rejected' || exam.status === 'unpublished') && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -932,7 +955,7 @@ const ExamBuilder = () => {
                         </Button>
                       )}
                       {/* Submit for Approval button - only for draft exams by creator */}
-                      {exam.created_by === currentUserId && exam.status === 'draft' && (
+                      {exam.created_by === currentUserId && (exam.status === 'draft' || exam.status === 'unpublished') && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -965,6 +988,16 @@ const ExamBuilder = () => {
                       {(exam.status === 'pending_approval' || exam.status === 'active') && exam.created_by === currentUserId && (
                         <Lock className="w-3 h-3 text-muted-foreground" />
                       )}
+                      {exam.status === 'active' && exam.exam_token && (
+                        <button
+                          className="flex items-center gap-1 px-1.5 py-0.5 bg-primary/10 rounded text-xs font-mono text-primary hover:bg-primary/20 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(exam.exam_token!); toast.success("Token copied!"); }}
+                          title="Click to copy token"
+                        >
+                          {exam.exam_token}
+                          <Copy className="w-2.5 h-2.5" />
+                        </button>
+                      )}
                         </div>
                       </div>
                     </div>
@@ -985,24 +1018,58 @@ const ExamBuilder = () => {
             {selectedExam ? (
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>{selectedExam.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {questions.length} questions • {formatTime(selectedExam.duration_minutes)}
-                        {selectedExam.marks_per_question ? ` • ${selectedExam.marks_per_question} marks/question` : ''}
-                        {selectedExam.total_marks ? ` • Total: ${selectedExam.total_marks} marks` : ''}
-                      </p>
-                      {selectedExam.status !== 'draft' && selectedExam.status !== 'rejected' && (
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <CardTitle>{selectedExam.title}</CardTitle>
+                        {/* Token display for active exams */}
+                        {selectedExam.status === 'active' && selectedExam.exam_token && (
+                          <div className="flex items-center gap-1 px-2 py-1 bg-primary/10 border border-primary/20 rounded-md">
+                            <code className="text-xs font-mono font-bold text-primary">{selectedExam.exam_token}</code>
+                            <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => { navigator.clipboard.writeText(selectedExam.exam_token!); toast.success("Token copied!"); }}>
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                        <p>{questions.length} questions • {formatTime(selectedExam.duration_minutes)}</p>
+                        {selectedExam.created_by === currentUserId && (selectedExam.status === 'draft' || selectedExam.status === 'rejected' || selectedExam.status === 'unpublished') ? (
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs">Marks/Q:</span>
+                              <Input type="number" className="h-6 w-16 text-xs" value={selectedExam.marks_per_question || ''} min={1}
+                                onChange={e => updateExamMarks(selectedExam.id, 'marks_per_question', parseInt(e.target.value) || 1)} />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs">Total:</span>
+                              <Input type="number" className="h-6 w-20 text-xs" value={selectedExam.total_marks || ''} min={1}
+                                onChange={e => updateExamMarks(selectedExam.id, 'total_marks', parseInt(e.target.value) || 1)} />
+                            </div>
+                          </div>
+                        ) : (
+                          <p>
+                            {selectedExam.marks_per_question ? `${selectedExam.marks_per_question} marks/question` : ''}
+                            {selectedExam.total_marks ? ` • Total: ${selectedExam.total_marks} marks` : ''}
+                          </p>
+                        )}
+                      </div>
+                      {selectedExam.status !== 'draft' && selectedExam.status !== 'rejected' && selectedExam.status !== 'unpublished' && (
                         <div className="flex items-center gap-2 mt-2 text-sm text-amber-600">
                           <Lock className="h-4 w-4" />
                           <span>Editing locked — {selectedExam.status === 'pending_approval' ? 'awaiting admin approval' : 'exam is published'}</span>
                         </div>
                       )}
+                      {selectedExam.status === 'unpublished' && (
+                        <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                          <EyeOff className="h-4 w-4" />
+                          <span>This exam has been unpublished</span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Only show Add Question for editable exams owned by current user */}
-                    {selectedExam.created_by === currentUserId && (selectedExam.status === 'draft' || selectedExam.status === 'rejected') && (
+                    {selectedExam.created_by === currentUserId && (selectedExam.status === 'draft' || selectedExam.status === 'rejected' || selectedExam.status === 'unpublished') && (
                     <Dialog 
                       open={isCreateQuestionOpen} 
                       onOpenChange={(open) => {

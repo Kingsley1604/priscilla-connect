@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, MessageSquare, Phone, Calendar, Megaphone, CheckCircle, Video, FileText } from 'lucide-react';
+import { Bell, MessageSquare, Phone, Calendar, Megaphone, CheckCircle, Video, FileText, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 
 interface Notification {
   id: string;
-  type: 'message' | 'call' | 'event' | 'announcement' | 'group_call' | 'exam_complete' | 'report_approved' | 'report_rejected' | 'exam_approved' | 'exam_rejected';
+  type: 'message' | 'call' | 'event' | 'announcement' | 'group_call' | 'exam_complete' | 'report_approved' | 'report_rejected' | 'exam_approved' | 'exam_rejected' | 'info';
   title: string;
   message: string;
   timestamp: Date;
@@ -261,23 +261,50 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
           }
         }
 
-        // Also load from admin_notifications for teachers
+        // Load all admin_notifications targeted to this teacher
         const { data: teacherNotifications } = await supabase
           .from('admin_notifications')
           .select('*')
           .eq('target_admin_id', user.id)
-          .in('type', ['report_approved', 'report_rejected'])
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(20);
 
         if (teacherNotifications) {
           for (const notif of teacherNotifications) {
             const notifId = `admin-notif-${notif.id}`;
+            const notifType = notif.type === 'report_approved' ? 'report_approved' as const
+              : notif.type === 'report_rejected' ? 'report_rejected' as const
+              : notif.type === 'exam_approved' ? 'exam_approved' as const
+              : notif.type === 'exam_rejected' ? 'exam_rejected' as const
+              : 'announcement' as const;
             allNotifications.push({
               id: notifId,
-              type: notif.type === 'report_approved' ? 'report_approved' : 'report_rejected',
+              type: notifType,
               title: notif.title,
               message: notif.message,
+              timestamp: new Date(notif.created_at),
+              read: notif.is_read || readNotifications.has(notifId)
+            });
+          }
+        }
+
+        // Load exam approval notifications for teacher
+        const { data: examApprovalNotifs } = await supabase
+          .from('exam_approval_notifications')
+          .select('*')
+          .eq('teacher_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (examApprovalNotifs) {
+          for (const notif of examApprovalNotifs) {
+            const notifId = `exam-approval-${notif.id}`;
+            if (allNotifications.some(n => n.id === notifId)) continue;
+            allNotifications.push({
+              id: notifId,
+              type: notif.action === 'approved' ? 'exam_approved' : 'exam_rejected',
+              title: notif.action === 'approved' ? 'Exam Approved' : 'Exam Rejected',
+              message: `"${notif.exam_title}" was ${notif.action}${notif.admin_comment ? `: ${notif.admin_comment}` : ''}`,
               timestamp: new Date(notif.created_at),
               read: notif.is_read || readNotifications.has(notifId)
             });
@@ -393,8 +420,10 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       navigate('/reports');
     } else if (notification.type === 'report_rejected') {
       navigate('/teacher/draft-results');
-    } else if (notification.type === 'exam_complete') {
+    } else if (notification.type === 'exam_complete' || notification.type === 'exam_approved' || notification.type === 'exam_rejected') {
       navigate('/teacher/exam-builder');
+    } else if (notification.type === 'info') {
+      navigate('/dashboard');
     }
   };
 
@@ -448,6 +477,8 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
       case 'exam_complete': return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'report_approved': return <FileText className="h-4 w-4 text-green-500" />;
       case 'report_rejected': return <FileText className="h-4 w-4 text-red-500" />;
+      case 'exam_approved': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'exam_rejected': return <XCircle className="h-4 w-4 text-red-500" />;
       default: return <Bell className="h-4 w-4" />;
     }
   };

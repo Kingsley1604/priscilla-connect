@@ -434,60 +434,31 @@ const ExamInterface = () => {
         return;
       }
 
-      // Regular token validation for real exams
-      const { data: tokenData, error: tokenError } = await supabase
-        .from("exam_tokens")
-        .select(`
-          *,
-          exams (
-            id,
-            title,
-            exam_type,
-            duration_minutes,
-            status
-          )
-        `)
-        .eq("token_number", examToken)
-        .eq("used_at", null)
-        .single();
+      // Regular token validation - now uses shared exam_token on exams table
+      const { data: examData, error: examError } = await supabase
+        .from("exams")
+        .select("id, title, exam_type, duration_minutes, status")
+        .eq("exam_token", examToken)
+        .eq("status", "active")
+        .maybeSingle();
 
-      if (tokenError || !tokenData) {
-        toast.error("Invalid or already used exam token");
-        return;
-      }
-
-      const examData = tokenData.exams;
-      if (examData.status !== "active") {
-        toast.error("Exam is not currently active");
+      if (examError || !examData) {
+        toast.error("Invalid or expired exam token");
         return;
       }
 
       // Check if student already attempted this exam
+      const { data: userData } = await supabase.auth.getUser();
+      
       const { data: existingAttempt } = await supabase
         .from("exam_attempts")
         .select("*")
         .eq("exam_id", examData.id)
-        .eq("student_id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .eq("student_id", userData.user?.id)
+        .maybeSingle();
 
       if (existingAttempt) {
         toast.error("You have already taken this exam");
-        return;
-      }
-
-      // Mark token as used and create attempt
-      const { data: user } = await supabase.auth.getUser();
-      
-      const { error: updateTokenError } = await supabase
-        .from("exam_tokens")
-        .update({ 
-          used_at: new Date().toISOString(),
-          student_id: user.user?.id 
-        })
-        .eq("id", tokenData.id);
-
-      if (updateTokenError) {
-        toast.error("Failed to start exam");
         return;
       }
 

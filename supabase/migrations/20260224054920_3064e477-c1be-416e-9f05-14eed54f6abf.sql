@@ -1,0 +1,1 @@
+ALTER TYPE public.exam_status ADD VALUE IF NOT EXISTS 'unpublished';
