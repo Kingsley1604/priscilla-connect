@@ -40,7 +40,7 @@ import TeacherCreation from "./pages/admin/TeacherCreation";
 import TeacherManagement from "./pages/admin/TeacherManagement";
 import DeactivateTeacher from "./pages/admin/DeactivateTeacher";
 import ExamResults from "./pages/admin/ExamResults";
-import ExamApproval from "./pages/admin/ManageExamination";
+// ExamApproval now redirects to ManageExamination
 import PasswordChange from "./pages/teacher/PasswordChange";
 import ManageAnnouncements from "./pages/admin/ManageAnnouncements";
 import SystemSettings from "./pages/admin/SystemSettings";
@@ -129,7 +129,7 @@ const App = () => (
         <Route path="/admin/teacher-management" element={<TeacherManagement />} />
         <Route path="/admin/deactivate-teacher" element={<DeactivateTeacher />} />
         <Route path="/admin/exam-results" element={<ExamResults />} />
-        <Route path="/admin/exam-approval" element={<ExamApproval />} />
+        <Route path="/admin/exam-approval" element={<ManageExamination />} />
         <Route path="/teacher/password-change" element={<PasswordChange />} />
         <Route path="/teacher/profile-options" element={<TeacherProfileOptions />} />
         <Route path="/teacher/two-factor-auth" element={<TeacherTwoFactorAuth />} />

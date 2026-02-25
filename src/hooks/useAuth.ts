@@ -197,9 +197,9 @@ export const useAuth = () => {
 
     const checkInterval = setInterval(async () => {
       try {
-        const { data: isValid } = await (supabase.rpc as any)('check_super_admin_session', {
+        const { data: isValid } = await supabase.rpc('check_super_admin_session', {
           p_session_token: sessionToken
-        });
+        } as any);
 
         if (isValid === false) {
           console.log('[useAuth] Super admin session invalidated - another device logged in');
@@ -252,10 +252,10 @@ export const useAuth = () => {
           const sessionToken = data.session.access_token;
           localStorage.setItem('super_admin_session_token', sessionToken);
           try {
-            await (supabase.rpc as any)('register_super_admin_session', {
+            await supabase.rpc('register_super_admin_session', {
               p_session_token: sessionToken,
               p_device_info: navigator.userAgent
-            });
+            } as any);
           } catch (e) {
             console.error('Failed to register super admin session:', e);
           }
