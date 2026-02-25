@@ -46,6 +46,8 @@ interface OrderDetails {
 const AdminNotificationSystem = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isSuperAdmin = user?.is_super_admin || false;
+  const adminSector = user?.sector || null;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +56,17 @@ const AdminNotificationSystem = () => {
 
   // Allow both admin and teacher to see notifications
   const canViewNotifications = user?.role === 'admin' || user?.role === 'teacher';
+
+  // Primary/Secondary class level lists for sector filtering
+  const PRIMARY_LEVELS = ['play group', 'nursery', 'primary'];
+  const SECONDARY_LEVELS = ['jss', 'ss', 'junior secondary', 'senior secondary'];
+
+  const isClassInSector = (className: string, sector: string): boolean => {
+    const lower = className.toLowerCase();
+    if (sector === 'primary') return PRIMARY_LEVELS.some(l => lower.includes(l));
+    if (sector === 'secondary') return SECONDARY_LEVELS.some(l => lower.includes(l));
+    return true;
+  };
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !canViewNotifications) return;
@@ -71,7 +84,7 @@ const AdminNotificationSystem = () => {
         return;
       }
 
-      // Task J & K & L: Also fetch result upload notifications
+      // Fetch result upload notifications
       const { data: resultNotifications } = await supabase
         .from('result_upload_notifications')
         .select('*')
@@ -79,7 +92,7 @@ const AdminNotificationSystem = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      // Task B & C: Fetch suspension notifications
+      // Fetch suspension notifications
       const { data: suspensionNotifications } = await supabase
         .from('admin_suspension_notifications')
         .select('*')
@@ -87,8 +100,15 @@ const AdminNotificationSystem = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
+      // Task F: Sector-filter result notifications
+      const filteredResultNotifications = (resultNotifications || []).filter(n => {
+        if (isSuperAdmin) return true;
+        if (!adminSector || adminSector === 'both') return true;
+        return isClassInSector(n.class_name, adminSector);
+      });
+
       // Convert result notifications to standard format
-      const convertedResultNotifications: Notification[] = (resultNotifications || []).map(n => ({
+      const convertedResultNotifications: Notification[] = filteredResultNotifications.map(n => ({
         id: `result_${n.id}`,
         title: 'Result Uploaded',
         message: `${n.teacher_name} (${n.class_name}) submitted ${n.result_type} for ${n.student_name}`,
@@ -107,9 +127,38 @@ const AdminNotificationSystem = () => {
         created_at: n.created_at,
       }));
 
+      // Task F: Sector-filter admin_notifications for exam-related types
+      // If admin is primary-only, filter out secondary teacher exam notifications, and vice versa
+      let filteredAdminNotifs = data || [];
+      if (!isSuperAdmin && adminSector && adminSector !== 'both') {
+        // For exam_approved, exam_rejected, exam-related notifications, 
+        // we need to check the teacher's sector via target_admin_id
+        const examRelatedTypes = ['exam_approved', 'exam_rejected', 'exam_created', 'info'];
+        const teacherIds = [...new Set(filteredAdminNotifs
+          .filter(n => examRelatedTypes.includes(n.type) && n.target_admin_id)
+          .map(n => n.target_admin_id!))];
+        
+        let teacherSectorMap = new Map<string, string>();
+        if (teacherIds.length > 0) {
+          const { data: teacherProfiles } = await supabase
+            .from('profiles')
+            .select('id, sector')
+            .in('id', teacherIds);
+          teacherSectorMap = new Map((teacherProfiles || []).map(p => [p.id, p.sector || 'primary']));
+        }
+
+        filteredAdminNotifs = filteredAdminNotifs.filter(n => {
+          if (!examRelatedTypes.includes(n.type)) return true; // Non-exam notifs pass through
+          if (!n.target_admin_id) return true; // No teacher association, show it
+          const teacherSector = teacherSectorMap.get(n.target_admin_id);
+          if (!teacherSector) return true;
+          return teacherSector === adminSector || teacherSector === 'both';
+        });
+      }
+
       // Combine all notifications
       const allNotifications = [
-        ...(data || []),
+        ...filteredAdminNotifs,
         ...convertedResultNotifications,
         ...convertedSuspensionNotifications
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -120,7 +169,7 @@ const AdminNotificationSystem = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user, canViewNotifications]);
+  }, [user, canViewNotifications, isSuperAdmin, adminSector]);
 
   useEffect(() => {
     fetchNotifications();
@@ -426,7 +475,7 @@ const AdminNotificationSystem = () => {
                             } else if (notification.type === 'exam_approval' || notification.type === 'exam_approved' || notification.type === 'exam_rejected') {
                               markAsRead(notification.id);
                               setIsOpen(false);
-                              navigate('/admin/exam-approval');
+                              navigate('/admin/manage-examination');
                             } else {
                               markAsRead(notification.id);
                             }

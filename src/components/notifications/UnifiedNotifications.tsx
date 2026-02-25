@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface Notification {
   id: string;
@@ -60,6 +61,9 @@ const saveAllAsRead = (ids: string[]) => {
 const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Task C: Check if student is unassigned
+  const isUnassignedStudent = userRole === 'student' && (!user?.class_grade || user.class_grade === '');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -409,6 +413,16 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
 
     setIsOpen(false);
 
+    // Task C: Block unassigned students from navigating to restricted features
+    if (isUnassignedStudent) {
+      if (notification.type === 'event') {
+        navigate('/calendar');
+      } else {
+        toast.error("You must be assigned to a class before accessing this feature.");
+      }
+      return;
+    }
+
     // Navigate based on notification type
     if (notification.type === 'message' || notification.type === 'call') {
       navigate('/messages');
@@ -423,7 +437,6 @@ const UnifiedNotifications = ({ userRole }: UnifiedNotificationsProps) => {
     } else if (notification.type === 'exam_complete') {
       navigate('/teacher/exam-builder');
     } else if (notification.type === 'exam_approved' || notification.type === 'exam_rejected') {
-      // Task B: Route to unified ManageExamination for admins, exam-builder for teachers
       if (userRole === 'admin') {
         navigate('/admin/manage-examination');
       } else {

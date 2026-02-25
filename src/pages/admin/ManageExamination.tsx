@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Eye, Edit, FileText, Users, EyeOff, Copy, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -63,7 +63,7 @@ const ManageExamination = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [editDuration, setEditDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'unpublished' | 'rejected'>('all');
+  const [filter, setFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState("");
   const [isScoresOpen, setIsScoresOpen] = useState(false);
   const [studentScores, setStudentScores] = useState<StudentScore[]>([]);
@@ -111,7 +111,7 @@ const ManageExamination = () => {
     }
   };
 
-  // Task D: Filter exams by admin sector
+  // Filter exams by admin sector
   const sectorFilteredExams = exams.filter(exam => {
     if (isSuperAdmin) return true;
     if (!adminSector || adminSector === 'both') return true;
@@ -139,7 +139,6 @@ const ManageExamination = () => {
     setIsPreviewOpen(true);
   };
 
-  // Task D.3: View students & scores
   const viewStudentScores = async (exam: ExamItem) => {
     setSelectedExam(exam);
     setScoresLoading(true);
@@ -154,7 +153,6 @@ const ManageExamination = () => {
 
       if (error) throw error;
 
-      // Get student names
       const studentIds = [...new Set((attempts || []).map(a => a.student_id))];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -163,7 +161,6 @@ const ManageExamination = () => {
 
       const nameMap = new Map(profiles?.map(p => [p.id, p.name]) || []);
 
-      // Also get exam_results for score/percentage
       const { data: results } = await supabase
         .from("exam_results")
         .select("attempt_id, score, percentage")
@@ -366,6 +363,7 @@ const ManageExamination = () => {
   const filteredExams = sectorFilteredExams.filter(exam => {
     const matchesFilter = filter === 'all' || 
       (filter === 'pending' && exam.status === 'pending_approval') ||
+      (filter === 'approved' && exam.status === 'active') ||
       exam.status === filter;
     const matchesSearch = !searchTerm || 
       exam.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -376,6 +374,18 @@ const ManageExamination = () => {
   const pendingCount = sectorFilteredExams.filter(e => e.status === 'pending_approval').length;
   const activeCount = sectorFilteredExams.filter(e => e.status === 'active').length;
   const unpublishedCount = sectorFilteredExams.filter(e => e.status === 'unpublished').length;
+  const rejectedCount = sectorFilteredExams.filter(e => e.status === 'rejected').length;
+
+  const getFilterLabel = () => {
+    switch (filter) {
+      case 'all': return `All (${sectorFilteredExams.length})`;
+      case 'pending': return `Pending (${pendingCount})`;
+      case 'approved': return `Approved (${activeCount})`;
+      case 'unpublished': return `Unpublished (${unpublishedCount})`;
+      case 'rejected': return `Rejected (${rejectedCount})`;
+      default: return 'All';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -405,22 +415,30 @@ const ManageExamination = () => {
           <Card><CardContent className="p-3 text-center"><p className="text-xs text-muted-foreground">Unpublished</p><p className="text-2xl font-bold text-muted-foreground">{unpublishedCount}</p></CardContent></Card>
         </div>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search exams..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+        {/* Task A: Unified Search + Filter Control */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by exam name or teacher..." 
+              value={searchTerm} 
+              onChange={e => setSearchTerm(e.target.value)} 
+              className="pl-10" 
+            />
+          </div>
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-full sm:w-[200px] bg-background">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">All ({sectorFilteredExams.length})</SelectItem>
+              <SelectItem value="pending">Pending ({pendingCount})</SelectItem>
+              <SelectItem value="approved">Approved ({activeCount})</SelectItem>
+              <SelectItem value="unpublished">Unpublished ({unpublishedCount})</SelectItem>
+              <SelectItem value="rejected">Rejected ({rejectedCount})</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-
-        {/* Filter */}
-        <Tabs value={filter} onValueChange={v => setFilter(v as any)}>
-          <TabsList className="grid w-full grid-cols-5 h-auto">
-            <TabsTrigger value="all" className="text-xs sm:text-sm">All ({sectorFilteredExams.length})</TabsTrigger>
-            <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending ({pendingCount})</TabsTrigger>
-            <TabsTrigger value="active" className="text-xs sm:text-sm">Published ({activeCount})</TabsTrigger>
-            <TabsTrigger value="unpublished" className="text-xs sm:text-sm">Unpublished ({unpublishedCount})</TabsTrigger>
-            <TabsTrigger value="rejected" className="text-xs sm:text-sm">Rejected</TabsTrigger>
-          </TabsList>
-        </Tabs>
 
         {/* Exam Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -436,7 +454,6 @@ const ManageExamination = () => {
                     {getStatusLabel(exam.status)}
                   </Badge>
                 </div>
-                {/* Token display for active exams */}
                 {exam.status === 'active' && exam.exam_token && (
                   <div className="flex items-center gap-2 mt-2 p-2 bg-primary/5 border border-primary/20 rounded-lg">
                     <code className="text-xs sm:text-sm font-mono font-bold text-primary flex-1 truncate">{exam.exam_token}</code>
@@ -459,7 +476,6 @@ const ManageExamination = () => {
                   <Button size="sm" variant="outline" onClick={() => previewExam(exam)}>
                     <Eye className="w-3 h-3 mr-1" /> Preview
                   </Button>
-                  {/* Task D.3: View Students & Scores */}
                   {(exam.status === 'active' || exam.status === 'unpublished') && (
                     <Button size="sm" variant="outline" onClick={() => viewStudentScores(exam)}>
                       <Users className="w-3 h-3 mr-1" /> Scores
