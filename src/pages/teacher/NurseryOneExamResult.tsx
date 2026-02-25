@@ -233,22 +233,26 @@ const NurseryOneExamResult = () => {
           <CardContent className="p-8 space-y-6">
             {/* Header Section */}
             <div className="text-center border-b pb-6">
+              {/* Nigeria Coat of Arms - Top Center */}
+              <div className="flex justify-center mb-3">
+                <img 
+                  src={new URL('@/assets/ng-coat-of-arms.jpg', import.meta.url).href} 
+                  alt="Nigeria Coat of Arms" 
+                  className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
+                />
+              </div>
+              
               <div className="flex justify-between items-start mb-4">
-                <div className="w-20 h-20 border rounded flex items-center justify-center bg-muted">
-                  {images.coatOfArms ? (
-                    <img src={images.coatOfArms} alt="Coat of Arms" className="w-full h-full object-contain" />
-                  ) : (
-                    <Label htmlFor="coatOfArms" className="text-xs cursor-pointer print:hidden">Upload Coat</Label>
-                  )}
-                  <input id="coatOfArms" type="file" className="hidden" onChange={(e) => handleImageUpload("coatOfArms", e)} accept="image/*" />
+                <div className="w-20 h-20 border rounded flex items-center justify-center bg-muted print:hidden">
+                  <span className="text-xs text-muted-foreground">Coat of Arms</span>
                 </div>
                 
                 <div className="flex-1 mx-4">
                   <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-full py-3 px-6 mb-2">
                     <h1 className="text-2xl font-bold text-primary">PRISCILLA SCHOOL</h1>
                   </div>
-                  <p className="text-sm">📍 123 Education Street, Lagos, Nigeria</p>
-                  <p className="text-sm">📧 info@priscillaschool.com | 📞 +234 xxx xxx xxxx</p>
+                  <p className="text-sm">📍 59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
+                  <p className="text-sm">📧 info@priscillaschool.com | 📞 +234 803 302 1210</p>
                 </div>
 
                 <div className="w-20 h-20 border rounded flex items-center justify-center bg-muted">
