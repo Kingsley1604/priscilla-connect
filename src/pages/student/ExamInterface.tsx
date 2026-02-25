@@ -436,6 +436,23 @@ const ExamInterface = () => {
   };
 
   const handleAutoSubmit = async (reason: string) => {
+    // Task G: Notify super admin when student has exam issues
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { data: studentProfile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userData.user?.id || '')
+        .maybeSingle();
+
+      await supabase.from('admin_notifications').insert({
+        title: 'Exam Issue Alert',
+        message: `Student "${studentProfile?.name || 'Unknown'}" experienced an issue during exam "${exam?.title || 'Unknown'}": ${reason}`,
+        type: 'content_alert',
+      });
+    } catch (e) {
+      console.error('Failed to notify super admin of exam issue:', e);
+    }
     await submitExam(true);
   };
 
@@ -465,6 +482,23 @@ const ExamInterface = () => {
         .eq("id", currentAttempt.id);
 
       if (updateError) {
+        // Task G: Notify super admin of submission failure
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const { data: studentProfile } = await supabase
+            .from('profiles')
+            .select('name')
+            .eq('id', userData.user?.id || '')
+            .maybeSingle();
+
+          await supabase.from('admin_notifications').insert({
+            title: 'Exam Submission Failed',
+            message: `Student "${studentProfile?.name || 'Unknown'}" failed to submit exam "${exam?.title || 'Unknown'}". Error: ${updateError.message}`,
+            type: 'content_alert',
+          });
+        } catch (e) {
+          console.error('Failed to notify super admin:', e);
+        }
         toast.error("Failed to submit exam");
         return;
       }
