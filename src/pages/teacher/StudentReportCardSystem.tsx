@@ -465,6 +465,15 @@ const StudentReportCardSystem = () => {
         {/* Report Card - Styled like the image */}
         <Card className="shadow-lg print:shadow-none print:border-2 print:border-black">
           <CardContent className="p-6 space-y-4">
+            {/* Nigeria Coat of Arms - Top Center */}
+            <div className="flex justify-center mb-3">
+              <img 
+                src={new URL('@/assets/ng-coat-of-arms.jpg', import.meta.url).href} 
+                alt="Nigeria Coat of Arms" 
+                className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
+              />
+            </div>
+
             {/* Header with logos and school name */}
             <div className="flex items-start justify-between border-b-2 border-black pb-4">
               <div className="text-center flex-1">

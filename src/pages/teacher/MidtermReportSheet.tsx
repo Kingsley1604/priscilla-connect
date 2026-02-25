@@ -294,7 +294,14 @@ const MidtermReportSheet = () => {
       <div className="max-w-5xl mx-auto p-6">
         <Card className="shadow-soft">
           <CardHeader>
-            <CardTitle className="text-center text-2xl">PRISCILLA CONNECT - MID-TERM ASSESSMENT REPORT</CardTitle>
+            <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
+              <img 
+                src={new URL('@/assets/priscilla-school-logo.png', import.meta.url).href} 
+                alt="Priscilla School Logo" 
+                className="h-16 w-16 sm:h-20 sm:w-20 object-contain flex-shrink-0"
+              />
+              <CardTitle className="text-center text-xl sm:text-2xl">PRISCILLA SCHOOL MID-TERM ASSESSMENT REPORT</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Student Information Section */}

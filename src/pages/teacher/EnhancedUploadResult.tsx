@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Info } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAdminSector } from "@/hooks/useAdminSector";
@@ -16,8 +16,9 @@ const EnhancedUploadResult = () => {
   const { adminSector, isSuperAdmin } = useAdminSector();
   const { user } = useAuth();
   
-  const [assignedClasses, setAssignedClasses] = useState<string[]>([]);
+  const [assignedClass, setAssignedClass] = useState<string | null>(null);
   const [isClassTeacher, setIsClassTeacher] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     academicSession: new Date().getFullYear() + "/" + (new Date().getFullYear() + 1),
@@ -31,7 +32,7 @@ const EnhancedUploadResult = () => {
   // Fetch teacher's assigned class from teacher_assignments
   useEffect(() => {
     const fetchAssignment = async () => {
-      if (!user?.id) return;
+      if (!user?.id) { setIsLoading(false); return; }
       
       const { data: assignments } = await supabase
         .from('teacher_assignments')
@@ -42,24 +43,30 @@ const EnhancedUploadResult = () => {
       
       if (assignments && assignments.length > 0) {
         setIsClassTeacher(true);
-        const classes = [...new Set(assignments.map(a => a.class_level))];
-        setAssignedClasses(classes);
+        // Use the first active class teacher assignment
+        const assignedClassName = assignments[0].class_level;
+        setAssignedClass(assignedClassName);
+        
+        // Auto-set class level and grade from the assignment
+        const sector = getClassSector(assignedClassName);
+        setFormData(prev => ({ ...prev, classLevel: sector, grade: assignedClassName }));
       }
+      setIsLoading(false);
     };
     fetchAssignment();
   }, [user?.id]);
 
   // Determine sector from assigned class
   const getClassSector = (className: string) => {
-    const primaryClasses = ['Play Group 1', 'Play Group 2', 'Nursery One', 'Nursery Two', 'Primary 1', 'Primary 2', 'Primary 3', 'Primary 4', 'Primary 5', 'Primary 6',
-      'First Grade', 'Second Grade', 'Third Grade', 'Fourth Grade', 'Fifth Grade', 'Sixth Grade'];
-    if (primaryClasses.some(c => className.toLowerCase().includes(c.toLowerCase()))) return 'Primary';
-    if (className.toLowerCase().includes('jss') || className.toLowerCase().includes('junior')) return 'Junior Secondary';
-    if (className.toLowerCase().includes('ss') || className.toLowerCase().includes('senior')) return 'Senior Secondary';
+    const lower = className.toLowerCase();
+    const primaryKeywords = ['play group', 'nursery', 'primary', 'first grade', 'second grade', 'third grade', 'fourth grade', 'fifth grade', 'sixth grade'];
+    if (primaryKeywords.some(k => lower.includes(k))) return 'Primary';
+    if (lower.includes('jss') || lower.includes('junior') || lower.includes('seventh') || lower.includes('eighth') || lower.includes('ninth')) return 'Junior Secondary';
+    if (lower.includes('ss') || lower.includes('senior') || lower.includes('tenth') || lower.includes('eleventh') || lower.includes('twelfth')) return 'Senior Secondary';
     return 'Primary';
   };
 
-  // If teacher is a class teacher, restrict to assigned classes only
+  // Class level options for super admin only
   const getClassLevelOptions = () => {
     if (isSuperAdmin) {
       return [
@@ -68,12 +75,6 @@ const EnhancedUploadResult = () => {
         { value: "Senior Secondary", label: "Senior Secondary" }
       ];
     }
-    
-    if (isClassTeacher && assignedClasses.length > 0) {
-      const sectors = new Set(assignedClasses.map(getClassSector));
-      return Array.from(sectors).map(s => ({ value: s, label: s }));
-    }
-    
     if (adminSector === 'primary') {
       return [{ value: "Primary", label: "Primary" }];
     }
@@ -92,12 +93,6 @@ const EnhancedUploadResult = () => {
 
   const getGradeOptions = () => {
     const { classLevel } = formData;
-    
-    // If class teacher, only show their assigned class
-    if (isClassTeacher && assignedClasses.length > 0 && !isSuperAdmin) {
-      return assignedClasses.filter(c => getClassSector(c) === classLevel);
-    }
-    
     if (classLevel === "Primary") {
       return [
         "Play Group 1", "Play Group 2", 
@@ -115,10 +110,17 @@ const EnhancedUploadResult = () => {
 
   const classLevelOptions = getClassLevelOptions();
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Loading assignment data...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 overflow-x-hidden">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Task A: Fixed heading */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Link to="/reports">
             <Button variant="outline" size="sm" className="w-fit">
@@ -134,6 +136,17 @@ const EnhancedUploadResult = () => {
             <CardTitle className="text-lg sm:text-xl">Result Information</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+            {/* Show assigned class info for class teachers */}
+            {isClassTeacher && assignedClass && (
+              <div className="flex items-start gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm">
+                <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p className="text-muted-foreground">
+                  You are assigned as class teacher for <strong className="text-foreground">{assignedClass}</strong>. 
+                  The Grade field is automatically set from your assignment.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label className="text-sm">Academic Session</Label>
@@ -175,32 +188,40 @@ const EnhancedUploadResult = () => {
               </div>
               <div>
                 <Label className="text-sm">Class Level</Label>
-                <Select 
-                  value={formData.classLevel} 
-                  onValueChange={(v) => setFormData({...formData, classLevel: v, grade: ""})}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
-                  <SelectContent>
-                    {classLevelOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isClassTeacher && !isSuperAdmin ? (
+                  <Input value={formData.classLevel} readOnly className="bg-muted cursor-not-allowed" />
+                ) : (
+                  <Select 
+                    value={formData.classLevel} 
+                    onValueChange={(v) => setFormData({...formData, classLevel: v, grade: ""})}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                    <SelectContent>
+                      {classLevelOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div>
-                <Label className="text-sm">Grade</Label>
-                <Select 
-                  value={formData.grade} 
-                  onValueChange={(v) => setFormData({...formData, grade: v})} 
-                  disabled={!formData.classLevel}
-                >
-                  <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
-                  <SelectContent>
-                    {getGradeOptions().map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm">Grade {isClassTeacher && !isSuperAdmin && <span className="text-xs text-muted-foreground">(Auto-assigned)</span>}</Label>
+                {isClassTeacher && !isSuperAdmin ? (
+                  <Input value={formData.grade} readOnly className="bg-muted cursor-not-allowed font-medium" />
+                ) : (
+                  <Select 
+                    value={formData.grade} 
+                    onValueChange={(v) => setFormData({...formData, grade: v})} 
+                    disabled={!formData.classLevel}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
+                    <SelectContent>
+                      {getGradeOptions().map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
           </CardContent>
@@ -216,32 +237,25 @@ const EnhancedUploadResult = () => {
               
               const params = `session=${formData.academicSession}&term=${formData.term}&class=${formData.classLevel}&grade=${formData.grade}&totalOpened=${formData.totalTimeOpened}`;
               
-              // Nursery Midterm Reports
               if (formData.resultType === "MidTerm Result" && formData.classLevel === "Primary" && (formData.grade === "Nursery One" || formData.grade === "Nursery Two")) {
                 navigate(`/teacher/nursery-midterm-report?${params}`);
               }
-              // Other Primary Midterm Results
               else if (formData.resultType === "MidTerm Result" && formData.classLevel === "Primary") {
                 navigate(`/teacher/midterm-report?${params}`);
               }
-              // Nursery One Examination Result
               else if (formData.resultType === "Examination Result" && formData.classLevel === "Primary" && formData.grade === "Nursery One") {
                 navigate(`/teacher/nursery-one-exam?${params}`);
               }
-              // Nursery Two Examination Result
               else if (formData.resultType === "Examination Result" && formData.classLevel === "Primary" && formData.grade === "Nursery Two") {
                 navigate(`/teacher/nursery-two-exam?${params}`);
               }
-              // Secondary School Examination Results - Navigate to SecondaryResultUpload
               else if (formData.resultType === "Examination Result" && (formData.classLevel === "Junior Secondary" || formData.classLevel === "Senior Secondary")) {
                 navigate(`/teacher/secondary-result-upload?${params}`);
               }
-              // Secondary School Midterm Results - Under development
               else if (formData.resultType === "MidTerm Result" && (formData.classLevel === "Junior Secondary" || formData.classLevel === "Senior Secondary")) {
                 toast.info("Secondary Midterm Result System is under development");
                 return;
               }
-              // Default to regular report card
               else {
                 navigate(`/teacher/report-card?${params}`);
               }
