@@ -1736,6 +1736,33 @@ export type Database = {
         }
         Relationships: []
       }
+      super_admin_sessions: {
+        Row: {
+          created_at: string
+          device_info: string | null
+          id: string
+          is_active: boolean
+          session_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          is_active?: boolean
+          session_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_info?: string | null
+          id?: string
+          is_active?: boolean
+          session_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       suspension_requests: {
         Row: {
           approved_at: string | null
@@ -1908,6 +1935,10 @@ export type Database = {
     Functions: {
       auto_submit_expired_attempts: { Args: never; Returns: undefined }
       check_inventory_levels: { Args: never; Returns: undefined }
+      check_super_admin_session: {
+        Args: { p_session_token: string }
+        Returns: boolean
+      }
       generate_default_password: { Args: never; Returns: string }
       generate_teacher_id: { Args: never; Returns: string }
       get_exam_question_count: { Args: { exam_id: string }; Returns: number }
@@ -1966,6 +1997,10 @@ export type Database = {
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      register_super_admin_session: {
+        Args: { p_device_info?: string; p_session_token: string }
+        Returns: undefined
       }
       search_teachers: {
         Args: { search_term: string }

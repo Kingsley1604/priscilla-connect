@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/hooks/useAuth";
 import DashboardComponent from "@/components/Dashboard";
-import { ExamDemoSetup } from "@/components/admin/ExamDemoSetup";
 
 const Dashboard = () => {
   const { user, logout, isLoading } = useAuth();
@@ -19,15 +18,12 @@ const Dashboard = () => {
   }
 
   return (
-    <>
-      {user.role === 'admin' && <ExamDemoSetup />}
-      <DashboardComponent
-        userRole={user.role}
-        userName={user.name}
-        userAvatar={user.avatar}
-        onLogout={logout}
-      />
-    </>
+    <DashboardComponent
+      userRole={user.role}
+      userName={user.name}
+      userAvatar={user.avatar}
+      onLogout={logout}
+    />
   );
 };
 
