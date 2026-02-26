@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import NetworkStatusIndicator from "@/components/NetworkStatusIndicator";
 
 interface Question {
   id: string;
@@ -58,6 +59,8 @@ const ExamInterface = () => {
   const [showCalculator, setShowCalculator] = useState(false);
   const [calcDisplay, setCalcDisplay] = useState('0');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isNetworkOnline, setIsNetworkOnline] = useState(true);
+  const [pausedTime, setPausedTime] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const examContainerRef = useRef<HTMLDivElement>(null);
 
@@ -435,6 +438,50 @@ const ExamInterface = () => {
     }, 1000);
   };
 
+  // Network-aware timer pause/resume
+  const handleNetworkStatusChange = useCallback((online: boolean) => {
+    setIsNetworkOnline(online);
+    if (!examStarted) return;
+
+    if (!online) {
+      // Pause timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = undefined;
+      }
+      setPausedTime(timeRemaining);
+      // Save progress to localStorage
+      try {
+        localStorage.setItem('exam_progress', JSON.stringify({
+          attemptId: currentAttempt?.id,
+          answers,
+          timeRemaining,
+          savedAt: Date.now()
+        }));
+      } catch {}
+    } else {
+      // Restore and resume timer
+      if (pausedTime !== null) {
+        setTimeRemaining(pausedTime);
+        setPausedTime(null);
+      }
+      startTimer();
+    }
+  }, [examStarted, answers, timeRemaining, currentAttempt, pausedTime]);
+
+  // Save answers periodically to localStorage
+  useEffect(() => {
+    if (!examStarted || !currentAttempt) return;
+    try {
+      localStorage.setItem('exam_progress', JSON.stringify({
+        attemptId: currentAttempt.id,
+        answers,
+        timeRemaining,
+        savedAt: Date.now()
+      }));
+    } catch {}
+  }, [answers, examStarted, currentAttempt, timeRemaining]);
+
   const handleAutoSubmit = async (reason: string) => {
     // Task G: Notify super admin when student has exam issues
     try {
@@ -671,6 +718,9 @@ const ExamInterface = () => {
       className="exam-interface min-h-screen bg-background p-4 select-none"
       style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
     >
+      {/* Network Status Indicator */}
+      <NetworkStatusIndicator onStatusChange={handleNetworkStatusChange} />
+
       {/* Timer and Progress Header */}
       <div className="max-w-4xl mx-auto mb-6">
         <Card>

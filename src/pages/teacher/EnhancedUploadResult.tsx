@@ -136,16 +136,7 @@ const EnhancedUploadResult = () => {
             <CardTitle className="text-lg sm:text-xl">Result Information</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
-            {/* Show assigned class info for class teachers */}
-            {isClassTeacher && assignedClass && (
-              <div className="flex items-start gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm">
-                <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="text-muted-foreground">
-                  You are assigned as class teacher for <strong className="text-foreground">{assignedClass}</strong>. 
-                  The Grade field is automatically set from your assignment.
-                </p>
-              </div>
-            )}
+            {/* Class teacher info banner removed per Task D - no need to show this on UI */}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
