@@ -221,7 +221,12 @@ const ExamResults = () => {
         status: 'pending',
         teacher_name: teacherMap.get(rc.created_by) || 'Unknown Teacher',
         report_type: rc.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
-      })).filter(rc => isSuperAdmin || !adminSector || adminSector === 'both' || canManageClassLevel(rc.class_level));
+      })).filter(rc => {
+        if (isSuperAdmin) return true;
+        if (!adminSector || adminSector === 'both') return true;
+        // Primary admin only sees primary classes, secondary admin only sees secondary
+        return canManageClassLevel(rc.class_level);
+      });
       setReportCards(processedReportCards);
 
       // Load secondary report cards with full details
@@ -239,7 +244,11 @@ const ExamResults = () => {
         ...sr,
         teacher_name: secondaryTeacherMap.get(sr.created_by) || 'Unknown Teacher',
         report_type: sr.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
-      })).filter(sr => isSuperAdmin || !adminSector || adminSector === 'both' || canManageClassLevel(sr.class_level));
+      })).filter(sr => {
+        if (isSuperAdmin) return true;
+        if (!adminSector || adminSector === 'both') return true;
+        return canManageClassLevel(sr.class_level);
+      });
       setSecondaryReports(processedSecondaryReports);
 
       organizeIntoFolders(processedReportCards, processedSecondaryReports);

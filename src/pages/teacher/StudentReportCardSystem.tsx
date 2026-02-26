@@ -465,27 +465,33 @@ const StudentReportCardSystem = () => {
         {/* Report Card - Styled like the image */}
         <Card className="shadow-lg print:shadow-none print:border-2 print:border-black">
           <CardContent className="p-6 space-y-4">
-            {/* Nigeria Coat of Arms - Top Center */}
-            <div className="flex justify-center mb-3">
-              <img 
-                src={new URL('@/assets/ng-coat-of-arms.jpg', import.meta.url).href} 
-                alt="Nigeria Coat of Arms" 
-                className="h-16 w-16 sm:h-20 sm:w-20 object-contain"
-              />
-            </div>
-
             {/* Header with logos and school name */}
-            <div className="flex items-start justify-between border-b-2 border-black pb-4">
-              <div className="text-center flex-1">
-                <div className="text-red-600 font-bold text-sm">TERMLY VOLUME</div>
-                <div className="text-xs">CONTINUOUS ASSESSMENT REPORT</div>
+            <div className="flex flex-col items-center border-b-2 border-black pb-4 space-y-2">
+              {/* Termly Volume section with Coat of Arms */}
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <img 
+                    src={new URL('@/assets/ng-coat-of-arms.jpg', import.meta.url).href} 
+                    alt="Nigeria Coat of Arms" 
+                    className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1"
+                  />
+                  <div className="text-red-600 font-bold text-sm">TERMLY VOLUME</div>
+                  <div className="text-xs">CONTINUOUS ASSESSMENT REPORT</div>
+                </div>
               </div>
-              
-              <div className="text-center flex-[2]">
+
+              {/* School logo + name */}
+              <div className="text-center">
+                <img 
+                  src={new URL('@/assets/priscilla-school-logo.png', import.meta.url).href} 
+                  alt="Priscilla School Logo" 
+                  className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1"
+                />
                 <h1 className="text-2xl font-bold">PRISCILLA SCHOOL</h1>
                 <p className="text-xs">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                <p className="text-xs">Tel: +234 803 302 1210, +234 701 987 6174</p>
-              </div>
+                <p className="text-xs"><span className="text-red-600 font-medium">Tel:</span> +234 803 302 1210, +234 701 987 6174</p>
+                <p className="text-xs"><span className="text-red-600 font-medium">Email: priscillaschool@gmail.com</span></p>
+            </div>
               
               <div className="w-24 h-24 border-2 border-black flex items-center justify-center bg-blue-50 print:hidden">
                 {reportCard.passport_photo_url ? (

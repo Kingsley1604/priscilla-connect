@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Edit, Send, Trash2, AlertCircle, FileText } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminSector } from "@/hooks/useAdminSector";
 
 interface DraftReportCard {
   id: string;
@@ -17,30 +18,63 @@ interface DraftReportCard {
   academic_session: string;
   term: string;
   created_at: string;
+  source: 'primary' | 'secondary';
+  status: string;
+  rejection_reason?: string;
 }
 
 const DraftResults = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { canManageClassLevel } = useAdminSector();
   const [drafts, setDrafts] = useState<DraftReportCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDrafts();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('draft-results-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'report_cards' }, loadDrafts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'secondary_report_cards' }, loadDrafts)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   const loadDrafts = async () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Load primary drafts (all report_cards by this teacher)
+      const { data: primaryData, error: primaryError } = await supabase
         .from('report_cards')
         .select('id, student_name, admission_no, class_level, academic_session, term, created_at')
         .eq('created_by', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setDrafts(data || []);
+      if (primaryError) throw primaryError;
+
+      // Load secondary drafts/rejected
+      const { data: secondaryData, error: secondaryError } = await supabase
+        .from('secondary_report_cards')
+        .select('id, student_name, admission_no, class_level, academic_session, term, created_at, status, rejection_reason')
+        .eq('created_by', user.id)
+        .in('status', ['draft', 'rejected'])
+        .order('created_at', { ascending: false });
+
+      if (secondaryError) throw secondaryError;
+
+      const allDrafts: DraftReportCard[] = [
+        ...(primaryData || []).map(d => ({ ...d, source: 'primary' as const, status: 'draft', rejection_reason: undefined })),
+        ...(secondaryData || []).map(d => ({ ...d, source: 'secondary' as const, status: d.status || 'draft' }))
+      ].filter(d => canManageClassLevel(d.class_level));
+
+      // Sort by created_at descending
+      allDrafts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setDrafts(allDrafts);
     } catch (error) {
       console.error('Error loading drafts:', error);
       toast.error('Failed to load drafts');
@@ -49,40 +83,29 @@ const DraftResults = () => {
     }
   };
 
-  const handleEdit = (draftId: string) => {
-    // Navigate to edit page (you can create an edit version of StudentReportCardSystem)
-    navigate(`/teacher/report-card?edit=${draftId}`);
-  };
-
-  const handlePublish = async (draftId: string) => {
-    try {
-      // In a real implementation, you might want to change a status field
-      // For now, we'll just show a success message
-      toast.success('Report card submitted to admin for approval');
-      loadDrafts();
-    } catch (error) {
-      console.error('Error publishing:', error);
-      toast.error('Failed to publish report card');
+  const handleEdit = (draft: DraftReportCard) => {
+    if (draft.source === 'secondary') {
+      navigate(`/teacher/secondary-result-upload?edit=${draft.id}`);
+    } else {
+      navigate(`/teacher/report-card?edit=${draft.id}`);
     }
   };
 
-  const handleDelete = async (draftId: string) => {
+  const handleDelete = async (draft: DraftReportCard) => {
     if (!confirm('Are you sure you want to delete this draft?')) return;
 
     try {
-      // Delete subjects first (foreign key constraint)
-      await supabase
-        .from('report_card_subjects')
-        .delete()
-        .eq('report_card_id', draftId);
-
-      // Then delete the report card
-      const { error } = await supabase
-        .from('report_cards')
-        .delete()
-        .eq('id', draftId);
-
-      if (error) throw error;
+      if (draft.source === 'primary') {
+        await supabase.from('report_card_subjects').delete().eq('report_card_id', draft.id);
+        const { error } = await supabase.from('report_cards').delete().eq('id', draft.id);
+        if (error) throw error;
+      } else {
+        await supabase.from('secondary_report_subjects').delete().eq('report_card_id', draft.id);
+        await supabase.from('secondary_affective_traits').delete().eq('report_card_id', draft.id);
+        await supabase.from('secondary_psychomotor_skills').delete().eq('report_card_id', draft.id);
+        const { error } = await supabase.from('secondary_report_cards').delete().eq('id', draft.id);
+        if (error) throw error;
+      }
       
       toast.success('Draft deleted successfully');
       loadDrafts();
@@ -93,86 +116,89 @@ const DraftResults = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/reports">
-            <Button variant="outline">
+            <Button variant="outline" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Draft Report Cards</h1>
-            <p className="text-muted-foreground">Manage and publish your draft report cards</p>
+            <h1 className="text-xl sm:text-3xl font-bold">Drafts</h1>
+            <p className="text-muted-foreground text-sm">Manage saved and rejected report cards</p>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Saved Drafts</CardTitle>
+            <CardTitle>Draft & Rejected Results</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-center py-8">Loading drafts...</div>
+              <div className="text-center py-8 text-muted-foreground">Loading drafts...</div>
             ) : drafts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No drafts found. Create a new report card to get started.
+              <div className="text-center py-12 text-muted-foreground">
+                <FileText className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-medium">No draft results available.</p>
+                <p className="text-sm">Saved drafts and admin-rejected results will appear here.</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Student Name</TableHead>
-                    <TableHead>Admission No</TableHead>
-                    <TableHead>Class</TableHead>
-                    <TableHead>Session</TableHead>
-                    <TableHead>Term</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {drafts.map((draft) => (
-                    <TableRow key={draft.id}>
-                      <TableCell className="font-medium">{draft.student_name}</TableCell>
-                      <TableCell>{draft.admission_no}</TableCell>
-                      <TableCell>{draft.class_level}</TableCell>
-                      <TableCell>{draft.academic_session}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{draft.term}</Badge>
-                      </TableCell>
-                      <TableCell>{new Date(draft.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(draft.id)}
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handlePublish(draft.id)}
-                          >
-                            <Send className="h-4 w-4 mr-1" />
-                            Publish
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(draft.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student Name</TableHead>
+                      <TableHead>Admission No</TableHead>
+                      <TableHead>Class</TableHead>
+                      <TableHead>Term</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {drafts.map((draft) => (
+                      <TableRow key={`${draft.source}-${draft.id}`}>
+                        <TableCell className="font-medium">{draft.student_name}</TableCell>
+                        <TableCell>{draft.admission_no}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{draft.class_level}</Badge>
+                        </TableCell>
+                        <TableCell>{draft.term}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Badge variant={draft.status === 'rejected' ? 'destructive' : 'secondary'}>
+                              {draft.status === 'rejected' ? 'Rejected' : 'Draft'}
+                            </Badge>
+                            {draft.status === 'rejected' && draft.rejection_reason && (
+                              <div className="flex items-start gap-1 text-xs text-destructive max-w-[200px]">
+                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                <span className="line-clamp-2">{draft.rejection_reason}</span>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {new Date(draft.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEdit(draft)}>
+                              <Edit className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDelete(draft)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

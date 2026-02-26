@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Users, BookOpen, Calendar, Plus, Search, UserMinus, UserPlus, AlertTriangle, Check, X, Trash2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Users, BookOpen, Calendar, Plus, Search, UserMinus, UserPlus, AlertTriangle, Check, X, Trash2, MoreVertical, FileSpreadsheet } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import BulkStudentUpload from "@/components/teacher/BulkStudentUpload";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,6 +76,7 @@ const ClassManagement = () => {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isProcessingSuspension, setIsProcessingSuspension] = useState(false);
   const [isProcessingUnsuspension, setIsProcessingUnsuspension] = useState<string | null>(null);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
   const [newClass, setNewClass] = useState({
     name: "",
@@ -856,11 +858,15 @@ const ClassManagement = () => {
                       Create Class
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => setIsCreateStudentOpen(true)}>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Create Student Account
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
+                   <DropdownMenuItem onClick={() => setIsCreateStudentOpen(true)}>
+                     <UserPlus className="h-4 w-4 mr-2" />
+                     Create Student Account
+                   </DropdownMenuItem>
+                   <DropdownMenuItem onClick={() => setIsBulkUploadOpen(true)}>
+                     <FileSpreadsheet className="h-4 w-4 mr-2" />
+                     Bulk Upload
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
 
@@ -872,9 +878,13 @@ const ClassManagement = () => {
                   Create Class
                 </Button>
               )}
-              <Button variant="secondary" onClick={() => setIsCreateStudentOpen(true)}>
+             <Button variant="secondary" onClick={() => setIsCreateStudentOpen(true)}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Create Student Account
+              </Button>
+              <Button variant="outline" onClick={() => setIsBulkUploadOpen(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Bulk Upload
               </Button>
             </div>
           </div>
@@ -1609,8 +1619,18 @@ const ClassManagement = () => {
                 {user?.role === 'admin' ? 'Suspend Student' : 'Submit Request'}
               </Button>
             </DialogFooter>
-          </DialogContent>
+         </DialogContent>
         </Dialog>
+
+        {/* Bulk Upload Dialog */}
+        <BulkStudentUpload
+          isOpen={isBulkUploadOpen}
+          onClose={() => setIsBulkUploadOpen(false)}
+          assignedClass={teacherAssignedClass}
+          isClassTeacher={isClassTeacher}
+          isAdmin={user?.role === 'admin'}
+          onSuccess={loadData}
+        />
       </div>
     </div>
   );

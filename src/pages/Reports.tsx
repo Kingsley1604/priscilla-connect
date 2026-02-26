@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, FileText, Award, BookOpen, Brain, Upload, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowLeft, FileText, Award, BookOpen, Brain, Upload, AlertTriangle, FileEdit } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import ResultCodeChecker from "@/components/reports/ResultCodeChecker";
@@ -11,11 +11,13 @@ import ClassResultsView from "./reports/ClassResultsView";
 
 const Reports = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const userRole = user?.role || 'student';
   const [checkerOpen, setCheckerOpen] = useState<'entrance' | 'midterm' | 'exam' | null>(null);
   const [classViewOpen, setClassViewOpen] = useState<'entrance' | 'midterm' | 'exam' | null>(null);
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
+  const [draftCount, setDraftCount] = useState(0);
 
   // Check if teacher is a class teacher
   useEffect(() => {
@@ -44,34 +46,75 @@ const Reports = () => {
     checkClassTeacherStatus();
   }, [user, userRole]);
 
+  // Load draft count for teachers
+  useEffect(() => {
+    const loadDraftCount = async () => {
+      if (!user || userRole !== 'teacher') return;
+
+      try {
+        // Count primary drafts
+        const { count: primaryCount } = await supabase
+          .from('report_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('created_by', user.id);
+
+        // Count secondary drafts/rejected
+        const { count: secondaryCount } = await supabase
+          .from('secondary_report_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('created_by', user.id)
+          .in('status', ['draft', 'rejected']);
+
+        setDraftCount((primaryCount || 0) + (secondaryCount || 0));
+      } catch (error) {
+        console.error('Error loading draft count:', error);
+      }
+    };
+
+    loadDraftCount();
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('draft-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'report_cards' }, loadDraftCount)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'secondary_report_cards' }, loadDraftCount)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, userRole]);
+
   const reportSections = [
     {
       title: "Entrance Result",
       description: "School admission test scores",
       icon: Award,
       color: "bg-gradient-primary",
-      available: true
+      available: true,
+      key: 'entrance' as const
     },
     {
       title: "Midterm Result", 
       description: "Mid-semester examination scores",
       icon: FileText,
       color: "bg-gradient-secondary",
-      available: true
+      available: true,
+      key: 'midterm' as const
     },
     {
       title: "Exam Result",
       description: "Final examination scores",
       icon: BookOpen,
       color: "bg-gradient-accent", 
-      available: true
+      available: true,
+      key: 'exam' as const
     },
     {
       title: "CBT Result",
       description: "Computer-based test preparation (Mock exams for SS3, JSS3, Primary 5&6)",
       icon: Brain,
       color: "bg-gradient-primary",
-      available: false
+      available: false,
+      key: null
     }
   ];
 
@@ -158,16 +201,11 @@ const Reports = () => {
                 <div 
                   key={section.title}
                   onClick={() => {
-                    if (section.available) {
-                      // Class teachers see class selection, students see result code checker
+                    if (section.available && section.key) {
                       if ((userRole === 'teacher' && isClassTeacher) || userRole === 'admin') {
-                        if (section.title === "Entrance Result") setClassViewOpen('entrance');
-                        else if (section.title === "Midterm Result") setClassViewOpen('midterm');
-                        else if (section.title === "Exam Result") setClassViewOpen('exam');
+                        setClassViewOpen(section.key);
                       } else {
-                        if (section.title === "Entrance Result") setCheckerOpen('entrance');
-                        else if (section.title === "Midterm Result") setCheckerOpen('midterm');
-                        else if (section.title === "Exam Result") setCheckerOpen('exam');
+                        setCheckerOpen(section.key);
                       }
                     }
                   }}
@@ -198,6 +236,35 @@ const Reports = () => {
                   </Card>
                 </div>
               ))}
+
+              {/* Drafts Category - Only for teachers */}
+              {userRole === 'teacher' && isClassTeacher && (
+                <div onClick={() => navigate('/teacher/draft-results')}>
+                  <Card className="shadow-soft hover:shadow-medium transition-all duration-300 cursor-pointer border-dashed border-2">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="p-3 rounded-lg bg-muted shadow-soft">
+                          <FileEdit className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        {draftCount > 0 ? (
+                          <Badge variant="destructive" className="text-xs">{draftCount} Draft(s)</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">No Drafts</Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <CardTitle className="text-lg mb-2">Drafts</CardTitle>
+                      <CardDescription className="mb-4">
+                        Unfinished or rejected results awaiting correction
+                      </CardDescription>
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Drafts
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
 
             {/* Information Section */}
@@ -211,6 +278,9 @@ const Reports = () => {
                   <li>• <strong>Midterm Result:</strong> Displays mid-semester exam scores across all subjects</li>
                   <li>• <strong>Exam Result:</strong> Contains final examination scores and overall grades</li>
                   <li>• <strong>CBT Result:</strong> Mock examination results to prepare for external exams (JAMB, WAEC, NECO)</li>
+                  {userRole === 'teacher' && (
+                    <li>• <strong>Drafts:</strong> Contains saved drafts and admin-rejected results for correction and resubmission</li>
+                  )}
                 </ul>
               </CardContent>
             </Card>
