@@ -91,19 +91,32 @@ const NurseryOneExamResult = () => {
 
   const updateSubject = (index: number, field: keyof Subject, value: string | number) => {
     const updated = [...subjects];
-    updated[index] = { ...updated[index], [field]: value };
-    
     if (field === "halfTerm" || field === "exam") {
-      const halfTerm = field === "halfTerm" ? Number(value) : updated[index].halfTerm;
-      const exam = field === "exam" ? Number(value) : updated[index].exam;
+      const parsedValue = value === "" || value === null ? null : Number(value);
+      updated[index] = { ...updated[index], [field]: parsedValue };
+      const halfTerm = updated[index].halfTerm ?? 0;
+      const exam = updated[index].exam ?? 0;
       const total = halfTerm + exam;
-      const { grade, remark } = calculateGrade(total);
-      updated[index].total = total;
-      updated[index].grade = grade;
-      updated[index].remark = remark;
+      const hasAny = updated[index].halfTerm !== null || updated[index].exam !== null;
+      if (hasAny) {
+        const { grade, remark } = calculateGrade(total);
+        updated[index].total = total;
+        updated[index].grade = grade;
+        updated[index].remark = remark;
+      } else {
+        updated[index].total = 0;
+        updated[index].grade = "";
+        updated[index].remark = "";
+      }
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
     }
-    
     setSubjects(updated);
+  };
+
+  const displayScore = (score: any): string => {
+    if (score === null || score === undefined) return "";
+    return String(score);
   };
 
   const calculateSummary = () => {
