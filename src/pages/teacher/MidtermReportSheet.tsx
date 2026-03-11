@@ -63,14 +63,28 @@ const MidtermReportSheet = () => {
     return { grade: "F", remark: "Fail" };
   };
 
-  const updateSubjectScore = (index: number, field: 'cas1' | 'cas2', value: number) => {
+  const updateSubjectScore = (index: number, field: 'cas1' | 'cas2', value: string) => {
     const newSubjects = [...subjects];
-    newSubjects[index][field] = Math.min(value, 15);
-    newSubjects[index].total = newSubjects[index].cas1 + newSubjects[index].cas2;
-    const gradeInfo = calculateGrade(newSubjects[index].total);
-    newSubjects[index].grade = gradeInfo.grade;
-    newSubjects[index].remark = gradeInfo.remark;
+    const parsedValue = value === "" ? null : Math.min(parseInt(value) || 0, 15);
+    newSubjects[index][field] = parsedValue as any;
+    const cas1 = newSubjects[index].cas1 ?? 0;
+    const cas2 = newSubjects[index].cas2 ?? 0;
+    newSubjects[index].total = cas1 + cas2;
+    const hasAny = newSubjects[index].cas1 !== null || newSubjects[index].cas2 !== null;
+    if (hasAny) {
+      const gradeInfo = calculateGrade(newSubjects[index].total);
+      newSubjects[index].grade = gradeInfo.grade;
+      newSubjects[index].remark = gradeInfo.remark;
+    } else {
+      newSubjects[index].grade = "";
+      newSubjects[index].remark = "";
+    }
     setSubjects(newSubjects);
+  };
+
+  const displayScore = (score: any): string => {
+    if (score === null || score === undefined) return "";
+    return String(score);
   };
 
   const addSubject = () => {
