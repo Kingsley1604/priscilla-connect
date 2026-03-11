@@ -51,16 +51,16 @@ const NurseryOneExamResult = () => {
   });
 
   const [subjects, setSubjects] = useState<Subject[]>([
-    { name: "Numeracy", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Literacy", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Poems/Rhymes", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Social Habits", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Hygiene", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Health Habits", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Colouring", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Craft", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Practical Life", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Sensorial", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
+    { name: "Numeracy", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Literacy", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Poems/Rhymes", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Social Habits", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Hygiene", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Health Habits", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Colouring", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Craft", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Practical Life", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Sensorial", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
   ]);
 
   const [images, setImages] = useState({
