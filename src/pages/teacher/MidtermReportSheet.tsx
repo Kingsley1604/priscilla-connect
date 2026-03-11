@@ -89,7 +89,7 @@ const MidtermReportSheet = () => {
 
   const addSubject = () => {
     if (subjects.length < 20) {
-      setSubjects([...subjects, { name: "", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" }]);
+      setSubjects([...subjects, { name: "", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" }]);
     }
   };
 
