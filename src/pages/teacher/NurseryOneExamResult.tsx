@@ -51,16 +51,16 @@ const NurseryOneExamResult = () => {
   });
 
   const [subjects, setSubjects] = useState<Subject[]>([
-    { name: "Numeracy", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Literacy", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Poems/Rhymes", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Social Habits", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Hygiene", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Health Habits", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Colouring", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Craft", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Practical Life", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
-    { name: "Sensorial", halfTerm: 0, exam: 0, total: 0, grade: "", remark: "" },
+    { name: "Numeracy", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Literacy", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Poems/Rhymes", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Social Habits", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Hygiene", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Health Habits", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Colouring", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Craft", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Practical Life", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
+    { name: "Sensorial", halfTerm: null as any, exam: null as any, total: 0, grade: "", remark: "" },
   ]);
 
   const [images, setImages] = useState({
@@ -91,19 +91,32 @@ const NurseryOneExamResult = () => {
 
   const updateSubject = (index: number, field: keyof Subject, value: string | number) => {
     const updated = [...subjects];
-    updated[index] = { ...updated[index], [field]: value };
-    
     if (field === "halfTerm" || field === "exam") {
-      const halfTerm = field === "halfTerm" ? Number(value) : updated[index].halfTerm;
-      const exam = field === "exam" ? Number(value) : updated[index].exam;
+      const parsedValue = value === "" || value === null ? null : Number(value);
+      updated[index] = { ...updated[index], [field]: parsedValue };
+      const halfTerm = updated[index].halfTerm ?? 0;
+      const exam = updated[index].exam ?? 0;
       const total = halfTerm + exam;
-      const { grade, remark } = calculateGrade(total);
-      updated[index].total = total;
-      updated[index].grade = grade;
-      updated[index].remark = remark;
+      const hasAny = updated[index].halfTerm !== null || updated[index].exam !== null;
+      if (hasAny) {
+        const { grade, remark } = calculateGrade(total);
+        updated[index].total = total;
+        updated[index].grade = grade;
+        updated[index].remark = remark;
+      } else {
+        updated[index].total = 0;
+        updated[index].grade = "";
+        updated[index].remark = "";
+      }
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
     }
-    
     setSubjects(updated);
+  };
+
+  const displayScore = (score: any): string => {
+    if (score === null || score === undefined) return "";
+    return String(score);
   };
 
   const calculateSummary = () => {
@@ -388,12 +401,12 @@ const NurseryOneExamResult = () => {
                       <tr key={index}>
                         <td className="border p-2 text-sm font-medium">{subject.name}</td>
                         <td className="border p-1">
-                          <Input type="number" min="0" max="40" value={subject.halfTerm || ""} onChange={(e) => updateSubject(index, "halfTerm", e.target.value)} className="text-center h-8 print:border-0" />
+                          <Input type="number" min="0" max="40" value={displayScore(subject.halfTerm)} onChange={(e) => updateSubject(index, "halfTerm", e.target.value)} className="text-center h-8 print:border-0" />
                         </td>
                         <td className="border p-1">
-                          <Input type="number" min="0" max="60" value={subject.exam || ""} onChange={(e) => updateSubject(index, "exam", e.target.value)} className="text-center h-8 print:border-0" />
+                          <Input type="number" min="0" max="60" value={displayScore(subject.exam)} onChange={(e) => updateSubject(index, "exam", e.target.value)} className="text-center h-8 print:border-0" />
                         </td>
-                        <td className="border p-2 text-center font-bold">{subject.total}</td>
+                        <td className="border p-2 text-center font-bold">{subject.total || ""}</td>
                         <td className="border p-2 text-center font-bold text-primary">{subject.grade}</td>
                         <td className="border p-2 text-sm text-center">{subject.remark}</td>
                       </tr>

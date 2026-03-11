@@ -49,9 +49,9 @@ const MidtermReportSheet = () => {
   });
 
   const [subjects, setSubjects] = useState<Subject[]>([
-    { name: "Mathematics", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" },
-    { name: "English Language", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" },
-    { name: "Basic Science", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" },
+    { name: "Mathematics", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" },
+    { name: "English Language", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" },
+    { name: "Basic Science", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" },
   ]);
 
   const calculateGrade = (total: number): { grade: string; remark: string } => {
@@ -63,19 +63,33 @@ const MidtermReportSheet = () => {
     return { grade: "F", remark: "Fail" };
   };
 
-  const updateSubjectScore = (index: number, field: 'cas1' | 'cas2', value: number) => {
+  const updateSubjectScore = (index: number, field: 'cas1' | 'cas2', value: string) => {
     const newSubjects = [...subjects];
-    newSubjects[index][field] = Math.min(value, 15);
-    newSubjects[index].total = newSubjects[index].cas1 + newSubjects[index].cas2;
-    const gradeInfo = calculateGrade(newSubjects[index].total);
-    newSubjects[index].grade = gradeInfo.grade;
-    newSubjects[index].remark = gradeInfo.remark;
+    const parsedValue = value === "" ? null : Math.min(parseInt(value) || 0, 15);
+    newSubjects[index][field] = parsedValue as any;
+    const cas1 = newSubjects[index].cas1 ?? 0;
+    const cas2 = newSubjects[index].cas2 ?? 0;
+    newSubjects[index].total = cas1 + cas2;
+    const hasAny = newSubjects[index].cas1 !== null || newSubjects[index].cas2 !== null;
+    if (hasAny) {
+      const gradeInfo = calculateGrade(newSubjects[index].total);
+      newSubjects[index].grade = gradeInfo.grade;
+      newSubjects[index].remark = gradeInfo.remark;
+    } else {
+      newSubjects[index].grade = "";
+      newSubjects[index].remark = "";
+    }
     setSubjects(newSubjects);
+  };
+
+  const displayScore = (score: any): string => {
+    if (score === null || score === undefined) return "";
+    return String(score);
   };
 
   const addSubject = () => {
     if (subjects.length < 20) {
-      setSubjects([...subjects, { name: "", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" }]);
+      setSubjects([...subjects, { name: "", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" }]);
     }
   };
 
@@ -460,14 +474,14 @@ const MidtermReportSheet = () => {
                           <span className="print:block hidden">{subject.name}</span>
                         </td>
                         <td className="border p-2">
-                          <Input type="number" min="0" max="15" value={subject.cas1} onChange={(e) => updateSubjectScore(index, 'cas1', parseInt(e.target.value) || 0)} className="no-print" />
-                          <span className="print:block hidden">{subject.cas1}</span>
+                          <Input type="number" min="0" max="15" value={displayScore(subject.cas1)} onChange={(e) => updateSubjectScore(index, 'cas1', e.target.value)} className="no-print" />
+                          <span className="print:block hidden">{displayScore(subject.cas1)}</span>
                         </td>
                         <td className="border p-2">
-                          <Input type="number" min="0" max="15" value={subject.cas2} onChange={(e) => updateSubjectScore(index, 'cas2', parseInt(e.target.value) || 0)} className="no-print" />
-                          <span className="print:block hidden">{subject.cas2}</span>
+                          <Input type="number" min="0" max="15" value={displayScore(subject.cas2)} onChange={(e) => updateSubjectScore(index, 'cas2', e.target.value)} className="no-print" />
+                          <span className="print:block hidden">{displayScore(subject.cas2)}</span>
                         </td>
-                        <td className="border p-2 font-bold">{subject.total}</td>
+                        <td className="border p-2 font-bold">{subject.total || ""}</td>
                         <td className="border p-2 font-bold">{subject.grade}</td>
                         <td className="border p-2">{subject.remark}</td>
                         <td className="border p-2 no-print">

@@ -11,11 +11,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+import coatOfArmsImg from "@/assets/ng-coat-of-arms.jpg";
+import schoolLogoImg from "@/assets/priscilla-school-logo.png";
+
 interface Subject {
   id: string;
   subject_name: string;
-  half_term_score: number;
-  exam_score: number;
+  half_term_score: number | null;
+  exam_score: number | null;
   total_score: number;
   grade: string;
   teacher_remark: string;
@@ -30,19 +33,14 @@ interface ReportCardData {
   academic_session: string;
   term: string;
   passport_photo_url: string;
-  
   total_school_opened: number;
   times_present: number;
   times_absent: number;
-  
   school_sports: string[];
   other_activities: string[];
-  
   conduct_rating: string;
   conduct_percentage: number;
-  
   subjects: Subject[];
-  
   club_organization: string;
   class_teacher_comments: string;
   head_teacher_comments: string;
@@ -91,8 +89,6 @@ const StudentReportCardSystem = () => {
   const [classSignatureHeight, setClassSignatureHeight] = useState(60);
   const [headSignatureWidth, setHeadSignatureWidth] = useState(120);
   const [headSignatureHeight, setHeadSignatureHeight] = useState(60);
-  const [sportInput, setSportInput] = useState("");
-  const [activityInput, setActivityInput] = useState("");
 
   const defaultSubjects = [
     "Mathematics", "English Studies", "Social Studies", "Basic Science",
@@ -103,13 +99,12 @@ const StudentReportCardSystem = () => {
   ];
 
   useEffect(() => {
-    // Initialize with default subjects
     if (reportCard.subjects.length === 0) {
       const initialSubjects = defaultSubjects.map((name, index) => ({
         id: `subj-${index}`,
         subject_name: name,
-        half_term_score: 0,
-        exam_score: 0,
+        half_term_score: null,
+        exam_score: null,
         total_score: 0,
         grade: "",
         teacher_remark: ""
@@ -118,7 +113,6 @@ const StudentReportCardSystem = () => {
     }
   }, []);
 
-  // Auto-calculate absent times
   useEffect(() => {
     const absent = reportCard.total_school_opened - reportCard.times_present;
     setReportCard(prev => ({ ...prev, times_absent: Math.max(0, absent) }));
@@ -133,22 +127,19 @@ const StudentReportCardSystem = () => {
     return { grade: "F", remark: "FAIL" };
   };
 
-  const updateSubjectScore = (id: string, field: 'half_term_score' | 'exam_score', value: number) => {
+  const updateSubjectScore = (id: string, field: 'half_term_score' | 'exam_score', value: string) => {
     setReportCard(prev => ({
       ...prev,
       subjects: prev.subjects.map(subj => {
         if (subj.id === id) {
-          const newValue = Math.min(field === 'half_term_score' ? 40 : 60, Math.max(0, value));
-          const updatedSubj = { ...subj, [field]: newValue };
-          const total = updatedSubj.half_term_score + updatedSubj.exam_score;
-          const { grade, remark } = calculateGrade(total);
-          
-          return {
-            ...updatedSubj,
-            total_score: total,
-            grade,
-            teacher_remark: remark
-          };
+          const parsedValue = value === "" ? null : Math.min(field === 'half_term_score' ? 40 : 60, Math.max(0, parseInt(value) || 0));
+          const updatedSubj = { ...subj, [field]: parsedValue };
+          const halfTerm = updatedSubj.half_term_score ?? 0;
+          const exam = updatedSubj.exam_score ?? 0;
+          const total = halfTerm + exam;
+          const hasAnyScore = updatedSubj.half_term_score !== null || updatedSubj.exam_score !== null;
+          const { grade, remark } = hasAnyScore ? calculateGrade(total) : { grade: "", remark: "" };
+          return { ...updatedSubj, total_score: total, grade, teacher_remark: remark };
         }
         return subj;
       })
@@ -159,50 +150,27 @@ const StudentReportCardSystem = () => {
     const newSubject: Subject = {
       id: `subj-${Date.now()}`,
       subject_name: "",
-      half_term_score: 0,
-      exam_score: 0,
+      half_term_score: null,
+      exam_score: null,
       total_score: 0,
       grade: "",
       teacher_remark: ""
     };
-    setReportCard(prev => ({
-      ...prev,
-      subjects: [...prev.subjects, newSubject]
-    }));
+    setReportCard(prev => ({ ...prev, subjects: [...prev.subjects, newSubject] }));
   };
 
   const removeSubject = (id: string) => {
-    setReportCard(prev => ({
-      ...prev,
-      subjects: prev.subjects.filter(s => s.id !== id)
-    }));
+    setReportCard(prev => ({ ...prev, subjects: prev.subjects.filter(s => s.id !== id) }));
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
-        return;
-      }
-      
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image size must be less than 2MB');
-        return;
-      }
-      
+      if (!file.type.startsWith('image/')) { toast.error('Please upload an image file'); return; }
+      if (file.size > 2 * 1024 * 1024) { toast.error('Image size must be less than 2MB'); return; }
       setPhotoFile(file);
-      
-      // Preview the image
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setReportCard(prev => ({
-          ...prev,
-          passport_photo_url: e.target?.result as string
-        }));
-      };
+      reader.onload = (e) => { setReportCard(prev => ({ ...prev, passport_photo_url: e.target?.result as string })); };
       reader.readAsDataURL(file);
     }
   };
@@ -210,35 +178,22 @@ const StudentReportCardSystem = () => {
   const handleSignatureUpload = (type: 'class' | 'head', e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please upload an image file');
-        return;
-      }
-      
+      if (!file.type.startsWith('image/')) { toast.error('Please upload an image file'); return; }
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (type === 'class') {
-          setClassTeacherSignature(e.target?.result as string);
-        } else {
-          setHeadTeacherSignature(e.target?.result as string);
-        }
+        if (type === 'class') setClassTeacherSignature(e.target?.result as string);
+        else setHeadTeacherSignature(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
   const updateSport = (index: number, value: string) => {
-    setReportCard(prev => ({
-      ...prev,
-      school_sports: prev.school_sports.map((sport, i) => i === index ? value : sport)
-    }));
+    setReportCard(prev => ({ ...prev, school_sports: prev.school_sports.map((s, i) => i === index ? value : s) }));
   };
 
   const updateActivity = (index: number, value: string) => {
-    setReportCard(prev => ({
-      ...prev,
-      other_activities: prev.other_activities.map((activity, i) => i === index ? value : activity)
-    }));
+    setReportCard(prev => ({ ...prev, other_activities: prev.other_activities.map((a, i) => i === index ? value : a) }));
   };
 
   const calculateSummary = () => {
@@ -246,37 +201,27 @@ const StudentReportCardSystem = () => {
     const totalObtained = reportCard.subjects.reduce((sum, subj) => sum + subj.total_score, 0);
     const average = reportCard.subjects.length > 0 ? totalObtained / reportCard.subjects.length : 0;
     const percentage = totalObtainable > 0 ? (totalObtained / totalObtainable) * 100 : 0;
-    
-    return {
-      totalObtainable,
-      totalObtained,
-      average: average.toFixed(2),
-      percentage: percentage.toFixed(1)
-    };
+    return { totalObtainable, totalObtained, average: average.toFixed(2), percentage: percentage.toFixed(1) };
+  };
+
+  // Helper to display score - show blank instead of 0 when no score entered
+  const displayScore = (score: number | null): string => {
+    if (score === null) return "";
+    return String(score);
   };
 
   const handleSave = async () => {
-    // Validation
     if (!reportCard.student_name || !reportCard.admission_no) {
-      toast.error('Please fill in student name and admission number');
-      return;
+      toast.error('Please fill in student name and admission number'); return;
     }
-
-    if (!user) {
-      toast.error('You must be logged in to save report cards');
-      return;
-    }
-
+    if (!user) { toast.error('You must be logged in'); return; }
     setIsSaving(true);
-
     try {
       const summary = calculateSummary();
-      
-      // Insert report card
       const { data: reportCardData, error: reportError } = await supabase
         .from('report_cards')
         .insert({
-          student_id: user.id, // In production, this should be the actual student ID
+          student_id: user.id,
           student_name: reportCard.student_name,
           admission_no: reportCard.admission_no,
           date_of_birth: reportCard.date_of_birth || null,
@@ -304,40 +249,28 @@ const StudentReportCardSystem = () => {
           next_term_begins: reportCard.next_term_begins || null,
           created_by: user.id
         })
-        .select()
-        .single();
-
+        .select().single();
       if (reportError) throw reportError;
-
-      // Insert subjects
       const subjectsToInsert = reportCard.subjects.map(subj => ({
         report_card_id: reportCardData.id,
         subject_name: subj.subject_name,
-        half_term_score: subj.half_term_score,
-        exam_score: subj.exam_score,
+        half_term_score: subj.half_term_score ?? 0,
+        exam_score: subj.exam_score ?? 0,
         total_score: subj.total_score,
         grade: subj.grade,
         teacher_remark: subj.teacher_remark
       }));
-
-      const { error: subjectsError } = await supabase
-        .from('report_card_subjects')
-        .insert(subjectsToInsert);
-
+      const { error: subjectsError } = await supabase.from('report_card_subjects').insert(subjectsToInsert);
       if (subjectsError) throw subjectsError;
-
       toast.success('Report card saved as draft!');
       navigate('/teacher/draft-results', { state: { reportCardId: reportCardData.id } });
     } catch (error) {
       console.error('Error saving report card:', error);
       toast.error('Failed to save report card');
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   };
 
   const handleSubmit = async () => {
-    // Validation
     const missingFields = [];
     if (!reportCard.admission_no) missingFields.push("Admission No");
     if (!reportCard.date_of_birth) missingFields.push("Date of Birth");
@@ -351,23 +284,11 @@ const StudentReportCardSystem = () => {
     if (!reportCard.class_teacher_name) missingFields.push("Class Teacher's Name");
     if (!reportCard.next_term_begins) missingFields.push("Next Term Begins");
     if (!reportCard.passport_photo_url) missingFields.push("Child photo/passport");
-
-    if (missingFields.length > 0) {
-      toast.error(`Please fill in: ${missingFields.join(", ")}`);
-      return;
-    }
-
-    if (!user) {
-      toast.error('You must be logged in to submit report cards');
-      return;
-    }
-
+    if (missingFields.length > 0) { toast.error(`Please fill in: ${missingFields.join(", ")}`); return; }
+    if (!user) { toast.error('You must be logged in'); return; }
     setIsSubmitting(true);
-
     try {
       const summary = calculateSummary();
-      
-      // Insert report card
       const { data: reportCardData, error: reportError } = await supabase
         .from('report_cards')
         .insert({
@@ -399,42 +320,28 @@ const StudentReportCardSystem = () => {
           next_term_begins: reportCard.next_term_begins,
           created_by: user.id
         })
-        .select()
-        .single();
-
+        .select().single();
       if (reportError) throw reportError;
-
-      // Insert subjects
       const subjectsToInsert = reportCard.subjects.map(subj => ({
         report_card_id: reportCardData.id,
         subject_name: subj.subject_name,
-        half_term_score: subj.half_term_score,
-        exam_score: subj.exam_score,
+        half_term_score: subj.half_term_score ?? 0,
+        exam_score: subj.exam_score ?? 0,
         total_score: subj.total_score,
         grade: subj.grade,
         teacher_remark: subj.teacher_remark
       }));
-
-      const { error: subjectsError } = await supabase
-        .from('report_card_subjects')
-        .insert(subjectsToInsert);
-
+      const { error: subjectsError } = await supabase.from('report_card_subjects').insert(subjectsToInsert);
       if (subjectsError) throw subjectsError;
-
       toast.success('Report card submitted successfully to admin!');
       navigate('/reports');
     } catch (error) {
       console.error('Error submitting report card:', error);
       toast.error('Failed to submit report card');
-    } finally {
-      setIsSubmitting(false);
-    }
+    } finally { setIsSubmitting(false); }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
+  const handlePrint = () => window.print();
   const summary = calculateSummary();
 
   return (
@@ -443,115 +350,71 @@ const StudentReportCardSystem = () => {
         {/* Header - Hidden on print */}
         <div className="flex items-center justify-between print:hidden mb-4">
           <Button variant="outline" onClick={() => navigate('/reports')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            <ArrowLeft className="h-4 w-4 mr-2" />Back
           </Button>
           <div className="flex gap-2">
             <Button onClick={handleSave} disabled={isSaving} variant="outline">
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Draft'}
+              <Save className="h-4 w-4 mr-2" />{isSaving ? 'Saving...' : 'Save Draft'}
             </Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
-              <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Submitting...' : 'Submit Result'}
+              <Save className="h-4 w-4 mr-2" />{isSubmitting ? 'Submitting...' : 'Submit Result'}
             </Button>
             <Button onClick={handlePrint} variant="secondary">
-              <Printer className="h-4 w-4 mr-2" />
-              Print
+              <Printer className="h-4 w-4 mr-2" />Print
             </Button>
           </div>
         </div>
 
-        {/* Report Card - Styled like the image */}
         <Card className="shadow-lg print:shadow-none print:border-2 print:border-black">
           <CardContent className="p-6 space-y-4">
-            {/* Header with logos and school name */}
-            <div className="flex flex-col items-center border-b-2 border-black pb-4 space-y-2">
-              {/* Termly Volume section with Coat of Arms */}
-              <div className="flex items-center gap-4">
-                <div className="text-center">
-                  <img 
-                    src={new URL('@/assets/ng-coat-of-arms.jpg', import.meta.url).href} 
-                    alt="Nigeria Coat of Arms" 
-                    className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1"
-                  />
-                  <div className="text-red-600 font-bold text-sm">TERMLY VOLUME</div>
-                  <div className="text-xs">CONTINUOUS ASSESSMENT REPORT</div>
-                </div>
+            {/* Header with 3-column layout */}
+            <div className="flex items-start border-b-2 border-black pb-4">
+              {/* LEFT: Coat of Arms + Termly Volume */}
+              <div className="flex-shrink-0 text-center w-1/4">
+                <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1" />
+                <div className="text-red-600 font-bold text-[10px] sm:text-xs">TERMLY VOLUME</div>
+                <div className="text-[9px] sm:text-[10px]">CONTINUOUS ASSESSMENT REPORT</div>
               </div>
 
-              {/* School logo + name */}
-              <div className="text-center">
-                <img 
-                  src={new URL('@/assets/priscilla-school-logo.png', import.meta.url).href} 
-                  alt="Priscilla School Logo" 
-                  className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1"
-                />
-                <h1 className="text-2xl font-bold">PRISCILLA SCHOOL</h1>
-                <p className="text-xs">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                <p className="text-xs"><span className="text-red-600 font-medium">Tel:</span> +234 803 302 1210, +234 701 987 6174</p>
-                <p className="text-xs"><span className="text-red-600 font-medium">Email: priscillaschool@gmail.com</span></p>
-            </div>
-              
-              <div className="w-24 h-24 border-2 border-black flex items-center justify-center bg-blue-50 print:hidden">
-                {reportCard.passport_photo_url ? (
-                  <img src={reportCard.passport_photo_url} alt="Student" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-center p-2">
-                    <Upload className="h-6 w-6 mx-auto mb-1" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      id="photo-upload"
-                    />
-                    <label htmlFor="photo-upload" className="text-xs cursor-pointer text-blue-600 hover:underline">
-                      Upload Photo
-                    </label>
-                  </div>
-                )}
+              {/* CENTER: School logo + info */}
+              <div className="flex-1 text-center px-2">
+                <img src={schoolLogoImg} alt="Priscilla School Logo" className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1" />
+                <h1 className="text-xl sm:text-2xl font-bold">PRISCILLA SCHOOL</h1>
+                <p className="text-[10px] sm:text-xs">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
+                <p className="text-[10px] sm:text-xs">
+                  <span className="text-red-600 font-medium">Tel:</span> +234 803 302 1210, +234 701 987 6174
+                </p>
+                <p className="text-[10px] sm:text-xs">
+                  <span className="text-red-600 font-medium">Email: priscillaschool@gmail.com</span>
+                </p>
               </div>
-              
-              {reportCard.passport_photo_url && (
-                <div className="w-24 h-24 border-2 border-black hidden print:block">
-                  <img src={reportCard.passport_photo_url} alt="Student" className="w-full h-full object-cover" />
+
+              {/* RIGHT: Passport photo */}
+              <div className="flex-shrink-0 w-1/4 flex justify-center">
+                <div className="w-20 h-24 sm:w-24 sm:h-28 border-2 border-black flex items-center justify-center bg-blue-50">
+                  {reportCard.passport_photo_url ? (
+                    <img src={reportCard.passport_photo_url} alt="Student" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-2 print:hidden">
+                      <Upload className="h-6 w-6 mx-auto mb-1" />
+                      <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" id="photo-upload" />
+                      <label htmlFor="photo-upload" className="text-xs cursor-pointer text-blue-600 hover:underline">Upload Photo</label>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
-            {/* Student Details */}
+            {/* Student Details - Edit View */}
             <div className="grid grid-cols-2 gap-4 text-sm print:hidden">
-              <div>
-                <Label>Pupil's Name</Label>
-                <Input
-                  value={reportCard.student_name}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, student_name: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Admission No</Label>
-                <Input
-                  value={reportCard.admission_no}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, admission_no: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Date of Birth</Label>
-                <Input
-                  type="date"
-                  value={reportCard.date_of_birth}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, date_of_birth: e.target.value }))}
-                />
-              </div>
+              <div><Label>Pupil's Name</Label><Input value={reportCard.student_name} onChange={(e) => setReportCard(prev => ({ ...prev, student_name: e.target.value }))} /></div>
+              <div><Label>Admission No</Label><Input value={reportCard.admission_no} onChange={(e) => setReportCard(prev => ({ ...prev, admission_no: e.target.value }))} /></div>
+              <div><Label>Date of Birth</Label><Input type="date" value={reportCard.date_of_birth} onChange={(e) => setReportCard(prev => ({ ...prev, date_of_birth: e.target.value }))} /></div>
               <div>
                 <Label>Gender</Label>
                 <Select value={reportCard.gender} onValueChange={(value) => setReportCard(prev => ({ ...prev, gender: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                  </SelectContent>
+                  <SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
@@ -559,127 +422,47 @@ const StudentReportCardSystem = () => {
             {/* Print View of Student Details */}
             <div className="hidden print:block border-b-2 border-black pb-2">
               <div className="grid grid-cols-6 gap-2 text-sm">
-                <div className="col-span-3">
-                  <span className="font-semibold">Pupil's Name:</span> {reportCard.student_name}
-                </div>
-                <div className="col-span-1">
-                  <span className="font-semibold">Admission No:</span> {reportCard.admission_no}
-                </div>
-                <div className="col-span-1">
-                  <span className="font-semibold">Grade:</span> {reportCard.class_level}
-                </div>
-                <div className="col-span-1">
-                  <span className="font-semibold">Sex:</span> {reportCard.gender}
-                </div>
-                <div className="col-span-2">
-                  <span className="font-semibold">Date of Birth:</span> {reportCard.date_of_birth}
-                </div>
-                <div className="col-span-2">
-                  <span className="font-semibold">Year:</span> {reportCard.academic_session}
-                </div>
-                <div className="col-span-2">
-                  <span className="font-semibold">Term:</span> {reportCard.term}
-                </div>
+                <div className="col-span-3"><span className="font-semibold">Pupil's Name:</span> {reportCard.student_name}</div>
+                <div className="col-span-1"><span className="font-semibold">Admission No:</span> {reportCard.admission_no}</div>
+                <div className="col-span-1"><span className="font-semibold">Grade:</span> {reportCard.class_level}</div>
+                <div className="col-span-1"><span className="font-semibold">Sex:</span> {reportCard.gender}</div>
+                <div className="col-span-2"><span className="font-semibold">Date of Birth:</span> {reportCard.date_of_birth}</div>
+                <div className="col-span-2"><span className="font-semibold">Year:</span> {reportCard.academic_session}</div>
+                <div className="col-span-2"><span className="font-semibold">Term:</span> {reportCard.term}</div>
               </div>
             </div>
 
             {/* Attendance */}
             <div className="border-2 border-black">
-              <div className="bg-gray-200 text-center font-bold text-sm p-1 border-b-2 border-black">
-                ATTENDANCE (Regularity & Punctuality)
-              </div>
+              <div className="bg-gray-200 text-center font-bold text-sm p-1 border-b-2 border-black">ATTENDANCE (Regularity & Punctuality)</div>
               <div className="grid grid-cols-5 text-sm">
                 <div className="col-span-2 border-r border-black p-2"></div>
                 <div className="border-r border-black p-2 text-center font-semibold">School</div>
                 <div className="border-r border-black p-2 text-center font-semibold">Sports</div>
                 <div className="p-2 text-center font-semibold">Other Organized Activities</div>
                 
-                <div className="col-span-2 border-t border-r border-black p-2 print:hidden">
-                  <Label>Total Time School Opened</Label>
-                  <Input
-                    type="number"
-                    value={reportCard.total_school_opened}
-                    onChange={(e) => setReportCard(prev => ({ ...prev, total_school_opened: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
+                <div className="col-span-2 border-t border-r border-black p-2 print:hidden"><Label>Total Time School Opened</Label><Input type="number" value={reportCard.total_school_opened} onChange={(e) => setReportCard(prev => ({ ...prev, total_school_opened: parseInt(e.target.value) || 0 }))} /></div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">Total Time School Opened</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.total_school_opened}</div>
-                <div className="border-t border-r border-black p-2 text-center print:hidden">
-                  <Input
-                    value={reportCard.school_sports[0] || ""}
-                    onChange={(e) => updateSport(0, e.target.value)}
-                    placeholder="Sport 1"
-                    className="h-8 text-xs text-center"
-                  />
-                </div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[0] || ""} onChange={(e) => updateSport(0, e.target.value)} placeholder="Sport 1" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[0]}</div>
-                <div className="border-t border-black p-2 text-center print:hidden">
-                  <Input
-                    value={reportCard.other_activities[0] || ""}
-                    onChange={(e) => updateActivity(0, e.target.value)}
-                    placeholder="Activity 1"
-                    className="h-8 text-xs text-center"
-                  />
-                </div>
+                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[0] || ""} onChange={(e) => updateActivity(0, e.target.value)} placeholder="Activity 1" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[0]}</div>
                 
-                <div className="col-span-2 border-t border-r border-black p-2 print:hidden">
-                  <Label>No. of Time Present</Label>
-                  <Input
-                    type="number"
-                    value={reportCard.times_present}
-                    onChange={(e) => setReportCard(prev => ({ ...prev, times_present: parseInt(e.target.value) || 0 }))}
-                  />
-                </div>
+                <div className="col-span-2 border-t border-r border-black p-2 print:hidden"><Label>No. of Time Present</Label><Input type="number" value={reportCard.times_present} onChange={(e) => setReportCard(prev => ({ ...prev, times_present: parseInt(e.target.value) || 0 }))} /></div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Present</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_present}</div>
-                <div className="border-t border-r border-black p-2 text-center print:hidden">
-                  <Input
-                    value={reportCard.school_sports[1] || ""}
-                    onChange={(e) => updateSport(1, e.target.value)}
-                    placeholder="Sport 2"
-                    className="h-8 text-xs text-center"
-                  />
-                </div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[1] || ""} onChange={(e) => updateSport(1, e.target.value)} placeholder="Sport 2" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[1]}</div>
-                <div className="border-t border-black p-2 text-center print:hidden">
-                  <Input
-                    value={reportCard.other_activities[1] || ""}
-                    onChange={(e) => updateActivity(1, e.target.value)}
-                    placeholder="Activity 2"
-                    className="h-8 text-xs text-center"
-                  />
-                </div>
+                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[1] || ""} onChange={(e) => updateActivity(1, e.target.value)} placeholder="Activity 2" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[1]}</div>
                 
-                <div className="col-span-2 border-t border-r border-black p-2 print:hidden">
-                  <Label>No. of Time Absent (Auto-calculated)</Label>
-                  <Input
-                    type="number"
-                    value={reportCard.times_absent}
-                    disabled
-                    className="bg-muted"
-                  />
-                </div>
+                <div className="col-span-2 border-t border-r border-black p-2 print:hidden"><Label>No. of Time Absent (Auto-calculated)</Label><Input type="number" value={reportCard.times_absent} disabled className="bg-muted" /></div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Absent</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_absent}</div>
-                <div className="border-t border-r border-black p-2 text-center print:hidden">
-                  <Input
-                    value={reportCard.school_sports[2] || ""}
-                    onChange={(e) => updateSport(2, e.target.value)}
-                    placeholder="Sport 3"
-                    className="h-8 text-xs text-center"
-                  />
-                </div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[2] || ""} onChange={(e) => updateSport(2, e.target.value)} placeholder="Sport 3" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[2]}</div>
-                <div className="border-t border-black p-2 text-center print:hidden">
-                  <Input
-                    value={reportCard.other_activities[2] || ""}
-                    onChange={(e) => updateActivity(2, e.target.value)}
-                    placeholder="Activity 3"
-                    className="h-8 text-xs text-center"
-                  />
-                </div>
+                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[2] || ""} onChange={(e) => updateActivity(2, e.target.value)} placeholder="Activity 3" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[2]}</div>
               </div>
             </div>
@@ -696,31 +479,17 @@ const StudentReportCardSystem = () => {
                   <div className="w-8 h-8 bg-red-500"></div>
                   <span className="ml-1 text-xs">Red for Bad Conduct</span>
                 </div>
-                <div className="col-span-1 border-r border-black p-2 text-center">
-                  <div className="font-semibold">Number %:</div>
-                  <div>{reportCard.conduct_percentage}%</div>
-                </div>
-                <div className="col-span-2 border-r border-black p-2 text-center">
-                  <div className="font-semibold">Conduct</div>
-                  <div>{reportCard.conduct_rating}</div>
-                </div>
-                <div className="col-span-1 border-r border-black p-2 text-center">
-                  <div className="font-semibold">Number %</div>
-                </div>
-                <div className="col-span-1 border-r border-black p-2 text-center">
-                  <div className="font-semibold">Conduct</div>
-                </div>
-                <div className="col-span-1 p-2 text-center">
-                  <div className="font-semibold">{reportCard.conduct_rating}</div>
-                </div>
+                <div className="col-span-1 border-r border-black p-2 text-center"><div className="font-semibold">Number %:</div><div>{reportCard.conduct_percentage}%</div></div>
+                <div className="col-span-2 border-r border-black p-2 text-center"><div className="font-semibold">Conduct</div><div>{reportCard.conduct_rating}</div></div>
+                <div className="col-span-1 border-r border-black p-2 text-center"><div className="font-semibold">Number %</div></div>
+                <div className="col-span-1 border-r border-black p-2 text-center"><div className="font-semibold">Conduct</div></div>
+                <div className="col-span-1 p-2 text-center"><div className="font-semibold">{reportCard.conduct_rating}</div></div>
               </div>
             </div>
 
             {/* Subjects Table */}
             <div className="border-2 border-black">
-              <div className="bg-gray-200 text-center font-bold text-sm p-1 border-b-2 border-black">
-                TERMLY ASSESSMENT REPORT
-              </div>
+              <div className="bg-gray-200 text-center font-bold text-sm p-1 border-b-2 border-black">TERMLY ASSESSMENT REPORT</div>
               <div className="grid grid-cols-12 text-xs font-semibold bg-purple-100 border-b border-black">
                 <div className="col-span-4 p-2 border-r border-black">SUBJECTS</div>
                 <div className="col-span-1 p-2 border-r border-black text-center">Half Term<br/>Scores 40</div>
@@ -730,62 +499,35 @@ const StudentReportCardSystem = () => {
                 <div className="col-span-4 p-2">Teacher's Remarks</div>
               </div>
               
-              {reportCard.subjects.map((subject, index) => (
+              {reportCard.subjects.map((subject) => (
                 <div key={subject.id} className="grid grid-cols-12 text-xs border-b border-black print:break-inside-avoid">
                   <div className="col-span-4 p-2 border-r border-black font-semibold print:hidden">
-                    <Input
-                      value={subject.subject_name}
-                      onChange={(e) => setReportCard(prev => ({
-                        ...prev,
-                        subjects: prev.subjects.map(s => s.id === subject.id ? { ...s, subject_name: e.target.value } : s)
-                      }))}
-                      className="h-8"
-                    />
+                    <Input value={subject.subject_name} onChange={(e) => setReportCard(prev => ({ ...prev, subjects: prev.subjects.map(s => s.id === subject.id ? { ...s, subject_name: e.target.value } : s) }))} className="h-8" />
                   </div>
                   <div className="col-span-4 p-2 border-r border-black font-semibold hidden print:block">{subject.subject_name}</div>
                   
                   <div className="col-span-1 p-2 border-r border-black text-center print:hidden">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="40"
-                      value={subject.half_term_score}
-                      onChange={(e) => updateSubjectScore(subject.id, 'half_term_score', parseInt(e.target.value) || 0)}
-                      className="h-8 text-center"
-                    />
+                    <Input type="number" min="0" max="40" value={displayScore(subject.half_term_score)} onChange={(e) => updateSubjectScore(subject.id, 'half_term_score', e.target.value)} className="h-8 text-center" />
                   </div>
-                  <div className="col-span-1 p-2 border-r border-black text-center hidden print:block">{subject.half_term_score}</div>
+                  <div className="col-span-1 p-2 border-r border-black text-center hidden print:block">{displayScore(subject.half_term_score)}</div>
                   
                   <div className="col-span-1 p-2 border-r border-black text-center print:hidden">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="60"
-                      value={subject.exam_score}
-                      onChange={(e) => updateSubjectScore(subject.id, 'exam_score', parseInt(e.target.value) || 0)}
-                      className="h-8 text-center"
-                    />
+                    <Input type="number" min="0" max="60" value={displayScore(subject.exam_score)} onChange={(e) => updateSubjectScore(subject.id, 'exam_score', e.target.value)} className="h-8 text-center" />
                   </div>
-                  <div className="col-span-1 p-2 border-r border-black text-center hidden print:block">{subject.exam_score}</div>
+                  <div className="col-span-1 p-2 border-r border-black text-center hidden print:block">{displayScore(subject.exam_score)}</div>
                   
-                  <div className="col-span-1 p-2 border-r border-black text-center font-bold">{subject.total_score}</div>
+                  <div className="col-span-1 p-2 border-r border-black text-center font-bold">{subject.total_score || ""}</div>
                   <div className="col-span-1 p-2 border-r border-black text-center font-bold">{subject.grade}</div>
                   <div className="col-span-4 p-2 font-semibold">{subject.teacher_remark}</div>
                   
                   <div className="col-span-12 print:hidden border-t border-black p-1 flex justify-end">
-                    <Button size="sm" variant="destructive" onClick={() => removeSubject(subject.id)}>
-                      <Trash2 className="h-3 w-3 mr-1" />
-                      Remove
-                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => removeSubject(subject.id)}><Trash2 className="h-3 w-3 mr-1" />Remove</Button>
                   </div>
                 </div>
               ))}
 
               <div className="print:hidden p-2 border-t-2 border-black">
-                <Button size="sm" onClick={addSubject}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Subject
-                </Button>
+                <Button size="sm" onClick={addSubject}><Plus className="h-4 w-4 mr-2" />Add Subject</Button>
               </div>
             </div>
 
@@ -797,109 +539,40 @@ const StudentReportCardSystem = () => {
                 <div className="col-span-2 p-2 border-r border-black"></div>
                 <div className="col-span-2 p-2 border-r border-black"></div>
                 <div className="col-span-2 p-2"></div>
-                
                 <div className="col-span-4 p-2 border-t border-r border-black font-bold">Total Score Obtained</div>
-                <div className="col-span-2 p-2 border-t border-r border-black text-center font-bold">{summary.totalObtained}</div>
+                <div className="col-span-2 p-2 border-t border-r border-black text-center font-bold">{summary.totalObtained || ""}</div>
                 <div className="col-span-2 p-2 border-t border-r border-black font-bold">Average:</div>
-                <div className="col-span-1 p-2 border-t border-r border-black text-center">{summary.average}</div>
+                <div className="col-span-1 p-2 border-t border-r border-black text-center">{parseFloat(summary.average) ? summary.average : ""}</div>
                 <div className="col-span-2 p-2 border-t border-r border-black font-bold">Percentage %</div>
-                <div className="col-span-1 p-2 border-t text-center">{summary.percentage}%</div>
+                <div className="col-span-1 p-2 border-t text-center">{parseFloat(summary.percentage) ? `${summary.percentage}%` : ""}</div>
               </div>
             </div>
 
             {/* Comments and Additional Info */}
             <div className="grid grid-cols-2 gap-4 text-sm print:hidden mt-4">
-              <div>
-                <Label>Club/Organization</Label>
-                <Input
-                  value={reportCard.club_organization}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, club_organization: e.target.value }))}
-                  placeholder="e.g., Football and Reading Club"
-                />
-              </div>
+              <div><Label>Club/Organization</Label><Input value={reportCard.club_organization} onChange={(e) => setReportCard(prev => ({ ...prev, club_organization: e.target.value }))} placeholder="e.g., Football and Reading Club" /></div>
               <div>
                 <Label>Term</Label>
                 <Select value={reportCard.term} onValueChange={(value) => setReportCard(prev => ({ ...prev, term: value }))}>
                   <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="First Term">First Term</SelectItem>
-                    <SelectItem value="Second Term">Second Term</SelectItem>
-                    <SelectItem value="Third Term">Third Term</SelectItem>
-                  </SelectContent>
+                  <SelectContent><SelectItem value="First Term">First Term</SelectItem><SelectItem value="Second Term">Second Term</SelectItem><SelectItem value="Third Term">Third Term</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Class Teacher's Comments</Label>
-                <Textarea
-                  value={reportCard.class_teacher_comments}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_comments: e.target.value }))}
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label>Head Teacher's Comments</Label>
-                <Textarea
-                  value={reportCard.head_teacher_comments}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_comments: e.target.value }))}
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label>Class Teacher's Name</Label>
-                <Input
-                  value={reportCard.class_teacher_name}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_name: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Head Teacher's Name</Label>
-                <Input
-                  value={reportCard.head_teacher_name}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_name: e.target.value }))}
-                />
-              </div>
+              <div><Label>Class Teacher's Comments</Label><Textarea value={reportCard.class_teacher_comments} onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_comments: e.target.value }))} rows={3} /></div>
+              <div><Label>Head Teacher's Comments</Label><Textarea value={reportCard.head_teacher_comments} onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_comments: e.target.value }))} rows={3} /></div>
+              <div><Label>Class Teacher's Name</Label><Input value={reportCard.class_teacher_name} onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_name: e.target.value }))} /></div>
+              <div><Label>Head Teacher's Name</Label><Input value={reportCard.head_teacher_name} onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_name: e.target.value }))} /></div>
               <div>
                 <Label>Class Teacher's Signature</Label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    {classTeacherSignature && (
-                      <img 
-                        src={classTeacherSignature} 
-                        alt="Signature" 
-                        style={{ width: `${classSignatureWidth}px`, height: `${classSignatureHeight}px` }}
-                        className="border object-contain"
-                      />
-                    )}
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleSignatureUpload('class', e)}
-                    />
+                    {classTeacherSignature && <img src={classTeacherSignature} alt="Signature" style={{ width: `${classSignatureWidth}px`, height: `${classSignatureHeight}px` }} className="border object-contain" />}
+                    <Input type="file" accept="image/*" onChange={(e) => handleSignatureUpload('class', e)} />
                   </div>
                   {classTeacherSignature && (
                     <div className="flex gap-2">
-                      <div className="flex-1">
-                        <Label className="text-xs">Width: {classSignatureWidth}px</Label>
-                        <Input
-                          type="range"
-                          min="60"
-                          max="200"
-                          value={classSignatureWidth}
-                          onChange={(e) => setClassSignatureWidth(parseInt(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Label className="text-xs">Height: {classSignatureHeight}px</Label>
-                        <Input
-                          type="range"
-                          min="30"
-                          max="120"
-                          value={classSignatureHeight}
-                          onChange={(e) => setClassSignatureHeight(parseInt(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
+                      <div className="flex-1"><Label className="text-xs">Width: {classSignatureWidth}px</Label><Input type="range" min="60" max="200" value={classSignatureWidth} onChange={(e) => setClassSignatureWidth(parseInt(e.target.value))} className="w-full" /></div>
+                      <div className="flex-1"><Label className="text-xs">Height: {classSignatureHeight}px</Label><Input type="range" min="30" max="120" value={classSignatureHeight} onChange={(e) => setClassSignatureHeight(parseInt(e.target.value))} className="w-full" /></div>
                     </div>
                   )}
                 </div>
@@ -908,98 +581,38 @@ const StudentReportCardSystem = () => {
                 <Label>Head Teacher's Signature</Label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    {headTeacherSignature && (
-                      <img 
-                        src={headTeacherSignature} 
-                        alt="Signature" 
-                        style={{ width: `${headSignatureWidth}px`, height: `${headSignatureHeight}px` }}
-                        className="border object-contain"
-                      />
-                    )}
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleSignatureUpload('head', e)}
-                    />
+                    {headTeacherSignature && <img src={headTeacherSignature} alt="Signature" style={{ width: `${headSignatureWidth}px`, height: `${headSignatureHeight}px` }} className="border object-contain" />}
+                    <Input type="file" accept="image/*" onChange={(e) => handleSignatureUpload('head', e)} />
                   </div>
                   {headTeacherSignature && (
                     <div className="flex gap-2">
-                      <div className="flex-1">
-                        <Label className="text-xs">Width: {headSignatureWidth}px</Label>
-                        <Input
-                          type="range"
-                          min="60"
-                          max="200"
-                          value={headSignatureWidth}
-                          onChange={(e) => setHeadSignatureWidth(parseInt(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Label className="text-xs">Height: {headSignatureHeight}px</Label>
-                        <Input
-                          type="range"
-                          min="30"
-                          max="120"
-                          value={headSignatureHeight}
-                          onChange={(e) => setHeadSignatureHeight(parseInt(e.target.value))}
-                          className="w-full"
-                        />
-                      </div>
+                      <div className="flex-1"><Label className="text-xs">Width: {headSignatureWidth}px</Label><Input type="range" min="60" max="200" value={headSignatureWidth} onChange={(e) => setHeadSignatureWidth(parseInt(e.target.value))} className="w-full" /></div>
+                      <div className="flex-1"><Label className="text-xs">Height: {headSignatureHeight}px</Label><Input type="range" min="30" max="120" value={headSignatureHeight} onChange={(e) => setHeadSignatureHeight(parseInt(e.target.value))} className="w-full" /></div>
                     </div>
                   )}
                 </div>
               </div>
-              <div>
-                <Label>Next Term Begins</Label>
-                <Input
-                  type="date"
-                  value={reportCard.next_term_begins}
-                  onChange={(e) => setReportCard(prev => ({ ...prev, next_term_begins: e.target.value }))}
-                />
-              </div>
+              <div><Label>Next Term Begins</Label><Input type="date" value={reportCard.next_term_begins} onChange={(e) => setReportCard(prev => ({ ...prev, next_term_begins: e.target.value }))} /></div>
             </div>
 
             {/* Comments Print View */}
             <div className="hidden print:block border-t-2 border-black pt-4 space-y-2 text-sm">
-              <div>
-                <span className="font-bold">Club/Organization:</span> {reportCard.club_organization}
-              </div>
-              <div>
-                <span className="font-bold">Class Teacher's Comments:</span> {reportCard.class_teacher_comments}
-              </div>
-              <div>
-                <span className="font-bold">Head Teacher's Comments:</span> {reportCard.head_teacher_comments}
-              </div>
+              <div><span className="font-bold">Club/Organization:</span> {reportCard.club_organization}</div>
+              <div><span className="font-bold">Class Teacher's Comments:</span> {reportCard.class_teacher_comments}</div>
+              <div><span className="font-bold">Head Teacher's Comments:</span> {reportCard.head_teacher_comments}</div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
                   <div className="font-bold">Class Teacher's Name and Signature</div>
-                  {classTeacherSignature && (
-                    <img 
-                      src={classTeacherSignature} 
-                      alt="Class Teacher Signature" 
-                      style={{ width: `${classSignatureWidth}px`, height: `${classSignatureHeight}px` }}
-                      className="my-2 object-contain"
-                    />
-                  )}
+                  {classTeacherSignature && <img src={classTeacherSignature} alt="Class Teacher Signature" style={{ width: `${classSignatureWidth}px`, height: `${classSignatureHeight}px` }} className="my-2 object-contain" />}
                   <div className="border-t-2 border-black pt-2">{reportCard.class_teacher_name}</div>
                 </div>
                 <div>
                   <div className="font-bold">Head Teacher's Name and Signature</div>
-                  {headTeacherSignature && (
-                    <img 
-                      src={headTeacherSignature} 
-                      alt="Head Teacher Signature" 
-                      style={{ width: `${headSignatureWidth}px`, height: `${headSignatureHeight}px` }}
-                      className="my-2 object-contain"
-                    />
-                  )}
+                  {headTeacherSignature && <img src={headTeacherSignature} alt="Head Teacher Signature" style={{ width: `${headSignatureWidth}px`, height: `${headSignatureHeight}px` }} className="my-2 object-contain" />}
                   <div className="border-t-2 border-black pt-2">{reportCard.head_teacher_name}</div>
                 </div>
               </div>
-              <div className="text-center mt-4">
-                <span className="font-bold">Next Term Begins:</span> {reportCard.next_term_begins}
-              </div>
+              <div className="text-center mt-4"><span className="font-bold">Next Term Begins:</span> {reportCard.next_term_begins}</div>
             </div>
           </CardContent>
         </Card>
