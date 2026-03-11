@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Edit, Send, Trash2, AlertCircle, FileText } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, AlertCircle, FileText } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,14 +26,17 @@ interface DraftReportCard {
 const DraftResults = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { canManageClassLevel } = useAdminSector();
+  const { canManageClassLevel, isSuperAdmin, userRole } = useAdminSector();
   const [drafts, setDrafts] = useState<DraftReportCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [teacherAssignedClass, setTeacherAssignedClass] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDrafts();
+    if (user) {
+      fetchTeacherAssignment();
+      loadDrafts();
+    }
 
-    // Real-time subscription
     const channel = supabase
       .channel('draft-results-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'report_cards' }, loadDrafts)
@@ -43,11 +46,23 @@ const DraftResults = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  const fetchTeacherAssignment = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('teacher_assignments')
+      .select('class_level')
+      .eq('teacher_id', user.id)
+      .eq('is_class_teacher', true)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (data) setTeacherAssignedClass(data.class_level);
+  };
+
   const loadDrafts = async () => {
     if (!user) return;
     
     try {
-      // Load primary drafts (all report_cards by this teacher)
+      // Load primary drafts - only those created by this teacher
       const { data: primaryData, error: primaryError } = await supabase
         .from('report_cards')
         .select('id, student_name, admission_no, class_level, academic_session, term, created_at')
@@ -56,7 +71,7 @@ const DraftResults = () => {
 
       if (primaryError) throw primaryError;
 
-      // Load secondary drafts/rejected
+      // Load secondary drafts/rejected - only those created by this teacher
       const { data: secondaryData, error: secondaryError } = await supabase
         .from('secondary_report_cards')
         .select('id, student_name, admission_no, class_level, academic_session, term, created_at, status, rejection_reason')
@@ -66,14 +81,27 @@ const DraftResults = () => {
 
       if (secondaryError) throw secondaryError;
 
-      const allDrafts: DraftReportCard[] = [
+      let allDrafts: DraftReportCard[] = [
         ...(primaryData || []).map(d => ({ ...d, source: 'primary' as const, status: 'draft', rejection_reason: undefined })),
         ...(secondaryData || []).map(d => ({ ...d, source: 'secondary' as const, status: d.status || 'draft' }))
-      ].filter(d => canManageClassLevel(d.class_level));
+      ];
 
-      // Sort by created_at descending
+      // Apply role-based filtering
+      if (!isSuperAdmin && userRole !== 'admin') {
+        // For class teachers, filter to only their assigned class
+        if (teacherAssignedClass) {
+          allDrafts = allDrafts.filter(d => {
+            // Only show drafts for the teacher's assigned class
+            const draftClassLower = d.class_level?.toLowerCase() || '';
+            const assignedClassLower = teacherAssignedClass.toLowerCase();
+            return draftClassLower.includes(assignedClassLower) || assignedClassLower.includes(draftClassLower);
+          });
+        }
+        // Additionally filter by sector
+        allDrafts = allDrafts.filter(d => canManageClassLevel(d.class_level));
+      }
+
       allDrafts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
       setDrafts(allDrafts);
     } catch (error) {
       console.error('Error loading drafts:', error);
@@ -82,6 +110,11 @@ const DraftResults = () => {
       setLoading(false);
     }
   };
+
+  // Re-load when assignment is fetched
+  useEffect(() => {
+    if (teacherAssignedClass !== null) loadDrafts();
+  }, [teacherAssignedClass]);
 
   const handleEdit = (draft: DraftReportCard) => {
     if (draft.source === 'secondary') {
@@ -93,7 +126,6 @@ const DraftResults = () => {
 
   const handleDelete = async (draft: DraftReportCard) => {
     if (!confirm('Are you sure you want to delete this draft?')) return;
-
     try {
       if (draft.source === 'primary') {
         await supabase.from('report_card_subjects').delete().eq('report_card_id', draft.id);
@@ -106,7 +138,6 @@ const DraftResults = () => {
         const { error } = await supabase.from('secondary_report_cards').delete().eq('id', draft.id);
         if (error) throw error;
       }
-      
       toast.success('Draft deleted successfully');
       loadDrafts();
     } catch (error) {
@@ -120,10 +151,7 @@ const DraftResults = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Link to="/reports">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
+            <Button variant="outline" size="sm"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
           </Link>
           <div>
             <h1 className="text-xl sm:text-3xl font-bold">Drafts</h1>
@@ -132,9 +160,7 @@ const DraftResults = () => {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Draft & Rejected Results</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle>Draft & Rejected Results</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">Loading drafts...</div>
@@ -163,9 +189,7 @@ const DraftResults = () => {
                       <TableRow key={`${draft.source}-${draft.id}`}>
                         <TableCell className="font-medium">{draft.student_name}</TableCell>
                         <TableCell>{draft.admission_no}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{draft.class_level}</Badge>
-                        </TableCell>
+                        <TableCell><Badge variant="outline">{draft.class_level}</Badge></TableCell>
                         <TableCell>{draft.term}</TableCell>
                         <TableCell>
                           <div className="space-y-1">
@@ -180,14 +204,11 @@ const DraftResults = () => {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(draft.created_at).toLocaleDateString()}
-                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{new Date(draft.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button size="sm" variant="outline" onClick={() => handleEdit(draft)}>
-                              <Edit className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">Edit</span>
+                              <Edit className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Edit</span>
                             </Button>
                             <Button size="sm" variant="destructive" onClick={() => handleDelete(draft)}>
                               <Trash2 className="h-4 w-4" />
