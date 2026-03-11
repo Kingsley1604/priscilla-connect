@@ -474,14 +474,14 @@ const MidtermReportSheet = () => {
                           <span className="print:block hidden">{subject.name}</span>
                         </td>
                         <td className="border p-2">
-                          <Input type="number" min="0" max="15" value={subject.cas1} onChange={(e) => updateSubjectScore(index, 'cas1', parseInt(e.target.value) || 0)} className="no-print" />
-                          <span className="print:block hidden">{subject.cas1}</span>
+                          <Input type="number" min="0" max="15" value={displayScore(subject.cas1)} onChange={(e) => updateSubjectScore(index, 'cas1', e.target.value)} className="no-print" />
+                          <span className="print:block hidden">{displayScore(subject.cas1)}</span>
                         </td>
                         <td className="border p-2">
-                          <Input type="number" min="0" max="15" value={subject.cas2} onChange={(e) => updateSubjectScore(index, 'cas2', parseInt(e.target.value) || 0)} className="no-print" />
-                          <span className="print:block hidden">{subject.cas2}</span>
+                          <Input type="number" min="0" max="15" value={displayScore(subject.cas2)} onChange={(e) => updateSubjectScore(index, 'cas2', e.target.value)} className="no-print" />
+                          <span className="print:block hidden">{displayScore(subject.cas2)}</span>
                         </td>
-                        <td className="border p-2 font-bold">{subject.total}</td>
+                        <td className="border p-2 font-bold">{subject.total || ""}</td>
                         <td className="border p-2 font-bold">{subject.grade}</td>
                         <td className="border p-2">{subject.remark}</td>
                         <td className="border p-2 no-print">
