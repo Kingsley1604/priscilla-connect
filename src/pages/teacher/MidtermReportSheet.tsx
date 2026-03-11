@@ -49,9 +49,9 @@ const MidtermReportSheet = () => {
   });
 
   const [subjects, setSubjects] = useState<Subject[]>([
-    { name: "Mathematics", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" },
-    { name: "English Language", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" },
-    { name: "Basic Science", cas1: 0, cas2: 0, total: 0, grade: "", remark: "" },
+    { name: "Mathematics", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" },
+    { name: "English Language", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" },
+    { name: "Basic Science", cas1: null as any, cas2: null as any, total: 0, grade: "", remark: "" },
   ]);
 
   const calculateGrade = (total: number): { grade: string; remark: string } => {
