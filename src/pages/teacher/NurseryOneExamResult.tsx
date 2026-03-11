@@ -401,12 +401,12 @@ const NurseryOneExamResult = () => {
                       <tr key={index}>
                         <td className="border p-2 text-sm font-medium">{subject.name}</td>
                         <td className="border p-1">
-                          <Input type="number" min="0" max="40" value={subject.halfTerm || ""} onChange={(e) => updateSubject(index, "halfTerm", e.target.value)} className="text-center h-8 print:border-0" />
+                          <Input type="number" min="0" max="40" value={displayScore(subject.halfTerm)} onChange={(e) => updateSubject(index, "halfTerm", e.target.value)} className="text-center h-8 print:border-0" />
                         </td>
                         <td className="border p-1">
-                          <Input type="number" min="0" max="60" value={subject.exam || ""} onChange={(e) => updateSubject(index, "exam", e.target.value)} className="text-center h-8 print:border-0" />
+                          <Input type="number" min="0" max="60" value={displayScore(subject.exam)} onChange={(e) => updateSubject(index, "exam", e.target.value)} className="text-center h-8 print:border-0" />
                         </td>
-                        <td className="border p-2 text-center font-bold">{subject.total}</td>
+                        <td className="border p-2 text-center font-bold">{subject.total || ""}</td>
                         <td className="border p-2 text-center font-bold text-primary">{subject.grade}</td>
                         <td className="border p-2 text-sm text-center">{subject.remark}</td>
                       </tr>
