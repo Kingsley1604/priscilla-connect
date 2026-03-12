@@ -1,17 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Printer, Save, Upload, Plus, Trash2, Edit2, Check, X, MoreVertical } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Printer, Save, Send, Plus, Trash2, Edit2, Check, X, MoreVertical, Upload } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-// Asset imports
 import coatOfArmsImg from "@/assets/ng-coat-of-arms.jpg";
 import schoolLogoImg from "@/assets/priscilla-school-logo.png";
 import mickeyImg from "@/assets/mickey.png";
@@ -82,7 +81,10 @@ const NurseryMidtermReport = () => {
   const searchParams = new URLSearchParams(location.search);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
+  const [classTeacherSignature, setClassTeacherSignature] = useState<string | null>(null);
+  const [schoolStamp, setSchoolStamp] = useState<string | null>(null);
 
   const [reportData, setReportData] = useState({
     pupilName: "",
@@ -108,10 +110,9 @@ const NurseryMidtermReport = () => {
   const [headTeacherComment, setHeadTeacherComment] = useState("");
   const [classTeacherName, setClassTeacherName] = useState("");
   const [headTeacherName, setHeadTeacherName] = useState("");
-
-  // Skill editing state
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
   const [editingSkillName, setEditingSkillName] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Auto-calculate absent
   useEffect(() => {
@@ -120,42 +121,73 @@ const NurseryMidtermReport = () => {
     setAttendance(prev => ({ ...prev, schoolAbsent: String(Math.max(0, opened - present)) }));
   }, [attendance.schoolOpened, attendance.schoolPresent]);
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { toast.error("Image must be < 2MB"); return; }
-      const reader = new FileReader();
-      reader.onloadend = () => setPassportPhoto(reader.result as string);
-      reader.readAsDataURL(file);
+  // Load draft if editing
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) loadDraft(editId);
+  }, []);
+
+  const loadDraft = async (id: string) => {
+    const { data, error } = await supabase.from("report_cards").select("*").eq("id", id).maybeSingle();
+    if (error || !data) { toast.error("Failed to load draft"); return; }
+    setReportData({
+      pupilName: data.student_name || "",
+      gender: data.gender || "",
+      academicYear: data.academic_session || "",
+      term: data.term || "",
+      numberInClass: "",
+      grade: data.class_level || "Nursery One",
+    });
+    setClassTeacherComment(data.class_teacher_comments || "");
+    setHeadTeacherComment(data.head_teacher_comments || "");
+    setClassTeacherName(data.class_teacher_name || "");
+    setHeadTeacherName(data.head_teacher_name || "");
+    if (data.passport_photo_url) setPassportPhoto(data.passport_photo_url);
+    if (data.total_school_opened) setAttendance(prev => ({ ...prev, schoolOpened: String(data.total_school_opened) }));
+    if (data.times_present) setAttendance(prev => ({ ...prev, schoolPresent: String(data.times_present) }));
+    if (data.times_absent) setAttendance(prev => ({ ...prev, schoolAbsent: String(data.times_absent) }));
+    // Load skills from other_activities JSON if stored
+    if (data.other_activities && Array.isArray(data.other_activities)) {
+      setAttendance(prev => ({
+        ...prev,
+        otherActivities: [
+          (data.other_activities as string[])[0] || "",
+          (data.other_activities as string[])[1] || "",
+          (data.other_activities as string[])[2] || "",
+        ],
+      }));
     }
   };
 
+  const handleFileUpload = (setter: (v: string | null) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
+    const reader = new FileReader();
+    reader.onloadend = () => setter(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const updateRating = (categoryId: string, skillId: string, rating: Rating) => {
-    setCategories(prev =>
-      prev.map(cat =>
-        cat.id === categoryId
-          ? { ...cat, skills: cat.skills.map(s => (s.id === skillId ? { ...s, rating } : s)) }
-          : cat
-      )
-    );
+    setCategories(prev => prev.map(cat =>
+      cat.id === categoryId
+        ? { ...cat, skills: cat.skills.map(s => s.id === skillId ? { ...s, rating } : s) }
+        : cat
+    ));
   };
 
   const addSkill = (categoryId: string) => {
-    setCategories(prev =>
-      prev.map(cat =>
-        cat.id === categoryId
-          ? { ...cat, skills: [...cat.skills, { id: `skill-${Date.now()}`, name: "New skill", rating: "" }] }
-          : cat
-      )
-    );
+    setCategories(prev => prev.map(cat =>
+      cat.id === categoryId
+        ? { ...cat, skills: [...cat.skills, { id: `skill-${Date.now()}`, name: "New skill", rating: "" }] }
+        : cat
+    ));
   };
 
   const deleteSkill = (categoryId: string, skillId: string) => {
-    setCategories(prev =>
-      prev.map(cat =>
-        cat.id === categoryId ? { ...cat, skills: cat.skills.filter(s => s.id !== skillId) } : cat
-      )
-    );
+    setCategories(prev => prev.map(cat =>
+      cat.id === categoryId ? { ...cat, skills: cat.skills.filter(s => s.id !== skillId) } : cat
+    ));
   };
 
   const startEditSkill = (skillId: string, currentName: string) => {
@@ -165,61 +197,105 @@ const NurseryMidtermReport = () => {
 
   const saveEditSkill = (categoryId: string) => {
     if (!editingSkillName.trim()) return;
-    setCategories(prev =>
-      prev.map(cat =>
-        cat.id === categoryId
-          ? { ...cat, skills: cat.skills.map(s => (s.id === editingSkill ? { ...s, name: editingSkillName } : s)) }
-          : cat
-      )
-    );
+    setCategories(prev => prev.map(cat =>
+      cat.id === categoryId
+        ? { ...cat, skills: cat.skills.map(s => s.id === editingSkill ? { ...s, name: editingSkillName } : s) }
+        : cat
+    ));
     setEditingSkill(null);
     setEditingSkillName("");
   };
 
+  // Validation
+  const validate = useCallback((): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    if (!reportData.pupilName.trim()) errors.pupilName = "Student name is required";
+    if (!reportData.gender) errors.gender = "Gender is required";
+    if (!reportData.term) errors.term = "Term is required";
+    if (!reportData.academicYear.trim()) errors.academicYear = "Academic year is required";
+    if (!headTeacherName.trim()) errors.headTeacherName = "Head Teacher name is required";
+    if (!headTeacherComment.trim()) errors.headTeacherComment = "Head Teacher comment is required";
+    if (!classTeacherComment.trim()) errors.classTeacherComment = "Class Teacher comment is required";
+    if (!classTeacherSignature) errors.classTeacherSignature = "Class Teacher signature is required";
+    if (!schoolStamp) errors.schoolStamp = "School stamp is required";
+    return errors;
+  }, [reportData, headTeacherName, headTeacherComment, classTeacherComment, classTeacherSignature, schoolStamp]);
+
+  const isFormValid = Object.keys(validate()).length === 0;
+
+  const buildPayload = () => ({
+    student_name: reportData.pupilName.trim(),
+    admission_no: "",
+    gender: reportData.gender,
+    class_level: reportData.grade,
+    academic_session: reportData.academicYear.trim(),
+    term: reportData.term,
+    total_school_opened: parseInt(attendance.schoolOpened) || 0,
+    times_present: parseInt(attendance.schoolPresent) || 0,
+    times_absent: parseInt(attendance.schoolAbsent) || 0,
+    passport_photo_url: passportPhoto,
+    class_teacher_comments: classTeacherComment,
+    head_teacher_comments: headTeacherComment,
+    class_teacher_name: classTeacherName,
+    head_teacher_name: headTeacherName,
+    other_activities: attendance.otherActivities.filter(Boolean),
+    school_sports: [attendance.sportsOpened, attendance.sportsPresent, attendance.sportsAbsent].filter(Boolean),
+    conduct_rating: "Good",
+    conduct_percentage: 100,
+    total_obtainable_score: 0,
+    total_score_obtained: 0,
+    average_score: 0,
+    percentage: 0,
+    created_by: user?.id,
+  });
+
+  const handleSaveDraft = async () => {
+    if (!user) { toast.error("Not authenticated"); return; }
+    setIsSavingDraft(true);
+    try {
+      const editId = searchParams.get("edit");
+      const payload = buildPayload();
+
+      if (editId) {
+        const { error } = await supabase.from("report_cards").update(payload).eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("report_cards").insert({ ...payload, student_id: user.id });
+        if (error) throw error;
+      }
+      toast.success("Draft saved successfully!");
+      navigate("/teacher/draft-results");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save draft");
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!reportData.pupilName) { toast.error("Please enter pupil's name"); return; }
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      toast.error("Please fill in all required fields before submitting");
+      return;
+    }
+    setValidationErrors({});
     if (!user) { toast.error("Not authenticated"); return; }
 
     setIsSubmitting(true);
     try {
-      // Store as report_card with nursery midterm type
-      const skillsData = categories.map(cat => ({
-        category: cat.title,
-        skills: cat.skills.map(s => ({ name: s.name, rating: s.rating })),
-      }));
+      const editId = searchParams.get("edit");
+      const payload = buildPayload();
 
-      const { error } = await supabase.from("report_cards").insert({
-        student_id: user.id,
-        student_name: reportData.pupilName,
-        admission_no: "",
-        gender: reportData.gender,
-        class_level: reportData.grade,
-        academic_session: reportData.academicYear,
-        term: reportData.term,
-        total_school_opened: parseInt(attendance.schoolOpened) || 0,
-        times_present: parseInt(attendance.schoolPresent) || 0,
-        times_absent: parseInt(attendance.schoolAbsent) || 0,
-        passport_photo_url: passportPhoto,
-        class_teacher_comments: classTeacherComment,
-        head_teacher_comments: headTeacherComment,
-        class_teacher_name: classTeacherName,
-        head_teacher_name: headTeacherName,
-        other_activities: attendance.otherActivities.filter(Boolean),
-        school_sports: [attendance.sportsOpened, attendance.sportsPresent, attendance.sportsAbsent].filter(Boolean),
-        conduct_rating: "Good",
-        conduct_percentage: 100,
-        total_obtainable_score: 0,
-        total_score_obtained: 0,
-        average_score: 0,
-        percentage: 0,
-        created_by: user.id,
-      });
+      if (editId) {
+        const { error } = await supabase.from("report_cards").update(payload).eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("report_cards").insert({ ...payload, student_id: user.id });
+        if (error) throw error;
+      }
 
-      if (error) throw error;
-
-      // Notify admins
       const { data: teacherProfile } = await supabase.from("profiles").select("name").eq("id", user.id).maybeSingle();
-
       await supabase.from("result_upload_notifications").insert({
         teacher_id: user.id,
         teacher_name: teacherProfile?.name || "Unknown Teacher",
@@ -232,7 +308,6 @@ const NurseryMidtermReport = () => {
       toast.success("Nursery Mid-Term report submitted successfully!");
       navigate("/reports");
     } catch (error: any) {
-      console.error("Error:", error);
       toast.error(error.message || "Failed to submit report");
     } finally {
       setIsSubmitting(false);
@@ -240,6 +315,9 @@ const NurseryMidtermReport = () => {
   };
 
   const handlePrint = () => window.print();
+
+  const ErrorMsg = ({ field }: { field: string }) =>
+    validationErrors[field] ? <p className="text-red-500 text-[10px] mt-0.5">{validationErrors[field]}</p> : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -250,26 +328,34 @@ const NurseryMidtermReport = () => {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-container { font-size: 9pt !important; }
           .print-container table { font-size: 8pt !important; }
+          .footer-deco { position: fixed !important; bottom: 5mm; }
+          .footer-deco-left { left: 5mm; }
+          .footer-deco-right { right: 5mm; }
         }
-        .check-mark::after { content: "✓"; font-size: 16px; font-weight: bold; }
+        .skill-row .skill-actions { opacity: 0; transition: opacity 0.2s ease; }
+        .skill-row:hover .skill-actions { opacity: 1; }
       `}</style>
 
-      {/* Top bar - hidden on print */}
-      <header className="bg-gradient-hero text-white py-4 px-4 sm:px-6 shadow-medium no-print">
+      {/* Top bar */}
+      <header className="bg-gradient-hero text-white py-4 px-4 sm:px-6 shadow-medium no-print fixed top-0 left-0 right-0 z-50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={() => navigate("/teacher/upload-result")}>
-              <ArrowLeft className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Back</span>
+              <ArrowLeft className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Back</span>
             </Button>
             <h1 className="text-lg sm:text-2xl font-bold truncate">Nursery Mid-Term Report</h1>
           </div>
+          {/* Desktop buttons */}
           <div className="hidden sm:flex gap-2">
             <Button onClick={handlePrint} variant="secondary"><Printer className="h-4 w-4 mr-2" />Print</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              <Save className="h-4 w-4 mr-2" />{isSubmitting ? "Submitting..." : "Submit"}
+            <Button onClick={handleSaveDraft} variant="outline" className="text-white border-white hover:bg-white/20" disabled={isSavingDraft}>
+              <Save className="h-4 w-4 mr-2" />{isSavingDraft ? "Saving..." : "Save Draft"}
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting || !isFormValid} title={!isFormValid ? "Fill all required fields" : ""}>
+              <Send className="h-4 w-4 mr-2" />{isSubmitting ? "Submitting..." : "Submit"}
             </Button>
           </div>
+          {/* Mobile 3-dot menu */}
           <div className="sm:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -277,8 +363,11 @@ const NurseryMidtermReport = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handlePrint}><Printer className="h-4 w-4 mr-2" />Print</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSubmit} disabled={isSubmitting}>
-                  <Save className="h-4 w-4 mr-2" />{isSubmitting ? "Submitting..." : "Submit"}
+                <DropdownMenuItem onClick={handleSaveDraft} disabled={isSavingDraft}>
+                  <Save className="h-4 w-4 mr-2" />{isSavingDraft ? "Saving..." : "Save Draft"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSubmit} disabled={isSubmitting || !isFormValid}>
+                  <Send className="h-4 w-4 mr-2" />{isSubmitting ? "Submitting..." : "Submit"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -286,61 +375,62 @@ const NurseryMidtermReport = () => {
         </div>
       </header>
 
+      <div className="pt-20 sm:pt-24" />
+
       <div className="max-w-5xl mx-auto p-4 sm:p-6 print-container">
-        <Card className="shadow-lg print:shadow-none print:border-2 print:border-blue-800 border-2 border-blue-700">
+        <Card className="shadow-lg print:shadow-none print:border-2 print:border-blue-800 border-2 border-blue-700 relative overflow-hidden">
           <CardContent className="p-4 sm:p-6 space-y-0">
 
             {/* ===== HEADER SECTION ===== */}
             <div className="border-b-2 border-blue-700 pb-2">
-              {/* Three-zone header */}
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center justify-between gap-2">
                 {/* LEFT ZONE */}
-                <div className="flex flex-col items-center gap-1 w-20 sm:w-24 flex-shrink-0">
-                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-12 w-12 sm:h-16 sm:w-16 object-contain" />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-12 sm:w-16 object-contain" />
+                <div className="flex flex-col items-center justify-center gap-1 w-20 sm:w-28 flex-shrink-0">
+                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-10 w-10 sm:h-14 sm:w-14 object-contain" />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain" />
                 </div>
 
                 {/* CENTER ZONE */}
                 <div className="flex-1 text-center relative">
                   <div className="relative inline-block w-full">
-                    <img src={cloudImg} alt="" className="mx-auto h-14 sm:h-20 object-contain opacity-30 absolute inset-0 w-full" />
+                    <img src={cloudImg} alt="" className="mx-auto h-16 sm:h-24 object-contain opacity-25 absolute inset-0 w-full pointer-events-none" />
                     <div className="relative z-10 py-1">
-                      <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-10 w-10 sm:h-14 sm:w-14 object-contain" />
-                      <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide">PRISCILLA SCHOOL</h1>
-                      <p className="text-[10px] sm:text-xs text-blue-700">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                      <p className="text-[10px] sm:text-xs">
+                      <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-8 w-8 sm:h-12 sm:w-12 object-contain" />
+                      <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
+                      <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
+                      <p className="text-[9px] sm:text-xs leading-tight">
                         <span className="text-red-600 font-semibold">Tel:</span>{" "}
-                        <span className="text-blue-700">+234 803 302 1210, +234 701 987 6174.</span>{" "}
-                        <span className="text-red-600 font-semibold">Email: priscillaschool@gmail.com</span>
+                        <span className="text-blue-700">+234 803 302 1210, +234 701 987 6174</span>
+                        <span className="mx-1">|</span>
+                        <span className="text-red-600 font-semibold">Email:</span>{" "}
+                        <span className="text-blue-700">priscillaschool@gmail.com</span>
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* RIGHT ZONE */}
-                <div className="flex flex-col items-center gap-1 w-20 sm:w-24 flex-shrink-0">
-                  <img src={childrenOnBooksImg} alt="Children on books" className="h-12 w-14 sm:h-16 sm:w-18 object-contain" />
-                  {/* Passport photo */}
+                <div className="flex flex-col items-center justify-center gap-1 w-20 sm:w-28 flex-shrink-0">
+                  <img src={childrenOnBooksImg} alt="Children on books" className="h-10 w-14 sm:h-14 sm:w-18 object-contain" />
                   <div className="w-14 h-16 sm:w-16 sm:h-20 border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden">
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
                     ) : (
-                      <label htmlFor="nursery-photo" className="text-[8px] text-center cursor-pointer text-blue-600 no-print p-1">
-                        Upload Photo
+                      <label htmlFor="nursery-photo" className="text-[7px] text-center cursor-pointer text-blue-600 no-print p-0.5">
+                        <Upload className="h-3 w-3 mx-auto mb-0.5" />Upload Photo
                       </label>
                     )}
-                    <input id="nursery-photo" type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+                    <input id="nursery-photo" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setPassportPhoto)} />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* REPORT TITLE */}
+            {/* TITLE BLOCK */}
             <div className="text-center py-2 border-b-2 border-blue-700">
-              <div className="flex items-center justify-center gap-4 text-xs sm:text-sm">
-                <span className="text-red-600 font-bold">TERMLY VOLUME</span>
-              </div>
-              <p className="text-[10px] sm:text-xs text-blue-700">CONTINUOUS ASSESSMENT REPORT</p>
+              <img src={coatOfArmsImg} alt="Coat of Arms" className="mx-auto h-8 w-8 sm:h-10 sm:w-10 object-contain mb-1" />
+              <p className="text-red-600 font-bold text-xs sm:text-sm uppercase tracking-wider">TERMLY VOLUME</p>
+              <p className="text-black font-bold text-[10px] sm:text-xs uppercase">CONTINUOUS ASSESSMENT REPORT</p>
               <h2 className="text-base sm:text-xl font-bold text-blue-900 mt-1">
                 MID-TERM REPORT FOR {reportData.grade?.toUpperCase() || "NURSERY"}
               </h2>
@@ -351,29 +441,57 @@ const NurseryMidtermReport = () => {
               <div className="grid grid-cols-2 border-b border-blue-700">
                 <div className="p-1 sm:p-2 border-r border-blue-700">
                   <span className="font-bold italic text-blue-800">Pupil's Name:</span>
-                  <Input value={reportData.pupilName} onChange={(e) => setReportData({ ...reportData, pupilName: e.target.value })} className="h-7 text-xs mt-0.5 no-print" />
+                  <Input value={reportData.pupilName} onChange={(e) => setReportData({ ...reportData, pupilName: e.target.value })}
+                    className={`h-7 text-xs mt-0.5 no-print ${validationErrors.pupilName ? 'border-red-500' : ''}`} />
                   <span className="hidden print:inline ml-2">{reportData.pupilName}</span>
+                  <ErrorMsg field="pupilName" />
                 </div>
                 <div className="p-1 sm:p-2">
                   <span className="font-bold italic text-blue-800">Gender:</span>
-                  <Input value={reportData.gender} onChange={(e) => setReportData({ ...reportData, gender: e.target.value })} className="h-7 text-xs mt-0.5 no-print" placeholder="Male / Female" />
+                  <div className="no-print mt-0.5">
+                    <Select value={reportData.gender} onValueChange={(v) => setReportData({ ...reportData, gender: v })}>
+                      <SelectTrigger className={`h-7 text-xs ${validationErrors.gender ? 'border-red-500' : ''}`}>
+                        <SelectValue placeholder="Select Gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <span className="hidden print:inline ml-2">{reportData.gender}</span>
+                  <ErrorMsg field="gender" />
                 </div>
               </div>
               <div className="grid grid-cols-3 border-b border-blue-700">
                 <div className="p-1 sm:p-2 border-r border-blue-700">
-                  <span className="font-bold italic text-blue-800">Year:</span>
-                  <Input value={reportData.academicYear} onChange={(e) => setReportData({ ...reportData, academicYear: e.target.value })} className="h-7 text-xs mt-0.5 no-print" />
+                  <span className="font-bold italic text-blue-800">Academic Year:</span>
+                  <Input value={reportData.academicYear} onChange={(e) => setReportData({ ...reportData, academicYear: e.target.value })}
+                    className={`h-7 text-xs mt-0.5 no-print ${validationErrors.academicYear ? 'border-red-500' : ''}`} />
                   <span className="hidden print:inline ml-2">{reportData.academicYear}</span>
+                  <ErrorMsg field="academicYear" />
                 </div>
                 <div className="p-1 sm:p-2 border-r border-blue-700">
                   <span className="font-bold italic text-blue-800">Term:</span>
-                  <Input value={reportData.term} readOnly className="h-7 text-xs mt-0.5 bg-muted" />
+                  <div className="no-print mt-0.5">
+                    <Select value={reportData.term} onValueChange={(v) => setReportData({ ...reportData, term: v })}>
+                      <SelectTrigger className={`h-7 text-xs ${validationErrors.term ? 'border-red-500' : ''}`}>
+                        <SelectValue placeholder="Select Term" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="First Term">First Term</SelectItem>
+                        <SelectItem value="Second Term">Second Term</SelectItem>
+                        <SelectItem value="Third Term">Third Term</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <span className="hidden print:inline ml-2">{reportData.term}</span>
+                  <ErrorMsg field="term" />
                 </div>
                 <div className="p-1 sm:p-2">
                   <span className="font-bold italic text-blue-800">Number in Class:</span>
-                  <Input value={reportData.numberInClass} onChange={(e) => setReportData({ ...reportData, numberInClass: e.target.value })} className="h-7 text-xs mt-0.5 no-print" />
+                  <Input value={reportData.numberInClass} onChange={(e) => setReportData({ ...reportData, numberInClass: e.target.value })}
+                    className="h-7 text-xs mt-0.5 no-print" />
                   <span className="hidden print:inline ml-2">{reportData.numberInClass}</span>
                 </div>
               </div>
@@ -382,7 +500,7 @@ const NurseryMidtermReport = () => {
             {/* ATTENDANCE SECTION */}
             <div className="border-2 border-blue-700 border-t-0">
               <div className="bg-blue-100 text-center font-bold text-xs sm:text-sm p-1 border-b border-blue-700 text-blue-900">
-                1 ATTENDANCE (Regularity & Punctuality)
+                1 ATTENDANCE (Regularity &amp; Punctuality)
               </div>
               <table className="w-full text-xs sm:text-sm border-collapse">
                 <thead>
@@ -405,7 +523,7 @@ const NurseryMidtermReport = () => {
                       <span className="hidden print:inline">{attendance.sportsOpened}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.otherActivities[0]} onChange={(e) => { const a = [...attendance.otherActivities]; a[0] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Children's Day" />
+                      <Input value={attendance.otherActivities[0]} onChange={(e) => { const a = [...attendance.otherActivities]; a[0] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Open Day" />
                       <span className="hidden print:inline">{attendance.otherActivities[0]}</span>
                     </td>
                   </tr>
@@ -420,15 +538,13 @@ const NurseryMidtermReport = () => {
                       <span className="hidden print:inline">{attendance.sportsPresent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.otherActivities[1]} onChange={(e) => { const a = [...attendance.otherActivities]; a[1] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Colour Day" />
+                      <Input value={attendance.otherActivities[1]} onChange={(e) => { const a = [...attendance.otherActivities]; a[1] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Friendship Day" />
                       <span className="hidden print:inline">{attendance.otherActivities[1]}</span>
                     </td>
                   </tr>
                   <tr>
                     <td className="border border-blue-700 p-1 font-semibold text-blue-800">No. of Time Absent:</td>
-                    <td className="border border-blue-700 p-1 text-center">
-                      <span>{attendance.schoolAbsent}</span>
-                    </td>
+                    <td className="border border-blue-700 p-1 text-center"><span>{attendance.schoolAbsent}</span></td>
                     <td className="border border-blue-700 p-1 text-center">
                       <Input value={attendance.sportsAbsent} onChange={(e) => setAttendance({ ...attendance, sportsAbsent: e.target.value })} className="h-6 text-xs text-center no-print w-full" />
                       <span className="hidden print:inline">{attendance.sportsAbsent}</span>
@@ -450,13 +566,10 @@ const NurseryMidtermReport = () => {
 
               {categories.map((category) => (
                 <div key={category.id}>
-                  {/* Category header */}
                   <table className="w-full text-xs sm:text-sm border-collapse">
                     <thead>
                       <tr>
-                        <th className="border border-blue-700 p-1 text-left bg-blue-200 text-blue-900 font-bold italic w-2/5">
-                          {category.title}
-                        </th>
+                        <th className="border border-blue-700 p-1 text-left bg-blue-200 text-blue-900 font-bold italic w-2/5">{category.title}</th>
                         <th className="border border-blue-700 p-1 text-center bg-blue-200 text-blue-900 font-bold w-[15%]">ALWAYS</th>
                         <th className="border border-blue-700 p-1 text-center bg-blue-200 text-blue-900 font-bold w-[15%]">SOMETIMES</th>
                         <th className="border border-blue-700 p-1 text-center bg-blue-200 text-blue-900 font-bold w-[15%]">JUST BEGINNING</th>
@@ -465,16 +578,12 @@ const NurseryMidtermReport = () => {
                     </thead>
                     <tbody>
                       {category.skills.map((skill) => (
-                        <tr key={skill.id}>
+                        <tr key={skill.id} className="skill-row">
                           <td className="border border-blue-700 p-1 text-blue-700">
                             {editingSkill === skill.id ? (
                               <div className="flex items-center gap-1 no-print">
-                                <Input
-                                  value={editingSkillName}
-                                  onChange={(e) => setEditingSkillName(e.target.value)}
-                                  className="h-6 text-xs flex-1"
-                                  autoFocus
-                                />
+                                <Input value={editingSkillName} onChange={(e) => setEditingSkillName(e.target.value)}
+                                  className="h-6 text-xs flex-1" autoFocus onKeyDown={(e) => e.key === 'Enter' && saveEditSkill(category.id)} />
                                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => saveEditSkill(category.id)}>
                                   <Check className="h-3 w-3 text-green-600" />
                                 </Button>
@@ -485,7 +594,7 @@ const NurseryMidtermReport = () => {
                             ) : (
                               <div className="flex items-center justify-between">
                                 <span>{skill.name}</span>
-                                <div className="flex gap-0.5 no-print">
+                                <div className="skill-actions flex gap-0.5 no-print">
                                   <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => startEditSkill(skill.id, skill.name)}>
                                     <Edit2 className="h-3 w-3 text-blue-500" />
                                   </Button>
@@ -497,11 +606,8 @@ const NurseryMidtermReport = () => {
                             )}
                           </td>
                           {RATING_OPTIONS.map((rating) => (
-                            <td
-                              key={rating}
-                              className="border border-blue-700 p-1 text-center cursor-pointer hover:bg-blue-50"
-                              onClick={() => updateRating(category.id, skill.id, rating)}
-                            >
+                            <td key={rating} className="border border-blue-700 p-1 text-center cursor-pointer hover:bg-blue-50"
+                              onClick={() => updateRating(category.id, skill.id, rating)}>
                               {skill.rating === rating && <span className="text-blue-800 font-bold text-sm">✓</span>}
                             </td>
                           ))}
@@ -509,7 +615,6 @@ const NurseryMidtermReport = () => {
                       ))}
                     </tbody>
                   </table>
-                  {/* Add skill button */}
                   <div className="no-print border-l-2 border-r-2 border-blue-700 px-2 py-1">
                     <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => addSkill(category.id)}>
                       <Plus className="h-3 w-3 mr-1" />Add Skill
@@ -523,43 +628,80 @@ const NurseryMidtermReport = () => {
             <div className="border-2 border-blue-700 border-t-0 text-xs sm:text-sm">
               <div className="border-b border-blue-700 p-2">
                 <span className="font-bold italic text-blue-800">Class Teacher's Comment:</span>
-                <Textarea value={classTeacherComment} onChange={(e) => setClassTeacherComment(e.target.value)} rows={2} className="mt-1 text-xs no-print" placeholder="Enter comment..." />
-                <span className="hidden print:inline text-blue-600 ml-2">{classTeacherComment}</span>
+                <Textarea value={classTeacherComment} onChange={(e) => setClassTeacherComment(e.target.value)} rows={2}
+                  className={`mt-1 text-xs no-print ${validationErrors.classTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
+                <span className="hidden print:inline text-blue-600 ml-2 italic">{classTeacherComment}</span>
+                <ErrorMsg field="classTeacherComment" />
               </div>
               <div className="p-2">
                 <span className="font-bold italic text-blue-800">Head Teacher's Comment:</span>
-                <Textarea value={headTeacherComment} onChange={(e) => setHeadTeacherComment(e.target.value)} rows={2} className="mt-1 text-xs no-print" placeholder="Enter comment..." />
-                <span className="hidden print:inline text-blue-600 ml-2">{headTeacherComment}</span>
+                <Textarea value={headTeacherComment} onChange={(e) => setHeadTeacherComment(e.target.value)} rows={2}
+                  className={`mt-1 text-xs no-print ${validationErrors.headTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
+                <span className="hidden print:inline text-blue-600 ml-2 italic">{headTeacherComment}</span>
+                <ErrorMsg field="headTeacherComment" />
               </div>
             </div>
 
-            {/* SIGNATURE SECTION */}
-            <div className="border-2 border-blue-700 border-t-0 p-2 text-xs sm:text-sm">
-              <div className="flex justify-between items-end gap-4">
-                <div className="flex-1">
-                  <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)} className="h-7 text-xs no-print" placeholder="Class Teacher's Name" />
-                  <span className="hidden print:block font-bold text-blue-800">{classTeacherName}</span>
-                  <div className="border-t border-blue-700 mt-8 pt-1">
-                    <p className="text-[10px] italic text-blue-700">Class Teacher's Name and Signature</p>
+            {/* SIGNATURE & STAMP SECTION */}
+            <div className="border-2 border-blue-700 border-t-0 p-3 text-xs sm:text-sm">
+              <div className="flex justify-between items-start gap-4">
+                {/* Class Teacher */}
+                <div className="flex-1 space-y-1">
+                  <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
+                    className="h-7 text-xs no-print font-bold" placeholder="Class Teacher's Name" />
+                  <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
+                  {/* Signature upload */}
+                  <div className={`w-full h-14 sm:h-16 border-2 border-dashed flex items-center justify-center overflow-hidden no-print ${validationErrors.classTeacherSignature ? 'border-red-500' : 'border-blue-400'}`}>
+                    {classTeacherSignature ? (
+                      <img src={classTeacherSignature} alt="Signature" className="max-h-full object-contain" />
+                    ) : (
+                      <label htmlFor="teacher-sig" className="text-[8px] text-blue-500 cursor-pointer flex flex-col items-center">
+                        <Upload className="h-3 w-3 mb-0.5" />Upload Signature
+                      </label>
+                    )}
+                    <input id="teacher-sig" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setClassTeacherSignature)} />
                   </div>
+                  {classTeacherSignature && (
+                    <div className="hidden print:block h-14">
+                      <img src={classTeacherSignature} alt="Signature" className="max-h-full object-contain" />
+                    </div>
+                  )}
+                  <ErrorMsg field="classTeacherSignature" />
+                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1">Class Teacher's Name and Signature</p>
                 </div>
-                <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 border-2 border-dashed border-blue-400 flex items-center justify-center">
-                  <span className="text-[8px] text-blue-400 no-print">Stamp</span>
-                </div>
-                <div className="flex-1 text-right">
-                  <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(e.target.value)} className="h-7 text-xs no-print" placeholder="Head Teacher's Name" />
-                  <span className="hidden print:block font-bold text-blue-800">{headTeacherName}</span>
-                  <div className="border-t border-blue-700 mt-8 pt-1">
-                    <p className="text-[10px] italic text-blue-700">Head Teacher's Name and Signature</p>
+
+                {/* Head Teacher + Stamp */}
+                <div className="flex-1 text-right space-y-1">
+                  <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(e.target.value)}
+                    className={`h-7 text-xs no-print font-bold text-right ${validationErrors.headTeacherName ? 'border-red-500' : ''}`} placeholder="Head Teacher's Name" />
+                  <span className="hidden print:block font-bold text-blue-800 uppercase">{headTeacherName}</span>
+                  <ErrorMsg field="headTeacherName" />
+                  {/* Stamp upload */}
+                  <div className={`w-16 h-16 sm:w-20 sm:h-20 border-2 border-dashed ml-auto flex items-center justify-center overflow-hidden no-print ${validationErrors.schoolStamp ? 'border-red-500' : 'border-blue-400'}`}>
+                    {schoolStamp ? (
+                      <img src={schoolStamp} alt="School Stamp" className="w-full h-full object-contain" />
+                    ) : (
+                      <label htmlFor="school-stamp" className="text-[7px] text-blue-500 cursor-pointer flex flex-col items-center">
+                        <Upload className="h-3 w-3 mb-0.5" />Stamp
+                      </label>
+                    )}
+                    <input id="school-stamp" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setSchoolStamp)} />
                   </div>
+                  {schoolStamp && (
+                    <div className="hidden print:block h-16 sm:h-20 ml-auto w-16 sm:w-20">
+                      <img src={schoolStamp} alt="School Stamp" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                  <ErrorMsg field="schoolStamp" />
+                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1">Head Teacher's Name and Signature</p>
                 </div>
               </div>
             </div>
 
-            {/* BOTTOM DECORATIVE IMAGES */}
-            <div className="flex justify-between items-end pt-2">
-              <img src={boysOnPencilImg} alt="Boys on pencil" className="h-10 sm:h-14 object-contain" />
-              <img src={abcBlocksImg} alt="ABC blocks" className="h-10 sm:h-14 object-contain" />
+            {/* FOOTER DECORATIVE IMAGES */}
+            <div className="flex justify-between items-end pt-2 footer-deco">
+              <img src={boysOnPencilImg} alt="Boys on pencil" className="h-10 sm:h-14 object-contain footer-deco-left" />
+              <img src={abcBlocksImg} alt="ABC blocks" className="h-10 sm:h-14 object-contain footer-deco-right" />
             </div>
 
           </CardContent>
