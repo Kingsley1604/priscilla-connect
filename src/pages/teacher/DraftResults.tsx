@@ -119,6 +119,8 @@ const DraftResults = () => {
   const handleEdit = (draft: DraftReportCard) => {
     if (draft.source === 'secondary') {
       navigate(`/teacher/secondary-result-upload?edit=${draft.id}`);
+    } else if (draft.class_level?.toLowerCase().includes('nursery')) {
+      navigate(`/teacher/nursery-midterm-report?edit=${draft.id}`);
     } else {
       navigate(`/teacher/report-card?edit=${draft.id}`);
     }
