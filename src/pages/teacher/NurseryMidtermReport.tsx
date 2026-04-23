@@ -351,8 +351,22 @@ const NurseryMidtermReport = () => {
           width: auto;
           object-contain: contain;
         }
-        .footer-deco-left { left: 6px; transform: rotate(-40deg); transform-origin: bottom left; }
+        .footer-deco-left { left: 6px; transform: rotate(-55deg); transform-origin: bottom left; }
         .footer-deco-right { right: 6px; }
+
+        /* Inline decorative images */
+        .deco-boys-pencil {
+          height: 70px;
+          width: auto;
+          transform: rotate(-55deg);
+          transform-origin: bottom left;
+          pointer-events: none;
+        }
+        .deco-abc-blocks {
+          height: 70px;
+          width: auto;
+          pointer-events: none;
+        }
 
         /* Single-line contact info — never wrap */
         .contact-line { white-space: nowrap; overflow: visible; }
@@ -367,9 +381,8 @@ const NurseryMidtermReport = () => {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-container { font-size: 8.5pt !important; max-width: 100% !important; padding: 0 !important; }
           .print-container table { font-size: 8pt !important; }
-          .report-footer-deco { height: 22mm; }
-          .report-footer-deco img { height: 20mm !important; }
-          .footer-deco-left { transform: rotate(-40deg); transform-origin: bottom left; }
+          .deco-boys-pencil { height: 18mm !important; }
+          .deco-abc-blocks { height: 18mm !important; }
           .contact-line { white-space: nowrap !important; font-size: 7pt !important; }
         }
 
