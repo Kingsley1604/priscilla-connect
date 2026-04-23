@@ -130,6 +130,14 @@ const NurseryMidtermReport = () => {
   // Input sanitizers
   const onlyDigits = (v: string) => v.replace(/[^0-9]/g, "");
   const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'-]/g, "");
+  // Academic year: digits and at most one '/'
+  const sanitizeAcademicYear = (v: string) => {
+    const cleaned = v.replace(/[^0-9/]/g, "");
+    const firstSlash = cleaned.indexOf("/");
+    if (firstSlash === -1) return cleaned;
+    return cleaned.slice(0, firstSlash + 1) + cleaned.slice(firstSlash + 1).replace(/\//g, "");
+  };
+  const isValidAcademicYear = (v: string) => /^\d{4}\/\d{4}$/.test(v.trim());
 
   const loadDraft = async (id: string) => {
     const { data, error } = await supabase.from("report_cards").select("*").eq("id", id).maybeSingle();
@@ -217,6 +225,8 @@ const NurseryMidtermReport = () => {
     if (!reportData.gender) errors.gender = "Gender is required";
     if (!reportData.term) errors.term = "Term is required";
     if (!reportData.academicYear.trim()) errors.academicYear = "Academic year is required";
+    else if (!isValidAcademicYear(reportData.academicYear)) errors.academicYear = "Format must be YYYY/YYYY";
+    if (reportData.numberInClass && !/^\d+$/.test(reportData.numberInClass)) errors.numberInClass = "Numbers only";
     if (!headTeacherName.trim()) errors.headTeacherName = "Head Teacher name is required";
     if (!headTeacherComment.trim()) errors.headTeacherComment = "Head Teacher comment is required";
     if (!classTeacherComment.trim()) errors.classTeacherComment = "Class Teacher comment is required";
@@ -326,17 +336,26 @@ const NurseryMidtermReport = () => {
   return (
     <div className="min-h-screen bg-background">
       <style>{`
-        /* Decorative footer images — fixed to bottom corners on screen */
-        .footer-deco-fixed {
-          position: fixed;
-          bottom: 10px;
-          height: 56px;
-          width: auto;
+        /* Decorative footer images — anchored inside the report body */
+        .report-footer-deco {
+          position: relative;
+          width: 100%;
+          height: 70px;
+          margin-top: 8px;
           pointer-events: none;
-          z-index: 5;
         }
-        .footer-deco-left { left: 10px; transform: rotate(-15deg); }
-        .footer-deco-right { right: 10px; }
+        .report-footer-deco img {
+          position: absolute;
+          bottom: 0;
+          height: 60px;
+          width: auto;
+          object-contain: contain;
+        }
+        .footer-deco-left { left: 6px; transform: rotate(-40deg); transform-origin: bottom left; }
+        .footer-deco-right { right: 6px; }
+
+        /* Single-line contact info — never wrap */
+        .contact-line { white-space: nowrap; overflow: visible; }
 
         .skill-row .skill-actions { opacity: 0; transition: opacity 0.2s ease; }
         .skill-row:hover .skill-actions { opacity: 1; }
@@ -348,17 +367,16 @@ const NurseryMidtermReport = () => {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-container { font-size: 8.5pt !important; max-width: 100% !important; padding: 0 !important; }
           .print-container table { font-size: 8pt !important; }
-          .footer-deco-fixed {
-            position: fixed !important;
-            bottom: 8mm !important;
-            height: 18mm !important;
-          }
-          .footer-deco-left { left: 8mm !important; transform: rotate(-15deg); }
-          .footer-deco-right { right: 8mm !important; }
+          .report-footer-deco { height: 22mm; }
+          .report-footer-deco img { height: 20mm !important; }
+          .footer-deco-left { transform: rotate(-40deg); transform-origin: bottom left; }
+          .contact-line { white-space: nowrap !important; font-size: 7pt !important; }
         }
 
         @media (max-width: 640px) {
-          .footer-deco-fixed { height: 40px; }
+          .report-footer-deco { height: 50px; }
+          .report-footer-deco img { height: 44px; }
+          .contact-line { font-size: 7px; }
         }
       `}</style>
 
@@ -414,9 +432,9 @@ const NurseryMidtermReport = () => {
                 style={{ gridTemplateColumns: "1fr 2fr 1fr" }}
               >
                 {/* LEFT STACK: Coat + Mickey + Title block */}
-                <div className="left-stack flex flex-col items-center justify-start gap-1.5">
+                <div className="left-stack flex flex-col items-center justify-start gap-1.5" style={{ marginRight: -12 }}>
                   <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-10 w-10 sm:h-14 sm:w-14 object-contain" />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain" />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain relative z-20" style={{ marginRight: -16 }} />
                   <p className="termly-volume text-red-600 font-bold uppercase tracking-wider text-[11px] sm:text-sm leading-tight mt-1">TERMLY VOLUME</p>
                   <p className="continuous-report text-black font-bold uppercase text-[9px] sm:text-xs leading-tight text-center">CONTINUOUS ASSESSMENT REPORT</p>
                 </div>
@@ -434,7 +452,7 @@ const NurseryMidtermReport = () => {
                     <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-8 w-8 sm:h-12 sm:w-12 object-contain" />
                     <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
                     <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                    <p className="text-[9px] sm:text-xs leading-tight">
+                    <p className="contact-line text-[9px] sm:text-xs leading-tight">
                       <span className="text-red-600 font-semibold">Tel:</span>{" "}
                       <span className="text-blue-700">+234 803 302 1210, +234 701 987 6174</span>
                       <span className="mx-1">|</span>
@@ -445,8 +463,8 @@ const NurseryMidtermReport = () => {
                 </div>
 
                 {/* RIGHT STACK: Children-on-books + passport */}
-                <div className="flex flex-col items-center justify-start gap-1">
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 48 }} />
+                <div className="flex flex-col items-center justify-start gap-1" style={{ marginLeft: -12 }}>
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain relative z-20" style={{ height: 48, marginLeft: -16 }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -496,7 +514,8 @@ const NurseryMidtermReport = () => {
               <div className="grid grid-cols-3 border-b border-blue-700">
                 <div className="p-1 sm:p-2 border-r border-blue-700">
                   <span className="font-bold italic text-blue-800">Academic Year:</span>
-                  <Input value={reportData.academicYear} onChange={(e) => setReportData({ ...reportData, academicYear: e.target.value })}
+                  <Input value={reportData.academicYear} onChange={(e) => setReportData({ ...reportData, academicYear: sanitizeAcademicYear(e.target.value) })}
+                    placeholder="YYYY/YYYY" maxLength={9} inputMode="numeric"
                     className={`h-7 text-xs mt-0.5 no-print ${validationErrors.academicYear ? 'border-red-500' : ''}`} />
                   <span className="hidden print:inline ml-2">{reportData.academicYear}</span>
                   <ErrorMsg field="academicYear" />
@@ -520,9 +539,11 @@ const NurseryMidtermReport = () => {
                 </div>
                 <div className="p-1 sm:p-2">
                   <span className="font-bold italic text-blue-800">Number in Class:</span>
-                  <Input value={reportData.numberInClass} onChange={(e) => setReportData({ ...reportData, numberInClass: e.target.value })}
-                    className="h-7 text-xs mt-0.5 no-print" />
+                  <Input value={reportData.numberInClass} onChange={(e) => setReportData({ ...reportData, numberInClass: onlyDigits(e.target.value) })}
+                    inputMode="numeric" pattern="[0-9]*"
+                    className={`h-7 text-xs mt-0.5 no-print ${validationErrors.numberInClass ? 'border-red-500' : ''}`} />
                   <span className="hidden print:inline ml-2">{reportData.numberInClass}</span>
+                  <ErrorMsg field="numberInClass" />
                 </div>
               </div>
             </div>
@@ -728,19 +749,11 @@ const NurseryMidtermReport = () => {
               </div>
             </div>
 
-            {/* FOOTER DECORATIVE IMAGES — fixed to page corners */}
-            <img
-              src={boysOnPencilImg}
-              alt="Boys on pencil"
-              className="footer-deco-fixed footer-deco-left object-contain"
-              aria-hidden="true"
-            />
-            <img
-              src={abcBlocksImg}
-              alt="ABC blocks"
-              className="footer-deco-fixed footer-deco-right object-contain"
-              aria-hidden="true"
-            />
+            {/* FOOTER DECORATIVE IMAGES — anchored at end of report body */}
+            <div className="report-footer-deco" aria-hidden="true">
+              <img src={boysOnPencilImg} alt="" className="footer-deco-left" />
+              <img src={abcBlocksImg} alt="" className="footer-deco-right" />
+            </div>
 
           </CardContent>
         </Card>
