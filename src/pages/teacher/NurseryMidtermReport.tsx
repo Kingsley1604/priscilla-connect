@@ -130,6 +130,14 @@ const NurseryMidtermReport = () => {
   // Input sanitizers
   const onlyDigits = (v: string) => v.replace(/[^0-9]/g, "");
   const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'-]/g, "");
+  // Academic year: digits and at most one '/'
+  const sanitizeAcademicYear = (v: string) => {
+    const cleaned = v.replace(/[^0-9/]/g, "");
+    const firstSlash = cleaned.indexOf("/");
+    if (firstSlash === -1) return cleaned;
+    return cleaned.slice(0, firstSlash + 1) + cleaned.slice(firstSlash + 1).replace(/\//g, "");
+  };
+  const isValidAcademicYear = (v: string) => /^\d{4}\/\d{4}$/.test(v.trim());
 
   const loadDraft = async (id: string) => {
     const { data, error } = await supabase.from("report_cards").select("*").eq("id", id).maybeSingle();
