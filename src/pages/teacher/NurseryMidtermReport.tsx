@@ -749,19 +749,11 @@ const NurseryMidtermReport = () => {
               </div>
             </div>
 
-            {/* FOOTER DECORATIVE IMAGES — fixed to page corners */}
-            <img
-              src={boysOnPencilImg}
-              alt="Boys on pencil"
-              className="footer-deco-fixed footer-deco-left object-contain"
-              aria-hidden="true"
-            />
-            <img
-              src={abcBlocksImg}
-              alt="ABC blocks"
-              className="footer-deco-fixed footer-deco-right object-contain"
-              aria-hidden="true"
-            />
+            {/* FOOTER DECORATIVE IMAGES — anchored at end of report body */}
+            <div className="report-footer-deco" aria-hidden="true">
+              <img src={boysOnPencilImg} alt="" className="footer-deco-left" />
+              <img src={abcBlocksImg} alt="" className="footer-deco-right" />
+            </div>
 
           </CardContent>
         </Card>
