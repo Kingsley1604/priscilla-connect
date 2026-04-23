@@ -336,17 +336,26 @@ const NurseryMidtermReport = () => {
   return (
     <div className="min-h-screen bg-background">
       <style>{`
-        /* Decorative footer images — fixed to bottom corners on screen */
-        .footer-deco-fixed {
-          position: fixed;
-          bottom: 10px;
-          height: 56px;
-          width: auto;
+        /* Decorative footer images — anchored inside the report body */
+        .report-footer-deco {
+          position: relative;
+          width: 100%;
+          height: 70px;
+          margin-top: 8px;
           pointer-events: none;
-          z-index: 5;
         }
-        .footer-deco-left { left: 10px; transform: rotate(-15deg); }
-        .footer-deco-right { right: 10px; }
+        .report-footer-deco img {
+          position: absolute;
+          bottom: 0;
+          height: 60px;
+          width: auto;
+          object-contain: contain;
+        }
+        .footer-deco-left { left: 6px; transform: rotate(-40deg); transform-origin: bottom left; }
+        .footer-deco-right { right: 6px; }
+
+        /* Single-line contact info — never wrap */
+        .contact-line { white-space: nowrap; overflow: visible; }
 
         .skill-row .skill-actions { opacity: 0; transition: opacity 0.2s ease; }
         .skill-row:hover .skill-actions { opacity: 1; }
@@ -358,17 +367,16 @@ const NurseryMidtermReport = () => {
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-container { font-size: 8.5pt !important; max-width: 100% !important; padding: 0 !important; }
           .print-container table { font-size: 8pt !important; }
-          .footer-deco-fixed {
-            position: fixed !important;
-            bottom: 8mm !important;
-            height: 18mm !important;
-          }
-          .footer-deco-left { left: 8mm !important; transform: rotate(-15deg); }
-          .footer-deco-right { right: 8mm !important; }
+          .report-footer-deco { height: 22mm; }
+          .report-footer-deco img { height: 20mm !important; }
+          .footer-deco-left { transform: rotate(-40deg); transform-origin: bottom left; }
+          .contact-line { white-space: nowrap !important; font-size: 7pt !important; }
         }
 
         @media (max-width: 640px) {
-          .footer-deco-fixed { height: 40px; }
+          .report-footer-deco { height: 50px; }
+          .report-footer-deco img { height: 44px; }
+          .contact-line { font-size: 7px; }
         }
       `}</style>
 
