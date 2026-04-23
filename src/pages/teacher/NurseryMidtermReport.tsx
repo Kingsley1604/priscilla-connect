@@ -225,6 +225,8 @@ const NurseryMidtermReport = () => {
     if (!reportData.gender) errors.gender = "Gender is required";
     if (!reportData.term) errors.term = "Term is required";
     if (!reportData.academicYear.trim()) errors.academicYear = "Academic year is required";
+    else if (!isValidAcademicYear(reportData.academicYear)) errors.academicYear = "Format must be YYYY/YYYY";
+    if (reportData.numberInClass && !/^\d+$/.test(reportData.numberInClass)) errors.numberInClass = "Numbers only";
     if (!headTeacherName.trim()) errors.headTeacherName = "Head Teacher name is required";
     if (!headTeacherComment.trim()) errors.headTeacherComment = "Head Teacher comment is required";
     if (!classTeacherComment.trim()) errors.classTeacherComment = "Class Teacher comment is required";
