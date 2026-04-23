@@ -514,7 +514,8 @@ const NurseryMidtermReport = () => {
               <div className="grid grid-cols-3 border-b border-blue-700">
                 <div className="p-1 sm:p-2 border-r border-blue-700">
                   <span className="font-bold italic text-blue-800">Academic Year:</span>
-                  <Input value={reportData.academicYear} onChange={(e) => setReportData({ ...reportData, academicYear: e.target.value })}
+                  <Input value={reportData.academicYear} onChange={(e) => setReportData({ ...reportData, academicYear: sanitizeAcademicYear(e.target.value) })}
+                    placeholder="YYYY/YYYY" maxLength={9} inputMode="numeric"
                     className={`h-7 text-xs mt-0.5 no-print ${validationErrors.academicYear ? 'border-red-500' : ''}`} />
                   <span className="hidden print:inline ml-2">{reportData.academicYear}</span>
                   <ErrorMsg field="academicYear" />
@@ -538,9 +539,11 @@ const NurseryMidtermReport = () => {
                 </div>
                 <div className="p-1 sm:p-2">
                   <span className="font-bold italic text-blue-800">Number in Class:</span>
-                  <Input value={reportData.numberInClass} onChange={(e) => setReportData({ ...reportData, numberInClass: e.target.value })}
-                    className="h-7 text-xs mt-0.5 no-print" />
+                  <Input value={reportData.numberInClass} onChange={(e) => setReportData({ ...reportData, numberInClass: onlyDigits(e.target.value) })}
+                    inputMode="numeric" pattern="[0-9]*"
+                    className={`h-7 text-xs mt-0.5 no-print ${validationErrors.numberInClass ? 'border-red-500' : ''}`} />
                   <span className="hidden print:inline ml-2">{reportData.numberInClass}</span>
+                  <ErrorMsg field="numberInClass" />
                 </div>
               </div>
             </div>
