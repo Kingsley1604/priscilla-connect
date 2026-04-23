@@ -432,9 +432,9 @@ const NurseryMidtermReport = () => {
                 style={{ gridTemplateColumns: "1fr 2fr 1fr" }}
               >
                 {/* LEFT STACK: Coat + Mickey + Title block */}
-                <div className="left-stack flex flex-col items-center justify-start gap-1.5">
+                <div className="left-stack flex flex-col items-center justify-start gap-1.5" style={{ marginRight: -12 }}>
                   <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-10 w-10 sm:h-14 sm:w-14 object-contain" />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain" />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain relative z-20" style={{ marginRight: -16 }} />
                   <p className="termly-volume text-red-600 font-bold uppercase tracking-wider text-[11px] sm:text-sm leading-tight mt-1">TERMLY VOLUME</p>
                   <p className="continuous-report text-black font-bold uppercase text-[9px] sm:text-xs leading-tight text-center">CONTINUOUS ASSESSMENT REPORT</p>
                 </div>
@@ -452,7 +452,7 @@ const NurseryMidtermReport = () => {
                     <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-8 w-8 sm:h-12 sm:w-12 object-contain" />
                     <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
                     <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                    <p className="text-[9px] sm:text-xs leading-tight">
+                    <p className="contact-line text-[9px] sm:text-xs leading-tight">
                       <span className="text-red-600 font-semibold">Tel:</span>{" "}
                       <span className="text-blue-700">+234 803 302 1210, +234 701 987 6174</span>
                       <span className="mx-1">|</span>
@@ -463,8 +463,8 @@ const NurseryMidtermReport = () => {
                 </div>
 
                 {/* RIGHT STACK: Children-on-books + passport */}
-                <div className="flex flex-col items-center justify-start gap-1">
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 48 }} />
+                <div className="flex flex-col items-center justify-start gap-1" style={{ marginLeft: -12 }}>
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain relative z-20" style={{ height: 48, marginLeft: -16 }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
