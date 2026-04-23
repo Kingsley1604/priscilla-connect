@@ -695,11 +695,16 @@ const NurseryMidtermReport = () => {
             {/* COMMENTS SECTION */}
             <div className="border-2 border-blue-700 border-t-0 text-xs sm:text-sm">
               <div className="border-b border-blue-700 p-2">
-                <span className="font-bold italic text-blue-800">Class Teacher's Comment:</span>
-                <Textarea value={classTeacherComment} onChange={(e) => setClassTeacherComment(e.target.value)} rows={2}
-                  className={`mt-1 text-xs no-print ${validationErrors.classTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
-                <span className="hidden print:inline text-blue-600 ml-2 italic">{classTeacherComment}</span>
-                <ErrorMsg field="classTeacherComment" />
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-bold italic text-blue-800">Class Teacher's Comment:</span>
+                    <Textarea value={classTeacherComment} onChange={(e) => setClassTeacherComment(e.target.value)} rows={2}
+                      className={`mt-1 text-xs no-print ${validationErrors.classTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
+                    <span className="hidden print:inline text-blue-600 ml-2 italic">{classTeacherComment}</span>
+                    <ErrorMsg field="classTeacherComment" />
+                  </div>
+                  <img src={abcBlocksImg} alt="" aria-hidden="true" className="deco-abc-blocks shrink-0" />
+                </div>
               </div>
               <div className="p-2">
                 <span className="font-bold italic text-blue-800">Head Teacher's Comment:</span>
@@ -715,6 +720,10 @@ const NurseryMidtermReport = () => {
               <div className="flex justify-between items-start gap-4">
                 {/* Class Teacher */}
                 <div className="flex-1 space-y-1">
+                  {/* Boys-on-pencil decorative — sits just above the class teacher's name */}
+                  <div className="flex items-end h-12 -mb-1 pl-2">
+                    <img src={boysOnPencilImg} alt="" aria-hidden="true" className="deco-boys-pencil" style={{ height: 56 }} />
+                  </div>
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
                     className="h-7 text-xs no-print font-bold" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
@@ -764,12 +773,6 @@ const NurseryMidtermReport = () => {
                   <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1">Head Teacher's Name and Signature</p>
                 </div>
               </div>
-            </div>
-
-            {/* FOOTER DECORATIVE IMAGES — anchored at end of report body */}
-            <div className="report-footer-deco" aria-hidden="true">
-              <img src={boysOnPencilImg} alt="" className="footer-deco-left" />
-              <img src={abcBlocksImg} alt="" className="footer-deco-right" />
             </div>
 
           </CardContent>
