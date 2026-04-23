@@ -438,31 +438,29 @@ const NurseryMidtermReport = () => {
         <Card className="shadow-lg print:shadow-none print:border-2 print:border-blue-800 border-2 border-blue-700 relative overflow-hidden">
           <CardContent className="p-4 sm:p-6 space-y-0">
 
-            {/* ===== HEADER SECTION (3-zone grid) ===== */}
+            {/* ===== HEADER SECTION (3-zone, images horizontal & touching cloud) ===== */}
             <div className="border-b-2 border-blue-700 pb-2">
               <div
-                className="grid items-start gap-2"
-                style={{ gridTemplateColumns: "1fr 2fr 1fr" }}
+                className="grid items-center gap-1"
+                style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
-                {/* LEFT STACK: Coat + Mickey + Title block */}
-                <div className="left-stack flex flex-col items-center justify-start gap-1.5" style={{ marginRight: -12 }}>
-                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-10 w-10 sm:h-14 sm:w-14 object-contain" />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain relative z-20" style={{ marginRight: -16 }} />
-                  <p className="termly-volume text-red-600 font-bold uppercase tracking-wider text-[11px] sm:text-sm leading-tight mt-1">TERMLY VOLUME</p>
-                  <p className="continuous-report text-black font-bold uppercase text-[9px] sm:text-xs leading-tight text-center">CONTINUOUS ASSESSMENT REPORT</p>
+                {/* LEFT: Coat + Mickey HORIZONTAL, touching the cloud on right edge */}
+                <div className="flex items-center gap-1" style={{ marginRight: -20, zIndex: 20, position: "relative" }}>
+                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 52, width: 52 }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 70, width: "auto" }} />
                 </div>
 
-                {/* CENTER STACK: Cloud background + School info */}
-                <div className="relative flex items-center justify-center min-h-[110px] sm:min-h-[150px]">
+                {/* CENTER: Cloud background + School logo (bigger) + name + contact */}
+                <div className="relative flex items-center justify-center min-h-[130px] sm:min-h-[160px]">
                   <img
                     src={cloudImg}
                     alt=""
                     aria-hidden="true"
-                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-auto object-contain"
-                    style={{ opacity: 0.5, zIndex: 1 }}
+                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full object-fill"
+                    style={{ opacity: 0.7, zIndex: 1 }}
                   />
                   <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
-                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-8 w-8 sm:h-12 sm:w-12 object-contain" />
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 56, width: 56 }} />
                     <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
                     <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
                     <p className="contact-line text-[9px] sm:text-xs leading-tight">
@@ -475,9 +473,9 @@ const NurseryMidtermReport = () => {
                   </div>
                 </div>
 
-                {/* RIGHT STACK: Children-on-books + passport */}
-                <div className="flex flex-col items-center justify-start gap-1" style={{ marginLeft: -12 }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain relative z-20" style={{ height: 48, marginLeft: -16 }} />
+                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
+                <div className="flex items-center gap-1" style={{ marginLeft: -20, zIndex: 20, position: "relative" }}>
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 70, width: "auto" }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -489,6 +487,12 @@ const NurseryMidtermReport = () => {
                     <input id="nursery-photo" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setPassportPhoto)} />
                   </div>
                 </div>
+              </div>
+
+              {/* TERMLY VOLUME / CONTINUOUS ASSESSMENT REPORT — under header, left-aligned like reference */}
+              <div className="mt-1 pl-1">
+                <p className="text-red-600 font-bold uppercase tracking-wider text-[11px] sm:text-sm leading-tight">TERMLY VOLUME</p>
+                <p className="text-black font-bold uppercase text-[9px] sm:text-xs leading-tight">CONTINUOUS ASSESSMENT REPORT</p>
               </div>
 
               {/* Centered report subtitle */}
