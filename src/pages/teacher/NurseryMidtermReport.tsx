@@ -127,6 +127,10 @@ const NurseryMidtermReport = () => {
     if (editId) loadDraft(editId);
   }, []);
 
+  // Input sanitizers
+  const onlyDigits = (v: string) => v.replace(/[^0-9]/g, "");
+  const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'-]/g, "");
+
   const loadDraft = async (id: string) => {
     const { data, error } = await supabase.from("report_cards").select("*").eq("id", id).maybeSingle();
     if (error || !data) { toast.error("Failed to load draft"); return; }
@@ -322,18 +326,40 @@ const NurseryMidtermReport = () => {
   return (
     <div className="min-h-screen bg-background">
       <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          @page { size: A4 portrait; margin: 5mm; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-container { font-size: 9pt !important; }
-          .print-container table { font-size: 8pt !important; }
-          .footer-deco { position: fixed !important; bottom: 5mm; }
-          .footer-deco-left { left: 5mm; }
-          .footer-deco-right { right: 5mm; }
+        /* Decorative footer images — fixed to bottom corners on screen */
+        .footer-deco-fixed {
+          position: fixed;
+          bottom: 10px;
+          height: 56px;
+          width: auto;
+          pointer-events: none;
+          z-index: 5;
         }
+        .footer-deco-left { left: 10px; transform: rotate(-15deg); }
+        .footer-deco-right { right: 10px; }
+
         .skill-row .skill-actions { opacity: 0; transition: opacity 0.2s ease; }
         .skill-row:hover .skill-actions { opacity: 1; }
+
+        @media print {
+          .no-print { display: none !important; }
+          @page { size: A4 portrait; margin: 8mm; }
+          html, body { width: 210mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-container { font-size: 8.5pt !important; max-width: 100% !important; padding: 0 !important; }
+          .print-container table { font-size: 8pt !important; }
+          .footer-deco-fixed {
+            position: fixed !important;
+            bottom: 8mm !important;
+            height: 18mm !important;
+          }
+          .footer-deco-left { left: 8mm !important; transform: rotate(-15deg); }
+          .footer-deco-right { right: 8mm !important; }
+        }
+
+        @media (max-width: 640px) {
+          .footer-deco-fixed { height: 40px; }
+        }
       `}</style>
 
       {/* Top bar */}
@@ -381,38 +407,47 @@ const NurseryMidtermReport = () => {
         <Card className="shadow-lg print:shadow-none print:border-2 print:border-blue-800 border-2 border-blue-700 relative overflow-hidden">
           <CardContent className="p-4 sm:p-6 space-y-0">
 
-            {/* ===== HEADER SECTION ===== */}
+            {/* ===== HEADER SECTION (3-zone grid) ===== */}
             <div className="border-b-2 border-blue-700 pb-2">
-              <div className="flex items-center justify-between gap-2">
-                {/* LEFT ZONE */}
-                <div className="flex flex-col items-center justify-center gap-1 w-20 sm:w-28 flex-shrink-0">
+              <div
+                className="grid items-start gap-2"
+                style={{ gridTemplateColumns: "1fr 2fr 1fr" }}
+              >
+                {/* LEFT STACK: Coat + Mickey + Title block */}
+                <div className="left-stack flex flex-col items-center justify-start gap-1.5">
                   <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-10 w-10 sm:h-14 sm:w-14 object-contain" />
                   <img src={mickeyImg} alt="Mickey Mouse" className="h-10 w-14 sm:h-14 sm:w-18 object-contain" />
+                  <p className="termly-volume text-red-600 font-bold uppercase tracking-wider text-[11px] sm:text-sm leading-tight mt-1">TERMLY VOLUME</p>
+                  <p className="continuous-report text-black font-bold uppercase text-[9px] sm:text-xs leading-tight text-center">CONTINUOUS ASSESSMENT REPORT</p>
                 </div>
 
-                {/* CENTER ZONE */}
-                <div className="flex-1 text-center relative">
-                  <div className="relative inline-block w-full">
-                    <img src={cloudImg} alt="" className="mx-auto h-16 sm:h-24 object-contain opacity-25 absolute inset-0 w-full pointer-events-none" />
-                    <div className="relative z-10 py-1">
-                      <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-8 w-8 sm:h-12 sm:w-12 object-contain" />
-                      <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
-                      <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                      <p className="text-[9px] sm:text-xs leading-tight">
-                        <span className="text-red-600 font-semibold">Tel:</span>{" "}
-                        <span className="text-blue-700">+234 803 302 1210, +234 701 987 6174</span>
-                        <span className="mx-1">|</span>
-                        <span className="text-red-600 font-semibold">Email:</span>{" "}
-                        <span className="text-blue-700">priscillaschool@gmail.com</span>
-                      </p>
-                    </div>
+                {/* CENTER STACK: Cloud background + School info */}
+                <div className="relative flex items-center justify-center min-h-[110px] sm:min-h-[150px]">
+                  <img
+                    src={cloudImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-auto object-contain"
+                    style={{ opacity: 0.5, zIndex: 1 }}
+                  />
+                  <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto h-8 w-8 sm:h-12 sm:w-12 object-contain" />
+                    <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
+                    <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
+                    <p className="text-[9px] sm:text-xs leading-tight">
+                      <span className="text-red-600 font-semibold">Tel:</span>{" "}
+                      <span className="text-blue-700">+234 803 302 1210, +234 701 987 6174</span>
+                      <span className="mx-1">|</span>
+                      <span className="text-red-600 font-semibold">Email:</span>{" "}
+                      <span className="text-blue-700">priscillaschool@gmail.com</span>
+                    </p>
                   </div>
                 </div>
 
-                {/* RIGHT ZONE */}
-                <div className="flex flex-col items-center justify-center gap-1 w-20 sm:w-28 flex-shrink-0">
-                  <img src={childrenOnBooksImg} alt="Children on books" className="h-10 w-14 sm:h-14 sm:w-18 object-contain" />
-                  <div className="w-14 h-16 sm:w-16 sm:h-20 border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden">
+                {/* RIGHT STACK: Children-on-books + passport */}
+                <div className="flex flex-col items-center justify-start gap-1">
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 48 }} />
+                  <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
                     ) : (
@@ -424,14 +459,9 @@ const NurseryMidtermReport = () => {
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* TITLE BLOCK */}
-            <div className="text-center py-2 border-b-2 border-blue-700">
-              <img src={coatOfArmsImg} alt="Coat of Arms" className="mx-auto h-8 w-8 sm:h-10 sm:w-10 object-contain mb-1" />
-              <p className="text-red-600 font-bold text-xs sm:text-sm uppercase tracking-wider">TERMLY VOLUME</p>
-              <p className="text-black font-bold text-[10px] sm:text-xs uppercase">CONTINUOUS ASSESSMENT REPORT</p>
-              <h2 className="text-base sm:text-xl font-bold text-blue-900 mt-1">
+              {/* Centered report subtitle */}
+              <h2 className="text-center text-base sm:text-xl font-bold text-blue-900 mt-2">
                 MID-TERM REPORT FOR {reportData.grade?.toUpperCase() || "NURSERY"}
               </h2>
             </div>
@@ -441,8 +471,8 @@ const NurseryMidtermReport = () => {
               <div className="grid grid-cols-2 border-b border-blue-700">
                 <div className="p-1 sm:p-2 border-r border-blue-700">
                   <span className="font-bold italic text-blue-800">Pupil's Name:</span>
-                  <Input value={reportData.pupilName} onChange={(e) => setReportData({ ...reportData, pupilName: e.target.value })}
-                    className={`h-7 text-xs mt-0.5 no-print ${validationErrors.pupilName ? 'border-red-500' : ''}`} />
+                  <Input value={reportData.pupilName} onChange={(e) => setReportData({ ...reportData, pupilName: onlyAlpha(e.target.value) })}
+                    className={`h-7 text-xs mt-0.5 no-print ${validationErrors.pupilName ? 'border-red-500' : ''}`} placeholder="Letters only" />
                   <span className="hidden print:inline ml-2">{reportData.pupilName}</span>
                   <ErrorMsg field="pupilName" />
                 </div>
@@ -515,11 +545,11 @@ const NurseryMidtermReport = () => {
                   <tr>
                     <td className="border border-blue-700 p-1 font-semibold text-blue-800">Total Time School Opened/Activities Held</td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.schoolOpened} onChange={(e) => setAttendance({ ...attendance, schoolOpened: e.target.value })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.schoolOpened} onChange={(e) => setAttendance({ ...attendance, schoolOpened: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
                       <span className="hidden print:inline">{attendance.schoolOpened}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.sportsOpened} onChange={(e) => setAttendance({ ...attendance, sportsOpened: e.target.value })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.sportsOpened} onChange={(e) => setAttendance({ ...attendance, sportsOpened: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
                       <span className="hidden print:inline">{attendance.sportsOpened}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
@@ -530,11 +560,11 @@ const NurseryMidtermReport = () => {
                   <tr>
                     <td className="border border-blue-700 p-1 font-semibold text-blue-800">No. of Time Present:</td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.schoolPresent} onChange={(e) => setAttendance({ ...attendance, schoolPresent: e.target.value })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.schoolPresent} onChange={(e) => setAttendance({ ...attendance, schoolPresent: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
                       <span className="hidden print:inline">{attendance.schoolPresent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.sportsPresent} onChange={(e) => setAttendance({ ...attendance, sportsPresent: e.target.value })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.sportsPresent} onChange={(e) => setAttendance({ ...attendance, sportsPresent: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
                       <span className="hidden print:inline">{attendance.sportsPresent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
@@ -546,7 +576,7 @@ const NurseryMidtermReport = () => {
                     <td className="border border-blue-700 p-1 font-semibold text-blue-800">No. of Time Absent:</td>
                     <td className="border border-blue-700 p-1 text-center"><span>{attendance.schoolAbsent}</span></td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.sportsAbsent} onChange={(e) => setAttendance({ ...attendance, sportsAbsent: e.target.value })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.sportsAbsent} onChange={(e) => setAttendance({ ...attendance, sportsAbsent: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
                       <span className="hidden print:inline">{attendance.sportsAbsent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
@@ -698,11 +728,19 @@ const NurseryMidtermReport = () => {
               </div>
             </div>
 
-            {/* FOOTER DECORATIVE IMAGES */}
-            <div className="flex justify-between items-end pt-2 footer-deco">
-              <img src={boysOnPencilImg} alt="Boys on pencil" className="h-10 sm:h-14 object-contain footer-deco-left" />
-              <img src={abcBlocksImg} alt="ABC blocks" className="h-10 sm:h-14 object-contain footer-deco-right" />
-            </div>
+            {/* FOOTER DECORATIVE IMAGES — fixed to page corners */}
+            <img
+              src={boysOnPencilImg}
+              alt="Boys on pencil"
+              className="footer-deco-fixed footer-deco-left object-contain"
+              aria-hidden="true"
+            />
+            <img
+              src={abcBlocksImg}
+              alt="ABC blocks"
+              className="footer-deco-fixed footer-deco-right object-contain"
+              aria-hidden="true"
+            />
 
           </CardContent>
         </Card>
