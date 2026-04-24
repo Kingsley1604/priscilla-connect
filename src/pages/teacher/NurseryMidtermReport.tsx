@@ -444,10 +444,10 @@ const NurseryMidtermReport = () => {
                 className="grid items-center gap-1"
                 style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
-                {/* LEFT: Coat + Mickey HORIZONTAL, touching the cloud on right edge */}
+                {/* LEFT: Coat + Mickey HORIZONTAL, touching the cloud on right edge — equalized sizes */}
                 <div className="flex items-center gap-1" style={{ marginRight: -20, zIndex: 20, position: "relative" }}>
-                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 52, width: 52 }} />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 70, width: "auto" }} />
+                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 64, width: 64 }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 64, width: 64 }} />
                 </div>
 
                 {/* CENTER: Cloud background + School logo (bigger) + name + contact */}
@@ -460,7 +460,7 @@ const NurseryMidtermReport = () => {
                     style={{ opacity: 0.7, zIndex: 1 }}
                   />
                   <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
-                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 56, width: 56 }} />
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 72, width: 72 }} />
                     <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
                     <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
                     <p className="contact-line text-[9px] sm:text-xs leading-tight">
@@ -473,9 +473,9 @@ const NurseryMidtermReport = () => {
                   </div>
                 </div>
 
-                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
+                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box — equalized */}
                 <div className="flex items-center gap-1" style={{ marginLeft: -20, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 70, width: "auto" }} />
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 64, width: 64 }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
