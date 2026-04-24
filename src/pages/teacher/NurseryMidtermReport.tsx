@@ -699,12 +699,17 @@ const NurseryMidtermReport = () => {
                 <span className="hidden print:inline text-blue-600 ml-2 italic">{classTeacherComment}</span>
                 <ErrorMsg field="classTeacherComment" />
               </div>
-              <div className="p-2">
-                <span className="font-bold italic text-blue-800">Head Teacher's Comment:</span>
-                <Textarea value={headTeacherComment} onChange={(e) => setHeadTeacherComment(e.target.value)} rows={2}
-                  className={`mt-1 text-xs no-print ${validationErrors.headTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
-                <span className="hidden print:inline text-blue-600 ml-2 italic">{headTeacherComment}</span>
-                <ErrorMsg field="headTeacherComment" />
+              <div className="p-2 relative">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <span className="font-bold italic text-blue-800">Head Teacher's Comment:</span>
+                    <Textarea value={headTeacherComment} onChange={(e) => setHeadTeacherComment(e.target.value)} rows={2}
+                      className={`mt-1 text-xs no-print ${validationErrors.headTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
+                    <span className="hidden print:inline text-blue-600 ml-2 italic">{headTeacherComment}</span>
+                    <ErrorMsg field="headTeacherComment" />
+                  </div>
+                  <img src={abcBlocksImg} alt="" aria-hidden="true" className="deco-abc-blocks shrink-0" />
+                </div>
               </div>
             </div>
 
@@ -713,10 +718,6 @@ const NurseryMidtermReport = () => {
               <div className="flex justify-between items-start gap-4">
                 {/* Class Teacher — centered within its own block */}
                 <div className="flex-1 space-y-1 flex flex-col items-center text-center">
-                  {/* Boys-on-pencil decorative — sits just above the class teacher's name */}
-                  <div className="flex items-end h-12 -mb-1 self-start pl-2">
-                    <img src={boysOnPencilImg} alt="" aria-hidden="true" className="deco-boys-pencil" style={{ height: 64 }} />
-                  </div>
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
                     className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
@@ -737,15 +738,20 @@ const NurseryMidtermReport = () => {
                     </div>
                   )}
                   <ErrorMsg field="classTeacherSignature" />
-                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full">Class Teacher's Name and Signature</p>
+                  <div className="w-full relative">
+                    {/* Boys-on-pencil — angled above the signature label */}
+                    <img
+                      src={boysOnPencilImg}
+                      alt=""
+                      aria-hidden="true"
+                      className="deco-boys-pencil absolute -top-8 left-1"
+                    />
+                    <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full relative">Class Teacher's Name and Signature</p>
+                  </div>
                 </div>
 
                 {/* Head Teacher + Stamp + ABC blocks above stamp */}
                 <div className="flex-1 text-right space-y-1 relative">
-                  {/* ABC blocks — anchored just above the stamp (top-right) */}
-                  <div className="flex justify-end -mb-1">
-                    <img src={abcBlocksImg} alt="" aria-hidden="true" className="deco-abc-blocks" style={{ height: 48 }} />
-                  </div>
                   <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(e.target.value)}
                     className={`h-7 text-xs no-print font-bold text-right ${validationErrors.headTeacherName ? 'border-red-500' : ''}`} placeholder="Head Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{headTeacherName}</span>
