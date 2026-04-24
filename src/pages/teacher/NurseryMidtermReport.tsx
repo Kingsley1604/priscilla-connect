@@ -445,13 +445,13 @@ const NurseryMidtermReport = () => {
                 style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
                 {/* LEFT: Coat of arms + title block, with Mickey horizontally beside, touching cloud */}
-                <div className="flex items-center gap-1" style={{ marginRight: -20, zIndex: 20, position: "relative" }}>
+                <div className="flex items-center gap-1" style={{ marginRight: -4, zIndex: 20, position: "relative" }}>
                   <div className="flex flex-col items-start">
                     <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 56, width: 56 }} />
-                    <p className="text-red-600 font-bold uppercase tracking-wider text-[9px] sm:text-[11px] leading-tight mt-0.5">TERMLY VOLUME</p>
-                    <p className="text-black font-bold uppercase text-[7px] sm:text-[9px] leading-tight">CONTINUOUS<br />ASSESSMENT REPORT</p>
+                    <p className="text-red-600 font-bold uppercase tracking-wider text-[8px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap">TERMLY VOLUME</p>
+                    <p className="text-black font-bold uppercase text-[6px] sm:text-[8px] leading-tight whitespace-nowrap">CONTINUOUS ASSESSMENT REPORT</p>
                   </div>
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 84, width: "auto" }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 56, width: "auto" }} />
                 </div>
 
                 {/* CENTER: Cloud background (fixed width on desktop) + School logo + name + contact */}
@@ -478,8 +478,8 @@ const NurseryMidtermReport = () => {
                 </div>
 
                 {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
-                <div className="flex items-center gap-1" style={{ marginLeft: -20, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 84, width: "auto" }} />
+                <div className="flex items-center gap-1" style={{ marginLeft: -4, zIndex: 20, position: "relative" }}>
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 72, width: "auto" }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -717,7 +717,14 @@ const NurseryMidtermReport = () => {
             <div className="border-2 border-blue-700 border-t-0 p-3 text-xs sm:text-sm">
               <div className="flex justify-between items-start gap-4">
                 {/* Class Teacher — centered within its own block */}
-                <div className="flex-1 space-y-1 flex flex-col items-center text-center">
+                <div className="flex-1 space-y-1 flex flex-col items-center text-center relative">
+                  {/* Boys-on-pencil — angled above the Class Teacher's Name */}
+                  <img
+                    src={boysOnPencilImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="deco-boys-pencil mb-1"
+                  />
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
                     className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
@@ -738,16 +745,7 @@ const NurseryMidtermReport = () => {
                     </div>
                   )}
                   <ErrorMsg field="classTeacherSignature" />
-                  <div className="w-full relative">
-                    {/* Boys-on-pencil — angled above the signature label */}
-                    <img
-                      src={boysOnPencilImg}
-                      alt=""
-                      aria-hidden="true"
-                      className="deco-boys-pencil absolute -top-8 left-1"
-                    />
-                    <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full relative">Class Teacher's Name and Signature</p>
-                  </div>
+                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full">Class Teacher's Name and Signature</p>
                 </div>
 
                 {/* Head Teacher + Stamp + ABC blocks above stamp */}
