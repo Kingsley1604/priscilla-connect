@@ -718,12 +718,12 @@ const NurseryMidtermReport = () => {
               <div className="flex justify-between items-start gap-4">
                 {/* Class Teacher — centered within its own block */}
                 <div className="flex-1 space-y-1 flex flex-col items-center text-center relative">
-                  {/* Boys-on-pencil — angled above the Class Teacher's Name */}
+                  {/* Boys-on-pencil — angled above the Class Teacher's Name (left-aligned) */}
                   <img
                     src={boysOnPencilImg}
                     alt=""
                     aria-hidden="true"
-                    className="deco-boys-pencil mb-1"
+                    className="deco-boys-pencil mb-1 self-start"
                   />
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
                     className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
