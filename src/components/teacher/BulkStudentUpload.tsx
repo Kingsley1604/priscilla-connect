@@ -247,14 +247,19 @@ const BulkStudentUpload = ({ isOpen, onClose, assignedClass, isClassTeacher, isA
     setIsSubmitting(false);
   };
 
-  const downloadTemplate = () => {
-    const template = [
-      { "Full Name": "", "Admission Number": "", "Email": "", "Class": assignedClass || "", "Gender": "", "Date of Birth": "", "Parent/Guardian Name": "" }
-    ];
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
-    XLSX.writeFile(wb, "student_upload_template.xlsx");
+  const downloadTemplate = async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Students");
+    ws.addRow(["Full Name", "Admission Number", "Email", "Class", "Gender", "Date of Birth", "Parent/Guardian Name"]);
+    ws.addRow(["", "", "", assignedClass || "", "", "", ""]);
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "student_upload_template.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const validCount = rows.filter(r => r.isValid).length;
