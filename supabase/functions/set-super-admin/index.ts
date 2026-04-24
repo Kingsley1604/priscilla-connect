@@ -6,8 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// The designated super admin email - only this email can become super admin
-const SUPER_ADMIN_EMAIL = "abelkingsley2k04@gmail.com";
+// The designated super admin email is loaded from environment configuration
+// (set via Supabase Edge Function secrets) so it isn't hardcoded in source.
+// Falls back to the historical value to preserve backward compatibility.
+const SUPER_ADMIN_EMAIL =
+  Deno.env.get("SUPER_ADMIN_EMAIL") ?? "abelkingsley2k04@gmail.com";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
