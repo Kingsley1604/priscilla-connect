@@ -695,16 +695,11 @@ const NurseryMidtermReport = () => {
             {/* COMMENTS SECTION */}
             <div className="border-2 border-blue-700 border-t-0 text-xs sm:text-sm">
               <div className="border-b border-blue-700 p-2">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <span className="font-bold italic text-blue-800">Class Teacher's Comment:</span>
-                    <Textarea value={classTeacherComment} onChange={(e) => setClassTeacherComment(e.target.value)} rows={2}
-                      className={`mt-1 text-xs no-print ${validationErrors.classTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
-                    <span className="hidden print:inline text-blue-600 ml-2 italic">{classTeacherComment}</span>
-                    <ErrorMsg field="classTeacherComment" />
-                  </div>
-                  <img src={abcBlocksImg} alt="" aria-hidden="true" className="deco-abc-blocks shrink-0" />
-                </div>
+                <span className="font-bold italic text-blue-800">Class Teacher's Comment:</span>
+                <Textarea value={classTeacherComment} onChange={(e) => setClassTeacherComment(e.target.value)} rows={2}
+                  className={`mt-1 text-xs no-print ${validationErrors.classTeacherComment ? 'border-red-500' : ''}`} placeholder="Enter comment..." />
+                <span className="hidden print:inline text-blue-600 ml-2 italic">{classTeacherComment}</span>
+                <ErrorMsg field="classTeacherComment" />
               </div>
               <div className="p-2">
                 <span className="font-bold italic text-blue-800">Head Teacher's Comment:</span>
