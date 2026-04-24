@@ -718,14 +718,14 @@ const NurseryMidtermReport = () => {
             {/* SIGNATURE & STAMP SECTION */}
             <div className="border-2 border-blue-700 border-t-0 p-3 text-xs sm:text-sm">
               <div className="flex justify-between items-start gap-4">
-                {/* Class Teacher */}
-                <div className="flex-1 space-y-1">
+                {/* Class Teacher — centered within its own block */}
+                <div className="flex-1 space-y-1 flex flex-col items-center text-center">
                   {/* Boys-on-pencil decorative — sits just above the class teacher's name */}
-                  <div className="flex items-end h-12 -mb-1 pl-2">
-                    <img src={boysOnPencilImg} alt="" aria-hidden="true" className="deco-boys-pencil" style={{ height: 56 }} />
+                  <div className="flex items-end h-12 -mb-1 self-start pl-2">
+                    <img src={boysOnPencilImg} alt="" aria-hidden="true" className="deco-boys-pencil" style={{ height: 64 }} />
                   </div>
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
-                    className="h-7 text-xs no-print font-bold" placeholder="Class Teacher's Name" />
+                    className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
                   {/* Signature upload */}
                   <div className={`w-full h-14 sm:h-16 border-2 border-dashed flex items-center justify-center overflow-hidden no-print ${validationErrors.classTeacherSignature ? 'border-red-500' : 'border-blue-400'}`}>
@@ -744,11 +744,15 @@ const NurseryMidtermReport = () => {
                     </div>
                   )}
                   <ErrorMsg field="classTeacherSignature" />
-                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1">Class Teacher's Name and Signature</p>
+                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full">Class Teacher's Name and Signature</p>
                 </div>
 
-                {/* Head Teacher + Stamp */}
-                <div className="flex-1 text-right space-y-1">
+                {/* Head Teacher + Stamp + ABC blocks above stamp */}
+                <div className="flex-1 text-right space-y-1 relative">
+                  {/* ABC blocks — anchored just above the stamp (top-right) */}
+                  <div className="flex justify-end -mb-1">
+                    <img src={abcBlocksImg} alt="" aria-hidden="true" className="deco-abc-blocks" style={{ height: 48 }} />
+                  </div>
                   <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(e.target.value)}
                     className={`h-7 text-xs no-print font-bold text-right ${validationErrors.headTeacherName ? 'border-red-500' : ''}`} placeholder="Head Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{headTeacherName}</span>
