@@ -351,14 +351,14 @@ const NurseryMidtermReport = () => {
           width: auto;
           object-contain: contain;
         }
-        .footer-deco-left { left: 6px; transform: rotate(-50deg); transform-origin: bottom left; }
+        .footer-deco-left { left: 6px; transform: rotate(-45deg); transform-origin: bottom left; }
         .footer-deco-right { right: 6px; }
 
         /* Inline decorative images */
         .deco-boys-pencil {
           height: 64px;
           width: auto;
-          transform: rotate(-50deg);
+          transform: rotate(-45deg);
           transform-origin: bottom left;
           pointer-events: none;
         }
