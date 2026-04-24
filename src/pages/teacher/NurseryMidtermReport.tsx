@@ -717,7 +717,14 @@ const NurseryMidtermReport = () => {
             <div className="border-2 border-blue-700 border-t-0 p-3 text-xs sm:text-sm">
               <div className="flex justify-between items-start gap-4">
                 {/* Class Teacher — centered within its own block */}
-                <div className="flex-1 space-y-1 flex flex-col items-center text-center">
+                <div className="flex-1 space-y-1 flex flex-col items-center text-center relative">
+                  {/* Boys-on-pencil — angled above the Class Teacher's Name */}
+                  <img
+                    src={boysOnPencilImg}
+                    alt=""
+                    aria-hidden="true"
+                    className="deco-boys-pencil mb-1"
+                  />
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
                     className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
@@ -738,16 +745,7 @@ const NurseryMidtermReport = () => {
                     </div>
                   )}
                   <ErrorMsg field="classTeacherSignature" />
-                  <div className="w-full relative">
-                    {/* Boys-on-pencil — angled above the signature label */}
-                    <img
-                      src={boysOnPencilImg}
-                      alt=""
-                      aria-hidden="true"
-                      className="deco-boys-pencil absolute -top-8 left-1"
-                    />
-                    <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full relative">Class Teacher's Name and Signature</p>
-                  </div>
+                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full">Class Teacher's Name and Signature</p>
                 </div>
 
                 {/* Head Teacher + Stamp + ABC blocks above stamp */}
