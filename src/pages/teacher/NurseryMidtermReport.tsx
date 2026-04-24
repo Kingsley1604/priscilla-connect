@@ -445,13 +445,13 @@ const NurseryMidtermReport = () => {
                 style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
                 {/* LEFT: Coat of arms + title block, with Mickey horizontally beside, touching cloud */}
-                <div className="flex items-center gap-1" style={{ marginRight: -20, zIndex: 20, position: "relative" }}>
+                <div className="flex items-center gap-1" style={{ marginRight: -4, zIndex: 20, position: "relative" }}>
                   <div className="flex flex-col items-start">
                     <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 56, width: 56 }} />
-                    <p className="text-red-600 font-bold uppercase tracking-wider text-[9px] sm:text-[11px] leading-tight mt-0.5">TERMLY VOLUME</p>
-                    <p className="text-black font-bold uppercase text-[7px] sm:text-[9px] leading-tight">CONTINUOUS<br />ASSESSMENT REPORT</p>
+                    <p className="text-red-600 font-bold uppercase tracking-wider text-[8px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap">TERMLY VOLUME</p>
+                    <p className="text-black font-bold uppercase text-[6px] sm:text-[8px] leading-tight whitespace-nowrap">CONTINUOUS ASSESSMENT REPORT</p>
                   </div>
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 84, width: "auto" }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 56, width: "auto" }} />
                 </div>
 
                 {/* CENTER: Cloud background (fixed width on desktop) + School logo + name + contact */}
@@ -478,8 +478,8 @@ const NurseryMidtermReport = () => {
                 </div>
 
                 {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
-                <div className="flex items-center gap-1" style={{ marginLeft: -20, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 84, width: "auto" }} />
+                <div className="flex items-center gap-1" style={{ marginLeft: -4, zIndex: 20, position: "relative" }}>
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 72, width: "auto" }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
