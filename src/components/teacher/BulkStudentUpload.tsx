@@ -9,7 +9,7 @@ import { Upload, FileSpreadsheet, Trash2, AlertTriangle, CheckCircle, Download, 
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 interface BulkStudentRow {
   id: string;
@@ -82,9 +82,41 @@ const BulkStudentUpload = ({ isOpen, onClose, assignedClass, isClassTeacher, isA
 
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(sheet, { defval: "" });
+      let jsonData: Record<string, any>[] = [];
+
+      if (ext === 'csv') {
+        const text = new TextDecoder().decode(data);
+        const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+        if (lines.length > 0) {
+          const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+          jsonData = lines.slice(1).map(line => {
+            const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+            const obj: Record<string, any> = {};
+            headers.forEach((h, i) => { obj[h] = cols[i] ?? ''; });
+            return obj;
+          });
+        }
+      } else {
+        const wb = new ExcelJS.Workbook();
+        await wb.xlsx.load(data);
+        const sheet = wb.worksheets[0];
+        if (sheet) {
+          const headers: string[] = [];
+          sheet.getRow(1).eachCell((cell, col) => { headers[col - 1] = String(cell.value ?? '').trim(); });
+          for (let r = 2; r <= sheet.rowCount; r++) {
+            const row = sheet.getRow(r);
+            const obj: Record<string, any> = {};
+            let hasValue = false;
+            headers.forEach((h, i) => {
+              const v = row.getCell(i + 1).value;
+              const str = v == null ? '' : (typeof v === 'object' && 'text' in (v as any) ? (v as any).text : String(v));
+              if (str !== '') hasValue = true;
+              obj[h] = str;
+            });
+            if (hasValue) jsonData.push(obj);
+          }
+        }
+      }
 
       if (jsonData.length === 0) {
         toast.error("The file is empty");
@@ -215,14 +247,19 @@ const BulkStudentUpload = ({ isOpen, onClose, assignedClass, isClassTeacher, isA
     setIsSubmitting(false);
   };
 
-  const downloadTemplate = () => {
-    const template = [
-      { "Full Name": "", "Admission Number": "", "Email": "", "Class": assignedClass || "", "Gender": "", "Date of Birth": "", "Parent/Guardian Name": "" }
-    ];
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
-    XLSX.writeFile(wb, "student_upload_template.xlsx");
+  const downloadTemplate = async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Students");
+    ws.addRow(["Full Name", "Admission Number", "Email", "Class", "Gender", "Date of Birth", "Parent/Guardian Name"]);
+    ws.addRow(["", "", "", assignedClass || "", "", "", ""]);
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "student_upload_template.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const validCount = rows.filter(r => r.isValid).length;
