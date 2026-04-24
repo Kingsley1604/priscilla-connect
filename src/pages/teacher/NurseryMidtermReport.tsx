@@ -351,19 +351,19 @@ const NurseryMidtermReport = () => {
           width: auto;
           object-contain: contain;
         }
-        .footer-deco-left { left: 6px; transform: rotate(-45deg); transform-origin: bottom left; }
+        .footer-deco-left { left: 6px; transform: rotate(-25deg); transform-origin: bottom left; }
         .footer-deco-right { right: 6px; }
 
         /* Inline decorative images */
         .deco-boys-pencil {
-          height: 64px;
+          height: 70px;
           width: auto;
-          transform: rotate(-45deg);
-          transform-origin: bottom left;
+          transform: rotate(-25deg);
+          transform-origin: bottom center;
           pointer-events: none;
         }
         .deco-abc-blocks {
-          height: 64px;
+          height: 56px;
           width: auto;
           pointer-events: none;
         }
@@ -444,19 +444,23 @@ const NurseryMidtermReport = () => {
                 className="grid items-center gap-1"
                 style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
-                {/* LEFT: Coat + Mickey HORIZONTAL, touching the cloud on right edge — equalized sizes */}
+                {/* LEFT: Coat of arms + title block, with Mickey horizontally beside, touching cloud */}
                 <div className="flex items-center gap-1" style={{ marginRight: -20, zIndex: 20, position: "relative" }}>
-                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 64, width: 64 }} />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 64, width: 64 }} />
+                  <div className="flex flex-col items-start">
+                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 56, width: 56 }} />
+                    <p className="text-red-600 font-bold uppercase tracking-wider text-[9px] sm:text-[11px] leading-tight mt-0.5">TERMLY VOLUME</p>
+                    <p className="text-black font-bold uppercase text-[7px] sm:text-[9px] leading-tight">CONTINUOUS<br />ASSESSMENT REPORT</p>
+                  </div>
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 84, width: "auto" }} />
                 </div>
 
-                {/* CENTER: Cloud background + School logo (bigger) + name + contact */}
-                <div className="relative flex items-center justify-center min-h-[130px] sm:min-h-[160px]">
+                {/* CENTER: Cloud background (fixed width on desktop) + School logo + name + contact */}
+                <div className="relative flex items-center justify-center min-h-[130px] sm:min-h-[160px] mx-auto sm:w-[460px]">
                   <img
                     src={cloudImg}
                     alt=""
                     aria-hidden="true"
-                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full object-fill"
+                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full object-fill w-full sm:w-[460px]"
                     style={{ opacity: 0.7, zIndex: 1 }}
                   />
                   <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
@@ -473,9 +477,9 @@ const NurseryMidtermReport = () => {
                   </div>
                 </div>
 
-                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box — equalized */}
+                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
                 <div className="flex items-center gap-1" style={{ marginLeft: -20, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 64, width: 64 }} />
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 84, width: "auto" }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -487,12 +491,6 @@ const NurseryMidtermReport = () => {
                     <input id="nursery-photo" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setPassportPhoto)} />
                   </div>
                 </div>
-              </div>
-
-              {/* TERMLY VOLUME / CONTINUOUS ASSESSMENT REPORT — under header, left-aligned like reference */}
-              <div className="mt-1 pl-1">
-                <p className="text-red-600 font-bold uppercase tracking-wider text-[11px] sm:text-sm leading-tight">TERMLY VOLUME</p>
-                <p className="text-black font-bold uppercase text-[9px] sm:text-xs leading-tight">CONTINUOUS ASSESSMENT REPORT</p>
               </div>
 
               {/* Centered report subtitle */}
