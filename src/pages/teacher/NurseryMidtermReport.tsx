@@ -351,19 +351,19 @@ const NurseryMidtermReport = () => {
           width: auto;
           object-contain: contain;
         }
-        .footer-deco-left { left: 6px; transform: rotate(-55deg); transform-origin: bottom left; }
+        .footer-deco-left { left: 6px; transform: rotate(-50deg); transform-origin: bottom left; }
         .footer-deco-right { right: 6px; }
 
         /* Inline decorative images */
         .deco-boys-pencil {
-          height: 70px;
+          height: 64px;
           width: auto;
-          transform: rotate(-55deg);
+          transform: rotate(-50deg);
           transform-origin: bottom left;
           pointer-events: none;
         }
         .deco-abc-blocks {
-          height: 70px;
+          height: 64px;
           width: auto;
           pointer-events: none;
         }
@@ -444,10 +444,10 @@ const NurseryMidtermReport = () => {
                 className="grid items-center gap-1"
                 style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
-                {/* LEFT: Coat + Mickey HORIZONTAL, touching the cloud on right edge */}
+                {/* LEFT: Coat + Mickey HORIZONTAL, touching the cloud on right edge — equalized sizes */}
                 <div className="flex items-center gap-1" style={{ marginRight: -20, zIndex: 20, position: "relative" }}>
-                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 52, width: 52 }} />
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 70, width: "auto" }} />
+                  <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 64, width: 64 }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 64, width: 64 }} />
                 </div>
 
                 {/* CENTER: Cloud background + School logo (bigger) + name + contact */}
@@ -460,7 +460,7 @@ const NurseryMidtermReport = () => {
                     style={{ opacity: 0.7, zIndex: 1 }}
                   />
                   <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
-                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 56, width: 56 }} />
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 72, width: 72 }} />
                     <h1 className="text-lg sm:text-2xl font-bold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
                     <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
                     <p className="contact-line text-[9px] sm:text-xs leading-tight">
@@ -473,9 +473,9 @@ const NurseryMidtermReport = () => {
                   </div>
                 </div>
 
-                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
+                {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box — equalized */}
                 <div className="flex items-center gap-1" style={{ marginLeft: -20, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 70, width: "auto" }} />
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 64, width: 64 }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -718,14 +718,14 @@ const NurseryMidtermReport = () => {
             {/* SIGNATURE & STAMP SECTION */}
             <div className="border-2 border-blue-700 border-t-0 p-3 text-xs sm:text-sm">
               <div className="flex justify-between items-start gap-4">
-                {/* Class Teacher */}
-                <div className="flex-1 space-y-1">
+                {/* Class Teacher — centered within its own block */}
+                <div className="flex-1 space-y-1 flex flex-col items-center text-center">
                   {/* Boys-on-pencil decorative — sits just above the class teacher's name */}
-                  <div className="flex items-end h-12 -mb-1 pl-2">
-                    <img src={boysOnPencilImg} alt="" aria-hidden="true" className="deco-boys-pencil" style={{ height: 56 }} />
+                  <div className="flex items-end h-12 -mb-1 self-start pl-2">
+                    <img src={boysOnPencilImg} alt="" aria-hidden="true" className="deco-boys-pencil" style={{ height: 64 }} />
                   </div>
                   <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
-                    className="h-7 text-xs no-print font-bold" placeholder="Class Teacher's Name" />
+                    className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
                   {/* Signature upload */}
                   <div className={`w-full h-14 sm:h-16 border-2 border-dashed flex items-center justify-center overflow-hidden no-print ${validationErrors.classTeacherSignature ? 'border-red-500' : 'border-blue-400'}`}>
@@ -744,11 +744,15 @@ const NurseryMidtermReport = () => {
                     </div>
                   )}
                   <ErrorMsg field="classTeacherSignature" />
-                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1">Class Teacher's Name and Signature</p>
+                  <p className="text-[10px] italic text-blue-700 border-t border-blue-700 pt-1 w-full">Class Teacher's Name and Signature</p>
                 </div>
 
-                {/* Head Teacher + Stamp */}
-                <div className="flex-1 text-right space-y-1">
+                {/* Head Teacher + Stamp + ABC blocks above stamp */}
+                <div className="flex-1 text-right space-y-1 relative">
+                  {/* ABC blocks — anchored just above the stamp (top-right) */}
+                  <div className="flex justify-end -mb-1">
+                    <img src={abcBlocksImg} alt="" aria-hidden="true" className="deco-abc-blocks" style={{ height: 48 }} />
+                  </div>
                   <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(e.target.value)}
                     className={`h-7 text-xs no-print font-bold text-right ${validationErrors.headTeacherName ? 'border-red-500' : ''}`} placeholder="Head Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{headTeacherName}</span>
