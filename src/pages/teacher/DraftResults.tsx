@@ -64,12 +64,15 @@ const DraftResults = () => {
     try {
       // Load primary drafts AND rejected primary reports - only those created by this teacher.
       // Rejected reports must reappear in Drafts so the teacher can revise + resubmit.
-      const { data: primaryData, error: primaryError } = await supabase
+      // Cast through any: the new status/rejection_reason columns are added by migration
+      // 20260426120000 and are not yet present in generated types.
+      const primaryQuery: any = supabase
         .from('report_cards')
-        .select('id, student_name, admission_no, class_level, academic_session, term, created_at, status, rejection_reason' as any)
+        .select('id, student_name, admission_no, class_level, academic_session, term, created_at, status, rejection_reason')
         .eq('created_by', user.id)
         .in('status', ['draft', 'rejected', 'pending'])
         .order('created_at', { ascending: false });
+      const { data: primaryData, error: primaryError } = await primaryQuery;
 
       if (primaryError) throw primaryError;
 
