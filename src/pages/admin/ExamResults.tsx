@@ -207,7 +207,7 @@ const ExamResults = () => {
       // Load primary/nursery report cards with full details
       const { data: reportCardsData, error: reportCardsError } = await supabase
         .from("report_cards")
-        .select(`id, student_name, admission_no, class_level, academic_session, term, created_at, created_by, total_score_obtained, percentage, gender, date_of_birth, passport_photo_url, class_teacher_comments, head_teacher_comments, class_teacher_name, head_teacher_name, position, conduct_rating, times_present, times_absent, total_school_opened, status, rejection_reason`)
+        .select(`id, student_name, admission_no, class_level, academic_session, term, created_at, created_by, total_score_obtained, percentage, gender, date_of_birth, passport_photo_url, class_teacher_comments, head_teacher_comments, class_teacher_name, head_teacher_name, position, conduct_rating, times_present, times_absent, total_school_opened, status, rejection_reason` as any)
         .order("created_at", { ascending: false });
       if (reportCardsError) throw reportCardsError;
 
@@ -216,7 +216,7 @@ const ExamResults = () => {
       const { data: teachers } = await supabase.from('profiles').select('id, name').in('id', teacherIds.length > 0 ? teacherIds : ['none']);
       const teacherMap = new Map(teachers?.map(t => [t.id, t.name]) || []);
 
-      const processedReportCards: ReportCardResult[] = (reportCardsData || []).map(rc => ({
+      const processedReportCards: ReportCardResult[] = ((reportCardsData || []) as any[]).map((rc: any) => ({
         ...rc,
         status: (rc as any).status || 'pending',
         rejection_reason: (rc as any).rejection_reason || undefined,
