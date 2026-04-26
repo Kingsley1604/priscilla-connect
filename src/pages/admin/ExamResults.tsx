@@ -212,7 +212,7 @@ const ExamResults = () => {
       if (reportCardsError) throw reportCardsError;
 
       // Get teacher names
-      const teacherIds = [...new Set((reportCardsData || []).map(r => r.created_by))];
+      const teacherIds = [...new Set(((reportCardsData || []) as any[]).map((r: any) => r.created_by))];
       const { data: teachers } = await supabase.from('profiles').select('id, name').in('id', teacherIds.length > 0 ? teacherIds : ['none']);
       const teacherMap = new Map(teachers?.map(t => [t.id, t.name]) || []);
 
