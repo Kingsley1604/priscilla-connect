@@ -129,7 +129,8 @@ const NurseryMidtermReport = () => {
 
   // Input sanitizers
   const onlyDigits = (v: string) => v.replace(/[^0-9]/g, "");
-  const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'-]/g, "");
+  // Allow only alphabets and spaces (no digits or special signs).
+  const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s]/g, "");
   // Academic year: digits and at most one '/'
   const sanitizeAcademicYear = (v: string) => {
     const cleaned = v.replace(/[^0-9/]/g, "");
@@ -585,11 +586,11 @@ const NurseryMidtermReport = () => {
                       <span className="hidden print:inline">{attendance.schoolOpened}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.sportsOpened} onChange={(e) => setAttendance({ ...attendance, sportsOpened: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input pattern="[A-Za-z\s]*" value={attendance.sportsOpened} onChange={(e) => setAttendance({ ...attendance, sportsOpened: onlyAlpha(e.target.value) })} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Football" />
                       <span className="hidden print:inline">{attendance.sportsOpened}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.otherActivities[0]} onChange={(e) => { const a = [...attendance.otherActivities]; a[0] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Open Day" />
+                      <Input pattern="[A-Za-z\s]*" value={attendance.otherActivities[0]} onChange={(e) => { const a = [...attendance.otherActivities]; a[0] = onlyAlpha(e.target.value); setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Open Day" />
                       <span className="hidden print:inline">{attendance.otherActivities[0]}</span>
                     </td>
                   </tr>
@@ -600,11 +601,11 @@ const NurseryMidtermReport = () => {
                       <span className="hidden print:inline">{attendance.schoolPresent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.sportsPresent} onChange={(e) => setAttendance({ ...attendance, sportsPresent: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input pattern="[A-Za-z\s]*" value={attendance.sportsPresent} onChange={(e) => setAttendance({ ...attendance, sportsPresent: onlyAlpha(e.target.value) })} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Athletics" />
                       <span className="hidden print:inline">{attendance.sportsPresent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.otherActivities[1]} onChange={(e) => { const a = [...attendance.otherActivities]; a[1] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Friendship Day" />
+                      <Input pattern="[A-Za-z\s]*" value={attendance.otherActivities[1]} onChange={(e) => { const a = [...attendance.otherActivities]; a[1] = onlyAlpha(e.target.value); setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Friendship Day" />
                       <span className="hidden print:inline">{attendance.otherActivities[1]}</span>
                     </td>
                   </tr>
@@ -612,11 +613,11 @@ const NurseryMidtermReport = () => {
                     <td className="border border-blue-700 p-1 font-semibold text-blue-800">No. of Time Absent:</td>
                     <td className="border border-blue-700 p-1 text-center"><span>{attendance.schoolAbsent}</span></td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input inputMode="numeric" pattern="[0-9]*" value={attendance.sportsAbsent} onChange={(e) => setAttendance({ ...attendance, sportsAbsent: onlyDigits(e.target.value) })} className="h-6 text-xs text-center no-print w-full" />
+                      <Input pattern="[A-Za-z\s]*" value={attendance.sportsAbsent} onChange={(e) => setAttendance({ ...attendance, sportsAbsent: onlyAlpha(e.target.value) })} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Swimming" />
                       <span className="hidden print:inline">{attendance.sportsAbsent}</span>
                     </td>
                     <td className="border border-blue-700 p-1 text-center">
-                      <Input value={attendance.otherActivities[2]} onChange={(e) => { const a = [...attendance.otherActivities]; a[2] = e.target.value; setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Maths Exhibition" />
+                      <Input pattern="[A-Za-z\s]*" value={attendance.otherActivities[2]} onChange={(e) => { const a = [...attendance.otherActivities]; a[2] = onlyAlpha(e.target.value); setAttendance({ ...attendance, otherActivities: a }); }} className="h-6 text-xs text-center no-print w-full" placeholder="e.g. Maths Exhibition" />
                       <span className="hidden print:inline">{attendance.otherActivities[2]}</span>
                     </td>
                   </tr>
