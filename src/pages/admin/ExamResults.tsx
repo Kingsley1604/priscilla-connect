@@ -207,7 +207,7 @@ const ExamResults = () => {
       // Load primary/nursery report cards with full details
       const { data: reportCardsData, error: reportCardsError } = await supabase
         .from("report_cards")
-        .select(`id, student_name, admission_no, class_level, academic_session, term, created_at, created_by, total_score_obtained, percentage, gender, date_of_birth, passport_photo_url, class_teacher_comments, head_teacher_comments, class_teacher_name, head_teacher_name, position, conduct_rating, times_present, times_absent, total_school_opened`)
+        .select(`id, student_name, admission_no, class_level, academic_session, term, created_at, created_by, total_score_obtained, percentage, gender, date_of_birth, passport_photo_url, class_teacher_comments, head_teacher_comments, class_teacher_name, head_teacher_name, position, conduct_rating, times_present, times_absent, total_school_opened, status, rejection_reason`)
         .order("created_at", { ascending: false });
       if (reportCardsError) throw reportCardsError;
 
@@ -218,7 +218,8 @@ const ExamResults = () => {
 
       const processedReportCards: ReportCardResult[] = (reportCardsData || []).map(rc => ({
         ...rc,
-        status: 'pending',
+        status: (rc as any).status || 'pending',
+        rejection_reason: (rc as any).rejection_reason || undefined,
         teacher_name: teacherMap.get(rc.created_by) || 'Unknown Teacher',
         report_type: rc.term?.toLowerCase().includes('mid') ? 'midterm' as const : 'termly' as const
       })).filter(rc => {
@@ -226,7 +227,10 @@ const ExamResults = () => {
         if (!adminSector || adminSector === 'both') return true;
         // Primary admin only sees primary classes, secondary admin only sees secondary
         return canManageClassLevel(rc.class_level);
-      });
+      })
+      // Hide rejected primary report cards from admin Result Management view —
+      // rejected reports belong in the teacher's Drafts area, not here.
+      .filter(rc => rc.status !== 'rejected');
       setReportCards(processedReportCards);
 
       // Load secondary report cards with full details
@@ -248,7 +252,10 @@ const ExamResults = () => {
         if (isSuperAdmin) return true;
         if (!adminSector || adminSector === 'both') return true;
         return canManageClassLevel(sr.class_level);
-      });
+      })
+      // Hide rejected secondary report cards from admin Result Management view —
+      // they reappear in the teacher's Drafts.
+      .filter(sr => sr.status !== 'rejected');
       setSecondaryReports(processedSecondaryReports);
 
       organizeIntoFolders(processedReportCards, processedSecondaryReports);
@@ -427,6 +434,12 @@ const ExamResults = () => {
           .update({ status: 'published', approved_at: new Date().toISOString(), approved_by: user.user.id, published_at: new Date().toISOString() })
           .eq("id", reportId);
         if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("report_cards")
+          .update({ status: 'approved', approved_at: new Date().toISOString(), approved_by: user.user.id, published_at: new Date().toISOString(), rejection_reason: null } as any)
+          .eq("id", reportId);
+        if (error) throw error;
       }
 
       await notifyTeacher(report.created_by, 'approved', report.student_name, report.class_level);
@@ -467,6 +480,11 @@ const ExamResults = () => {
         if (error) throw error;
       } else {
         report = reportCards.find(r => r.id === rejectingReportId);
+        const { error } = await supabase
+          .from("report_cards")
+          .update({ status: 'rejected', rejection_reason: rejectionReason, approved_at: null, approved_by: null } as any)
+          .eq("id", rejectingReportId);
+        if (error) throw error;
       }
 
       if (report) {
