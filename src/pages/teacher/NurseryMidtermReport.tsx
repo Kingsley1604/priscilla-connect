@@ -131,7 +131,6 @@ const NurseryMidtermReport = () => {
   const onlyDigits = (v: string) => v.replace(/[^0-9]/g, "");
   // Allow only alphabets and spaces (no digits or special signs).
   const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s]/g, "");
-  const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'-]/g, "");
   // Academic year: digits and at most one '/'
   const sanitizeAcademicYear = (v: string) => {
     const cleaned = v.replace(/[^0-9/]/g, "");
