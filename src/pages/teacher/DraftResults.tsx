@@ -62,11 +62,13 @@ const DraftResults = () => {
     if (!user) return;
     
     try {
-      // Load primary drafts - only those created by this teacher
+      // Load primary drafts AND rejected primary reports - only those created by this teacher.
+      // Rejected reports must reappear in Drafts so the teacher can revise + resubmit.
       const { data: primaryData, error: primaryError } = await supabase
         .from('report_cards')
-        .select('id, student_name, admission_no, class_level, academic_session, term, created_at')
+        .select('id, student_name, admission_no, class_level, academic_session, term, created_at, status, rejection_reason' as any)
         .eq('created_by', user.id)
+        .in('status', ['draft', 'rejected', 'pending'])
         .order('created_at', { ascending: false });
 
       if (primaryError) throw primaryError;
@@ -82,7 +84,18 @@ const DraftResults = () => {
       if (secondaryError) throw secondaryError;
 
       let allDrafts: DraftReportCard[] = [
-        ...(primaryData || []).map(d => ({ ...d, source: 'primary' as const, status: 'draft', rejection_reason: undefined })),
+        ...((primaryData || []) as any[]).map((d: any) => ({
+          id: d.id,
+          student_name: d.student_name,
+          admission_no: d.admission_no,
+          class_level: d.class_level,
+          academic_session: d.academic_session,
+          term: d.term,
+          created_at: d.created_at,
+          source: 'primary' as const,
+          status: d.status || 'draft',
+          rejection_reason: d.rejection_reason || undefined,
+        })),
         ...(secondaryData || []).map(d => ({ ...d, source: 'secondary' as const, status: d.status || 'draft' }))
       ];
 
