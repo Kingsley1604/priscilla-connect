@@ -58,17 +58,24 @@ const StudentReportCardSystem = () => {
   const location = useLocation();
   const { user } = useAuth();
   const initialData = location.state?.formData;
+  // Task F: hydrate from URL query params passed from EnhancedUploadResult
+  const searchParams = new URLSearchParams(location.search);
+  const urlSession = searchParams.get("session") || "";
+  const urlTerm = searchParams.get("term") || "";
+  const urlClass = searchParams.get("class") || "";
+  const urlGrade = searchParams.get("grade") || "";
+  const urlTotalOpened = parseInt(searchParams.get("totalOpened") || "", 10);
 
   const [reportCard, setReportCard] = useState<ReportCardData>({
     student_name: "",
     admission_no: "",
     date_of_birth: "",
     gender: "Male",
-    class_level: initialData?.classLevel || "",
-    academic_session: initialData?.academicSession || "",
-    term: initialData?.term || "",
+    class_level: initialData?.classLevel || urlGrade || urlClass || "",
+    academic_session: initialData?.academicSession || urlSession || "",
+    term: initialData?.term || urlTerm || "",
     passport_photo_url: "",
-    total_school_opened: 116,
+    total_school_opened: Number.isFinite(urlTotalOpened) && urlTotalOpened > 0 ? urlTotalOpened : 116,
     times_present: 0,
     times_absent: 0,
     school_sports: ["", "", ""],
