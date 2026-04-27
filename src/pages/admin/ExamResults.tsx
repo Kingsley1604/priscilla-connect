@@ -102,6 +102,31 @@ interface SecondaryReportCard {
   principal_remark?: string;
 }
 
+const isMissingReportWorkflowColumn = (error: unknown) => {
+  const err = error as { code?: string; message?: string } | null;
+  return err?.code === '42703' && /report_cards\.(status|rejection_reason)/i.test(err.message || '');
+};
+
+const primaryReportBaseSelect = `id, student_name, admission_no, class_level, academic_session, term, created_at, created_by, total_score_obtained, percentage, gender, date_of_birth, passport_photo_url, class_teacher_comments, head_teacher_comments, class_teacher_name, head_teacher_name, position, conduct_rating, times_present, times_absent, total_school_opened`;
+const primaryReportWorkflowSelect = `${primaryReportBaseSelect}, status, rejection_reason`;
+
+const fetchTeacherNameMap = async (teacherIds: string[]) => {
+  const ids = Array.from(new Set(teacherIds.filter(Boolean)));
+  if (ids.length === 0) return new Map<string, string>();
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, name')
+    .in('id', ids);
+
+  if (error) {
+    console.error('Error loading teacher names:', error);
+    return new Map<string, string>();
+  }
+
+  return new Map(data?.map(t => [t.id, t.name]) || []);
+};
+
 interface ReportSubject {
   id: string;
   subject_name: string;
@@ -208,16 +233,29 @@ const ExamResults = () => {
       // status/rejection_reason are added by migration 20260426120000 — cast through any
       // until generated types are regenerated.
       const sb: any = supabase;
-      const { data: reportCardsData, error: reportCardsError } = await sb
+      let reportCardsData: any[] = [];
+      const { data: workflowReportCardsData, error: workflowReportCardsError } = await sb
         .from("report_cards")
-        .select(`id, student_name, admission_no, class_level, academic_session, term, created_at, created_by, total_score_obtained, percentage, gender, date_of_birth, passport_photo_url, class_teacher_comments, head_teacher_comments, class_teacher_name, head_teacher_name, position, conduct_rating, times_present, times_absent, total_school_opened, status, rejection_reason`)
+        .select(primaryReportWorkflowSelect)
         .order("created_at", { ascending: false });
-      if (reportCardsError) throw reportCardsError;
+
+      if (workflowReportCardsError) {
+        if (!isMissingReportWorkflowColumn(workflowReportCardsError)) throw workflowReportCardsError;
+
+        console.warn('Primary report_cards workflow columns are not applied yet; loading Result Management with legacy columns only.', workflowReportCardsError);
+        const { data: legacyReportCardsData, error: legacyReportCardsError } = await sb
+          .from("report_cards")
+          .select(primaryReportBaseSelect)
+          .order("created_at", { ascending: false });
+
+        if (legacyReportCardsError) throw legacyReportCardsError;
+        reportCardsData = legacyReportCardsData || [];
+      } else {
+        reportCardsData = workflowReportCardsData || [];
+      }
 
       // Get teacher names
-      const teacherIds = [...new Set(((reportCardsData || []) as any[]).map((r: any) => r.created_by))];
-      const { data: teachers } = await supabase.from('profiles').select('id, name').in('id', teacherIds.length > 0 ? teacherIds : ['none']);
-      const teacherMap = new Map(teachers?.map(t => [t.id, t.name]) || []);
+      const teacherMap = await fetchTeacherNameMap(((reportCardsData || []) as any[]).map((r: any) => r.created_by));
 
       const processedReportCards: ReportCardResult[] = ((reportCardsData || []) as any[]).map((rc: any) => ({
         ...rc,
@@ -243,9 +281,7 @@ const ExamResults = () => {
         .order("created_at", { ascending: false });
       if (secondaryError) throw secondaryError;
 
-      const secondaryTeacherIds = [...new Set((secondaryData || []).map(r => r.created_by))];
-      const { data: secondaryTeachers } = await supabase.from('profiles').select('id, name').in('id', secondaryTeacherIds.length > 0 ? secondaryTeacherIds : ['none']);
-      const secondaryTeacherMap = new Map(secondaryTeachers?.map(t => [t.id, t.name]) || []);
+      const secondaryTeacherMap = await fetchTeacherNameMap((secondaryData || []).map(r => r.created_by));
 
       const processedSecondaryReports: SecondaryReportCard[] = (secondaryData || []).map(sr => ({
         ...sr,
