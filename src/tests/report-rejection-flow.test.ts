@@ -31,6 +31,11 @@ const selectForTeacherDrafts = (rows: ReportCard[], teacherId: string) =>
       (r.status === "draft" || r.status === "rejected"),
   );
 
+// Mirrors the conditional in ExamResults.tsx that hides approve/reject buttons
+// once a report has been approved or published.
+const shouldShowApproveRejectButtons = (r: ReportCard) =>
+  r.status !== "approved" && r.status !== "published";
+
 describe("Report card rejection workflow", () => {
   const TEACHER_ID = "teacher-123";
   const REJECTED_ID = "rc-rejected-1";
@@ -67,5 +72,12 @@ describe("Report card rejection workflow", () => {
     const approved = seed.find((r) => r.status === "approved")!;
     expect(filterForAdminView(seed)).toContain(approved);
     expect(selectForTeacherDrafts(seed, TEACHER_ID)).not.toContain(approved);
+  });
+
+  it("hides approve/reject buttons for approved reports but shows them for pending", () => {
+    const approved = seed.find((r) => r.status === "approved")!;
+    const pending = seed.find((r) => r.status === "pending")!;
+    expect(shouldShowApproveRejectButtons(approved)).toBe(false);
+    expect(shouldShowApproveRejectButtons(pending)).toBe(true);
   });
 });
