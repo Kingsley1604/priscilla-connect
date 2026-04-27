@@ -11,6 +11,10 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+// Input sanitizers (Task E)
+const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'.-]/g, "");
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+
 interface Subject {
   name: string;
   cas1: number;
@@ -324,12 +328,12 @@ const MidtermReportSheet = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Pupil's Name</Label>
-                    <Input value={reportData.studentName} onChange={(e) => setReportData({...reportData, studentName: e.target.value})} className="no-print" />
+                    <Input value={reportData.studentName} onChange={(e) => setReportData({...reportData, studentName: onlyAlpha(e.target.value)})} className="no-print" />
                     <p className="print:block hidden">{reportData.studentName}</p>
                   </div>
                   <div>
                     <Label>Admission Number</Label>
-                    <Input value={reportData.admissionNo} onChange={(e) => setReportData({...reportData, admissionNo: e.target.value})} className="no-print" />
+                    <Input inputMode="numeric" value={reportData.admissionNo} onChange={(e) => setReportData({...reportData, admissionNo: onlyDigits(e.target.value)})} className="no-print" />
                     <p className="print:block hidden">{reportData.admissionNo}</p>
                   </div>
                   <div>
@@ -384,12 +388,22 @@ const MidtermReportSheet = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b pb-4">
               <div>
                 <Label>Total Time School Opened</Label>
-                <Input type="number" value={reportData.totalSchoolOpened} onChange={(e) => setReportData({...reportData, timesAbsent: String(parseInt(reportData.totalSchoolOpened) - parseInt(e.target.value || "0")), totalSchoolOpened: e.target.value})} className="no-print" />
+                <Input type="number" min="0" value={reportData.totalSchoolOpened} onChange={(e) => {
+                  const opened = Math.max(0, parseInt(e.target.value || "0") || 0);
+                  const present = parseInt(reportData.timesPresent || "0") || 0;
+                  const absent = Math.max(0, opened - present);
+                  setReportData({...reportData, totalSchoolOpened: String(opened), timesAbsent: String(absent)});
+                }} className="no-print" />
                 <p className="print:block hidden">{reportData.totalSchoolOpened}</p>
               </div>
               <div>
                 <Label>No. of Times Present</Label>
-                <Input type="number" value={reportData.timesPresent} onChange={(e) => setReportData({...reportData, timesPresent: e.target.value, timesAbsent: String(parseInt(reportData.totalSchoolOpened) - parseInt(e.target.value || "0"))})} className="no-print" />
+                <Input type="number" min="0" value={reportData.timesPresent} onChange={(e) => {
+                  const opened = parseInt(reportData.totalSchoolOpened || "0") || 0;
+                  const present = Math.max(0, parseInt(e.target.value || "0") || 0);
+                  const absent = Math.max(0, opened - present);
+                  setReportData({...reportData, timesPresent: String(present), timesAbsent: String(absent)});
+                }} className="no-print" />
                 <p className="print:block hidden">{reportData.timesPresent}</p>
               </div>
               <div>
@@ -402,12 +416,12 @@ const MidtermReportSheet = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4">
               <div>
                 <Label>School Sports</Label>
-                <Input value={reportData.schoolSports} onChange={(e) => setReportData({...reportData, schoolSports: e.target.value})} placeholder="e.g., Football, Basketball" className="no-print" />
+                <Input value={reportData.schoolSports} onChange={(e) => setReportData({...reportData, schoolSports: onlyAlpha(e.target.value)})} placeholder="e.g., Football, Basketball" className="no-print" />
                 <p className="print:block hidden">{reportData.schoolSports}</p>
               </div>
               <div>
                 <Label>Other Activities</Label>
-                <Input value={reportData.otherActivities} onChange={(e) => setReportData({...reportData, otherActivities: e.target.value})} placeholder="e.g., Children's Day, Quiz" className="no-print" />
+                <Input value={reportData.otherActivities} onChange={(e) => setReportData({...reportData, otherActivities: onlyAlpha(e.target.value)})} placeholder="e.g., Children's Day, Quiz" className="no-print" />
                 <p className="print:block hidden">{reportData.otherActivities}</p>
               </div>
             </div>
@@ -519,7 +533,7 @@ const MidtermReportSheet = () => {
             {/* Club/Organization */}
             <div>
               <Label>Club/Organization</Label>
-              <Input value={reportData.clubOrganization} onChange={(e) => setReportData({...reportData, clubOrganization: e.target.value})} placeholder="e.g., Ballet and Science Club" className="no-print" />
+              <Input value={reportData.clubOrganization} onChange={(e) => setReportData({...reportData, clubOrganization: onlyAlpha(e.target.value)})} placeholder="e.g., Ballet and Science Club" className="no-print" />
               <p className="print:block hidden">{reportData.clubOrganization}</p>
             </div>
 
@@ -541,7 +555,7 @@ const MidtermReportSheet = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
               <div>
                 <Label>Class Teacher Name</Label>
-                <Input value={reportData.classTeacherName} onChange={(e) => setReportData({...reportData, classTeacherName: e.target.value})} className="no-print" />
+                <Input value={reportData.classTeacherName} onChange={(e) => setReportData({...reportData, classTeacherName: onlyAlpha(e.target.value)})} className="no-print" />
                 <p className="print:block hidden">{reportData.classTeacherName}</p>
                 <div className="mt-2 border-t border-foreground/20 pt-1">
                   <p className="text-xs text-muted-foreground">Signature</p>
@@ -549,7 +563,7 @@ const MidtermReportSheet = () => {
               </div>
               <div>
                 <Label>Head Teacher Name</Label>
-                <Input value={reportData.headTeacherName} onChange={(e) => setReportData({...reportData, headTeacherName: e.target.value})} className="no-print" />
+                <Input value={reportData.headTeacherName} onChange={(e) => setReportData({...reportData, headTeacherName: onlyAlpha(e.target.value)})} className="no-print" />
                 <p className="print:block hidden">{reportData.headTeacherName}</p>
                 <div className="mt-2 border-t border-foreground/20 pt-1">
                   <p className="text-xs text-muted-foreground">Signature</p>
