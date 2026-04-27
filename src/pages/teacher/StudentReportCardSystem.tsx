@@ -14,6 +14,12 @@ import { useAuth } from "@/hooks/useAuth";
 import coatOfArmsImg from "@/assets/ng-coat-of-arms.jpg";
 import schoolLogoImg from "@/assets/priscilla-school-logo.png";
 
+// Input sanitizers (Task C)
+const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'.-]/g, "");
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+// Academic session: digits and a single slash — e.g. 2025/2026 (Task F)
+const onlySession = (v: string) => v.replace(/[^\d/]/g, "").slice(0, 9);
+
 interface Subject {
   id: string;
   subject_name: string;
@@ -54,17 +60,24 @@ const StudentReportCardSystem = () => {
   const location = useLocation();
   const { user } = useAuth();
   const initialData = location.state?.formData;
+  // Task F: hydrate from URL query params passed from EnhancedUploadResult
+  const searchParams = new URLSearchParams(location.search);
+  const urlSession = searchParams.get("session") || "";
+  const urlTerm = searchParams.get("term") || "";
+  const urlClass = searchParams.get("class") || "";
+  const urlGrade = searchParams.get("grade") || "";
+  const urlTotalOpened = parseInt(searchParams.get("totalOpened") || "", 10);
 
   const [reportCard, setReportCard] = useState<ReportCardData>({
     student_name: "",
     admission_no: "",
     date_of_birth: "",
     gender: "Male",
-    class_level: initialData?.classLevel || "",
-    academic_session: initialData?.academicSession || "",
-    term: initialData?.term || "",
+    class_level: initialData?.classLevel || urlGrade || urlClass || "",
+    academic_session: initialData?.academicSession || urlSession || "",
+    term: initialData?.term || urlTerm || "",
     passport_photo_url: "",
-    total_school_opened: 116,
+    total_school_opened: Number.isFinite(urlTotalOpened) && urlTotalOpened > 0 ? urlTotalOpened : 116,
     times_present: 0,
     times_absent: 0,
     school_sports: ["", "", ""],
@@ -371,21 +384,20 @@ const StudentReportCardSystem = () => {
             <div className="flex items-start border-b-2 border-black pb-4">
               {/* LEFT: Coat of Arms + Termly Volume */}
               <div className="flex-shrink-0 text-center w-1/4">
-                <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1" />
-                <div className="text-red-600 font-bold text-[10px] sm:text-xs">TERMLY VOLUME</div>
+                <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-0" />
+                <div className="text-red-600 font-bold text-[10px] sm:text-xs mt-0">TERMLY VOLUME</div>
                 <div className="text-[9px] sm:text-[10px]">CONTINUOUS ASSESSMENT REPORT</div>
               </div>
 
               {/* CENTER: School logo + info */}
               <div className="flex-1 text-center px-2">
-                <img src={schoolLogoImg} alt="Priscilla School Logo" className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-1" />
-                <h1 className="text-xl sm:text-2xl font-bold">PRISCILLA SCHOOL</h1>
+                <img src={schoolLogoImg} alt="Priscilla School Logo" className="h-14 w-14 sm:h-16 sm:w-16 object-contain mx-auto mb-0" />
+                <h1 className="text-xl sm:text-2xl font-bold leading-tight mt-0">PRISCILLA SCHOOL</h1>
                 <p className="text-[10px] sm:text-xs">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                <p className="text-[10px] sm:text-xs">
+                <p className="text-[9px] sm:text-[11px] whitespace-nowrap overflow-hidden text-ellipsis">
                   <span className="text-red-600 font-medium">Tel:</span> +234 803 302 1210, +234 701 987 6174
-                </p>
-                <p className="text-[10px] sm:text-xs">
-                  <span className="text-red-600 font-medium">Email: priscillaschool@gmail.com</span>
+                  <span className="mx-1">·</span>
+                  <span className="text-red-600 font-medium">Email:</span> priscillaschool@gmail.com
                 </p>
               </div>
 
@@ -407,8 +419,8 @@ const StudentReportCardSystem = () => {
 
             {/* Student Details - Edit View */}
             <div className="grid grid-cols-2 gap-4 text-sm print:hidden">
-              <div><Label>Pupil's Name</Label><Input value={reportCard.student_name} onChange={(e) => setReportCard(prev => ({ ...prev, student_name: e.target.value }))} /></div>
-              <div><Label>Admission No</Label><Input value={reportCard.admission_no} onChange={(e) => setReportCard(prev => ({ ...prev, admission_no: e.target.value }))} /></div>
+              <div><Label>Pupil's Name</Label><Input value={reportCard.student_name} onChange={(e) => setReportCard(prev => ({ ...prev, student_name: onlyAlpha(e.target.value) }))} /></div>
+              <div><Label>Admission No</Label><Input inputMode="numeric" value={reportCard.admission_no} onChange={(e) => setReportCard(prev => ({ ...prev, admission_no: onlyDigits(e.target.value) }))} /></div>
               <div><Label>Date of Birth</Label><Input type="date" value={reportCard.date_of_birth} onChange={(e) => setReportCard(prev => ({ ...prev, date_of_birth: e.target.value }))} /></div>
               <div>
                 <Label>Gender</Label>
@@ -444,25 +456,25 @@ const StudentReportCardSystem = () => {
                 <div className="col-span-2 border-t border-r border-black p-2 print:hidden"><Label>Total Time School Opened</Label><Input type="number" value={reportCard.total_school_opened} onChange={(e) => setReportCard(prev => ({ ...prev, total_school_opened: parseInt(e.target.value) || 0 }))} /></div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">Total Time School Opened</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.total_school_opened}</div>
-                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[0] || ""} onChange={(e) => updateSport(0, e.target.value)} placeholder="Sport 1" className="h-8 text-xs text-center" /></div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[0] || ""} onChange={(e) => updateSport(0, onlyAlpha(e.target.value))} placeholder="Sport 1" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[0]}</div>
-                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[0] || ""} onChange={(e) => updateActivity(0, e.target.value)} placeholder="Activity 1" className="h-8 text-xs text-center" /></div>
+                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[0] || ""} onChange={(e) => updateActivity(0, onlyAlpha(e.target.value))} placeholder="Activity 1" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[0]}</div>
                 
                 <div className="col-span-2 border-t border-r border-black p-2 print:hidden"><Label>No. of Time Present</Label><Input type="number" value={reportCard.times_present} onChange={(e) => setReportCard(prev => ({ ...prev, times_present: parseInt(e.target.value) || 0 }))} /></div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Present</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_present}</div>
-                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[1] || ""} onChange={(e) => updateSport(1, e.target.value)} placeholder="Sport 2" className="h-8 text-xs text-center" /></div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[1] || ""} onChange={(e) => updateSport(1, onlyAlpha(e.target.value))} placeholder="Sport 2" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[1]}</div>
-                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[1] || ""} onChange={(e) => updateActivity(1, e.target.value)} placeholder="Activity 2" className="h-8 text-xs text-center" /></div>
+                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[1] || ""} onChange={(e) => updateActivity(1, onlyAlpha(e.target.value))} placeholder="Activity 2" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[1]}</div>
                 
                 <div className="col-span-2 border-t border-r border-black p-2 print:hidden"><Label>No. of Time Absent (Auto-calculated)</Label><Input type="number" value={reportCard.times_absent} disabled className="bg-muted" /></div>
                 <div className="col-span-2 hidden print:block border-t border-r border-black p-2 font-semibold">No. of Time Absent</div>
                 <div className="border-t border-r border-black p-2 text-center">{reportCard.times_absent}</div>
-                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[2] || ""} onChange={(e) => updateSport(2, e.target.value)} placeholder="Sport 3" className="h-8 text-xs text-center" /></div>
+                <div className="border-t border-r border-black p-2 text-center print:hidden"><Input value={reportCard.school_sports[2] || ""} onChange={(e) => updateSport(2, onlyAlpha(e.target.value))} placeholder="Sport 3" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-r border-black p-2 text-center hidden print:block">{reportCard.school_sports[2]}</div>
-                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[2] || ""} onChange={(e) => updateActivity(2, e.target.value)} placeholder="Activity 3" className="h-8 text-xs text-center" /></div>
+                <div className="border-t border-black p-2 text-center print:hidden"><Input value={reportCard.other_activities[2] || ""} onChange={(e) => updateActivity(2, onlyAlpha(e.target.value))} placeholder="Activity 3" className="h-8 text-xs text-center" /></div>
                 <div className="border-t border-black p-2 text-center hidden print:block">{reportCard.other_activities[2]}</div>
               </div>
             </div>
@@ -502,7 +514,7 @@ const StudentReportCardSystem = () => {
               {reportCard.subjects.map((subject) => (
                 <div key={subject.id} className="grid grid-cols-12 text-xs border-b border-black print:break-inside-avoid">
                   <div className="col-span-4 p-2 border-r border-black font-semibold print:hidden">
-                    <Input value={subject.subject_name} onChange={(e) => setReportCard(prev => ({ ...prev, subjects: prev.subjects.map(s => s.id === subject.id ? { ...s, subject_name: e.target.value } : s) }))} className="h-8" />
+                    <Input value={subject.subject_name} onChange={(e) => setReportCard(prev => ({ ...prev, subjects: prev.subjects.map(s => s.id === subject.id ? { ...s, subject_name: onlyAlpha(e.target.value) } : s) }))} className="h-8" />
                   </div>
                   <div className="col-span-4 p-2 border-r border-black font-semibold hidden print:block">{subject.subject_name}</div>
                   
@@ -550,7 +562,7 @@ const StudentReportCardSystem = () => {
 
             {/* Comments and Additional Info */}
             <div className="grid grid-cols-2 gap-4 text-sm print:hidden mt-4">
-              <div><Label>Club/Organization</Label><Input value={reportCard.club_organization} onChange={(e) => setReportCard(prev => ({ ...prev, club_organization: e.target.value }))} placeholder="e.g., Football and Reading Club" /></div>
+              <div><Label>Club/Organization</Label><Input value={reportCard.club_organization} onChange={(e) => setReportCard(prev => ({ ...prev, club_organization: onlyAlpha(e.target.value) }))} placeholder="e.g., Football and Reading Club" /></div>
               <div>
                 <Label>Term</Label>
                 <Select value={reportCard.term} onValueChange={(value) => setReportCard(prev => ({ ...prev, term: value }))}>
@@ -558,10 +570,19 @@ const StudentReportCardSystem = () => {
                   <SelectContent><SelectItem value="First Term">First Term</SelectItem><SelectItem value="Second Term">Second Term</SelectItem><SelectItem value="Third Term">Third Term</SelectItem></SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Academic Session</Label>
+                <Input
+                  inputMode="numeric"
+                  placeholder="2025/2026"
+                  value={reportCard.academic_session}
+                  onChange={(e) => setReportCard(prev => ({ ...prev, academic_session: onlySession(e.target.value) }))}
+                />
+              </div>
               <div><Label>Class Teacher's Comments</Label><Textarea value={reportCard.class_teacher_comments} onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_comments: e.target.value }))} rows={3} /></div>
               <div><Label>Head Teacher's Comments</Label><Textarea value={reportCard.head_teacher_comments} onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_comments: e.target.value }))} rows={3} /></div>
-              <div><Label>Class Teacher's Name</Label><Input value={reportCard.class_teacher_name} onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_name: e.target.value }))} /></div>
-              <div><Label>Head Teacher's Name</Label><Input value={reportCard.head_teacher_name} onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_name: e.target.value }))} /></div>
+              <div><Label>Class Teacher's Name</Label><Input value={reportCard.class_teacher_name} onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_name: onlyAlpha(e.target.value) }))} /></div>
+              <div><Label>Head Teacher's Name</Label><Input value={reportCard.head_teacher_name} onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_name: onlyAlpha(e.target.value) }))} /></div>
               <div>
                 <Label>Class Teacher's Signature</Label>
                 <div className="space-y-2">

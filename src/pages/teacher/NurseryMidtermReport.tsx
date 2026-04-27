@@ -19,6 +19,9 @@ import childrenOnBooksImg from "@/assets/children-on-books.png";
 import abcBlocksImg from "@/assets/abc-blocks.png";
 import boysOnPencilImg from "@/assets/boys-on-pencil.png";
 
+// Alphabet-only sanitizer (Task D)
+const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'.-]/g, "");
+
 type Rating = "ALWAYS" | "SOMETIMES" | "JUST BEGINNING" | "NOT YET" | "";
 
 interface Skill {
@@ -726,7 +729,7 @@ const NurseryMidtermReport = () => {
                     aria-hidden="true"
                     className="deco-boys-pencil mb-1 self-start"
                   />
-                  <Input value={classTeacherName} onChange={(e) => setClassTeacherName(e.target.value)}
+                  <Input value={classTeacherName} onChange={(e) => setClassTeacherName(onlyAlpha(e.target.value))}
                     className="h-7 text-xs no-print font-bold text-center" placeholder="Class Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{classTeacherName}</span>
                   {/* Signature upload */}
@@ -751,7 +754,7 @@ const NurseryMidtermReport = () => {
 
                 {/* Head Teacher + Stamp + ABC blocks above stamp */}
                 <div className="flex-1 text-right space-y-1 relative">
-                  <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(e.target.value)}
+                  <Input value={headTeacherName} onChange={(e) => setHeadTeacherName(onlyAlpha(e.target.value))}
                     className={`h-7 text-xs no-print font-bold text-right ${validationErrors.headTeacherName ? 'border-red-500' : ''}`} placeholder="Head Teacher's Name" />
                   <span className="hidden print:block font-bold text-blue-800 uppercase">{headTeacherName}</span>
                   <ErrorMsg field="headTeacherName" />
