@@ -23,6 +23,14 @@ interface DraftReportCard {
   rejection_reason?: string;
 }
 
+const isMissingReportWorkflowColumn = (error: unknown) => {
+  const err = error as { code?: string; message?: string } | null;
+  return err?.code === '42703' && /report_cards\.(status|rejection_reason)/i.test(err.message || '');
+};
+
+const primaryDraftBaseSelect = 'id, student_name, admission_no, class_level, academic_session, term, created_at';
+const primaryDraftWorkflowSelect = `${primaryDraftBaseSelect}, status, rejection_reason`;
+
 const DraftResults = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -67,14 +75,29 @@ const DraftResults = () => {
       // Cast through any: the new status/rejection_reason columns are added by migration
       // 20260426120000 and are not yet present in generated types.
       const sb: any = supabase;
-      const { data: primaryData, error: primaryError } = await sb
+      let primaryData: any[] = [];
+      const { data: workflowPrimaryData, error: workflowPrimaryError } = await sb
         .from('report_cards')
-        .select('id, student_name, admission_no, class_level, academic_session, term, created_at, status, rejection_reason')
+        .select(primaryDraftWorkflowSelect)
         .eq('created_by', user.id)
         .in('status', ['draft', 'rejected', 'pending'])
         .order('created_at', { ascending: false });
 
-      if (primaryError) throw primaryError;
+      if (workflowPrimaryError) {
+        if (!isMissingReportWorkflowColumn(workflowPrimaryError)) throw workflowPrimaryError;
+
+        console.warn('Primary report_cards workflow columns are not applied yet; loading teacher drafts with legacy columns only.', workflowPrimaryError);
+        const { data: legacyPrimaryData, error: legacyPrimaryError } = await sb
+          .from('report_cards')
+          .select(primaryDraftBaseSelect)
+          .eq('created_by', user.id)
+          .order('created_at', { ascending: false });
+
+        if (legacyPrimaryError) throw legacyPrimaryError;
+        primaryData = legacyPrimaryData || [];
+      } else {
+        primaryData = workflowPrimaryData || [];
+      }
 
       // Load secondary drafts/rejected - only those created by this teacher
       const { data: secondaryData, error: secondaryError } = await supabase
