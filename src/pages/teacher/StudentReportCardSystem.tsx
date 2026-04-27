@@ -17,6 +17,8 @@ import schoolLogoImg from "@/assets/priscilla-school-logo.png";
 // Input sanitizers (Task C)
 const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'.-]/g, "");
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
+// Academic session: digits and a single slash — e.g. 2025/2026 (Task F)
+const onlySession = (v: string) => v.replace(/[^\d/]/g, "").slice(0, 9);
 
 interface Subject {
   id: string;
@@ -567,6 +569,15 @@ const StudentReportCardSystem = () => {
                   <SelectTrigger><SelectValue placeholder="Select term" /></SelectTrigger>
                   <SelectContent><SelectItem value="First Term">First Term</SelectItem><SelectItem value="Second Term">Second Term</SelectItem><SelectItem value="Third Term">Third Term</SelectItem></SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Academic Session</Label>
+                <Input
+                  inputMode="numeric"
+                  placeholder="2025/2026"
+                  value={reportCard.academic_session}
+                  onChange={(e) => setReportCard(prev => ({ ...prev, academic_session: onlySession(e.target.value) }))}
+                />
               </div>
               <div><Label>Class Teacher's Comments</Label><Textarea value={reportCard.class_teacher_comments} onChange={(e) => setReportCard(prev => ({ ...prev, class_teacher_comments: e.target.value }))} rows={3} /></div>
               <div><Label>Head Teacher's Comments</Label><Textarea value={reportCard.head_teacher_comments} onChange={(e) => setReportCard(prev => ({ ...prev, head_teacher_comments: e.target.value }))} rows={3} /></div>
