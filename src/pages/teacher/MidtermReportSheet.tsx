@@ -7,13 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Upload, Printer, Plus, Trash2, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 // Input sanitizers (Task E)
 const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'.-]/g, "");
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
+// Academic session: allow digits and a single slash — e.g. 2025/2026
+const onlySession = (v: string) => v.replace(/[^\d/]/g, "").slice(0, 9);
 
 interface Subject {
   name: string;
@@ -26,6 +28,12 @@ interface Subject {
 
 const MidtermReportSheet = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const urlSession = searchParams.get("session") || "";
+  const urlTerm = searchParams.get("term") || "";
+  const urlGrade = searchParams.get("grade") || "";
+  const urlTotalOpened = searchParams.get("totalOpened") || "";
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
   const [schoolStamp, setSchoolStamp] = useState<string | null>(null);
@@ -34,11 +42,11 @@ const MidtermReportSheet = () => {
     studentName: "",
     admissionNo: "",
     dateOfBirth: "",
-    classLevel: "",
-    academicYear: "",
-    term: "",
+    classLevel: urlGrade || "",
+    academicYear: urlSession || "",
+    term: urlTerm || "",
     sex: "",
-    totalSchoolOpened: "",
+    totalSchoolOpened: urlTotalOpened || "",
     timesPresent: "",
     timesAbsent: "",
     schoolSports: "",
@@ -356,7 +364,7 @@ const MidtermReportSheet = () => {
                   </div>
                   <div>
                     <Label>Year</Label>
-                    <Input value={reportData.academicYear} onChange={(e) => setReportData({...reportData, academicYear: e.target.value})} className="no-print" />
+                    <Input inputMode="numeric" placeholder="2025/2026" value={reportData.academicYear} onChange={(e) => setReportData({...reportData, academicYear: onlySession(e.target.value)})} className="no-print" />
                     <p className="print:block hidden">{reportData.academicYear}</p>
                   </div>
                   <div>
