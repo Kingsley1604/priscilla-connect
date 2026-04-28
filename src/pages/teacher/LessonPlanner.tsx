@@ -12,6 +12,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface LessonPlanHistory {
   id: string;
@@ -36,6 +48,8 @@ const LessonPlanner = () => {
   const [activeTab, setActiveTab] = useState("create");
   const [history, setHistory] = useState<LessonPlanHistory[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<LessonPlanHistory | null>(null);
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const grades = [
     "Play Group 1", "Play Group 2", 
@@ -240,8 +254,6 @@ const LessonPlanner = () => {
   };
 
   const handleDeleteHistory = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this lesson plan?")) return;
-
     try {
       const { error } = await supabase
         .from('lesson_plan_history')
@@ -254,6 +266,7 @@ const LessonPlanner = () => {
       if (selectedPlan?.id === id) {
         setSelectedPlan(null);
       }
+      if (expandedPlanId === id) setExpandedPlanId(null);
     } catch (error) {
       console.error('Error deleting:', error);
       toast.error("Failed to delete");
