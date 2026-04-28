@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { BackConfirmDialog } from "@/components/teacher/BackConfirmDialog";
 
 import coatOfArmsImg from "@/assets/ng-coat-of-arms.jpg";
 import schoolLogoImg from "@/assets/priscilla-school-logo.png";
@@ -96,6 +97,7 @@ const StudentReportCardSystem = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [classTeacherSignature, setClassTeacherSignature] = useState<string>("");
   const [headTeacherSignature, setHeadTeacherSignature] = useState<string>("");
   const [classSignatureWidth, setClassSignatureWidth] = useState(120);
@@ -362,7 +364,7 @@ const StudentReportCardSystem = () => {
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Header - Hidden on print */}
         <div className="flex items-center justify-between print:hidden mb-4">
-          <Button variant="outline" onClick={() => navigate('/reports')}>
+          <Button variant="outline" onClick={() => setShowBackConfirm(true)}>
             <ArrowLeft className="h-4 w-4 mr-2" />Back
           </Button>
           <div className="flex gap-2">
@@ -405,7 +407,17 @@ const StudentReportCardSystem = () => {
               <div className="flex-shrink-0 w-1/4 flex justify-center">
                 <div className="w-20 h-24 sm:w-24 sm:h-28 border-2 border-black flex items-center justify-center bg-blue-50">
                   {reportCard.passport_photo_url ? (
-                    <img src={reportCard.passport_photo_url} alt="Student" className="w-full h-full object-cover" />
+                    <div className="relative w-full h-full group">
+                      <img src={reportCard.passport_photo_url} alt="Student" className="w-full h-full object-cover" />
+                      <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" id="photo-replace" />
+                      <label
+                        htmlFor="photo-replace"
+                        className="absolute inset-0 bg-black/60 text-white text-[10px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer print:hidden transition-opacity"
+                      >
+                        <Upload className="h-4 w-4 mb-1" />
+                        Replace
+                      </label>
+                    </div>
                   ) : (
                     <div className="text-center p-2 print:hidden">
                       <Upload className="h-6 w-6 mx-auto mb-1" />
@@ -638,6 +650,11 @@ const StudentReportCardSystem = () => {
           </CardContent>
         </Card>
       </div>
+      <BackConfirmDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => navigate('/reports')}
+      />
     </div>
   );
 };

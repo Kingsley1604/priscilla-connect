@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { BackConfirmDialog } from "@/components/teacher/BackConfirmDialog";
 
 // Input sanitizers (Task E)
 const onlyAlpha = (v: string) => v.replace(/[^A-Za-z\s'.-]/g, "");
@@ -37,6 +38,7 @@ const MidtermReportSheet = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [passportPhoto, setPassportPhoto] = useState<string | null>(null);
   const [schoolStamp, setSchoolStamp] = useState<string | null>(null);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
   
   const [reportData, setReportData] = useState({
     studentName: "",
@@ -275,7 +277,7 @@ const MidtermReportSheet = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 flex-shrink-0" onClick={() => navigate("/reports")}>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 flex-shrink-0" onClick={() => setShowBackConfirm(true)}>
                 <ArrowLeft className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Back to Reports</span>
               </Button>
@@ -381,7 +383,17 @@ const MidtermReportSheet = () => {
                 <Label>Passport Photo</Label>
                 <div className="border-2 border-dashed rounded-lg p-4 text-center">
                   {passportPhoto ? (
-                    <img src={passportPhoto} alt="Student" className="w-32 h-32 object-cover mx-auto rounded" />
+                    <div className="relative w-32 h-32 mx-auto group">
+                      <img src={passportPhoto} alt="Student" className="w-full h-full object-cover rounded" />
+                      <input id="midterm-photo-replace" type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                      <label
+                        htmlFor="midterm-photo-replace"
+                        className="absolute inset-0 bg-black/60 text-white text-xs flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer rounded transition-opacity no-print"
+                      >
+                        <Upload className="h-5 w-5 mb-1" />
+                        Replace Photo
+                      </label>
+                    </div>
                   ) : (
                     <div className="w-32 h-32 bg-muted mx-auto rounded flex items-center justify-center">
                       <Upload className="h-8 w-8 text-muted-foreground" />
@@ -592,6 +604,11 @@ const MidtermReportSheet = () => {
           </CardContent>
         </Card>
       </div>
+      <BackConfirmDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => navigate('/reports')}
+      />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { BackConfirmDialog } from "@/components/teacher/BackConfirmDialog";
 
 import coatOfArmsImg from "@/assets/ng-coat-of-arms.jpg";
 import schoolLogoImg from "@/assets/priscilla-school-logo.png";
@@ -116,6 +117,7 @@ const NurseryMidtermReport = () => {
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
   const [editingSkillName, setEditingSkillName] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   // Auto-calculate absent
   useEffect(() => {
@@ -401,7 +403,7 @@ const NurseryMidtermReport = () => {
       <header className="bg-gradient-hero text-white py-4 px-4 sm:px-6 shadow-medium no-print fixed top-0 left-0 right-0 z-50">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={() => navigate("/teacher/upload-result")}>
+            <Button variant="ghost" size="sm" className="text-white hover:bg-white/20" onClick={() => setShowBackConfirm(true)}>
               <ArrowLeft className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Back</span>
             </Button>
             <h1 className="text-lg sm:text-2xl font-bold truncate">Nursery Mid-Term Report</h1>
@@ -486,7 +488,17 @@ const NurseryMidtermReport = () => {
                   <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 72, width: "auto", marginRight: -4 }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
-                      <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
+                      <div className="relative w-full h-full group">
+                        <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
+                        <input id="nursery-photo-replace" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setPassportPhoto)} />
+                        <label
+                          htmlFor="nursery-photo-replace"
+                          className="absolute inset-0 bg-black/60 text-white text-[8px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer no-print transition-opacity"
+                        >
+                          <Upload className="h-3 w-3 mb-0.5" />
+                          Replace
+                        </label>
+                      </div>
                     ) : (
                       <label htmlFor="nursery-photo" className="text-[7px] text-center cursor-pointer text-blue-600 no-print p-0.5">
                         <Upload className="h-3 w-3 mx-auto mb-0.5" />Upload Photo
@@ -783,6 +795,11 @@ const NurseryMidtermReport = () => {
           </CardContent>
         </Card>
       </div>
+      <BackConfirmDialog
+        open={showBackConfirm}
+        onOpenChange={setShowBackConfirm}
+        onConfirm={() => navigate('/teacher/upload-result')}
+      />
     </div>
   );
 };
