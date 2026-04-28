@@ -611,6 +611,29 @@ const LessonPlanner = () => {
           </Card>
         </div>
       </section>
+
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(o) => !o && setPendingDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this lesson plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The lesson plan will be permanently removed from your history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const id = pendingDeleteId;
+                setPendingDeleteId(null);
+                if (id) await handleDeleteHistory(id);
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
