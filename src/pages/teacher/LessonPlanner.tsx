@@ -455,50 +455,84 @@ const LessonPlanner = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
-                      {history.map((plan) => (
-                        <div
-                          key={plan.id}
-                          className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                            selectedPlan?.id === plan.id ? 'border-primary bg-primary/5' : 'hover:bg-muted'
-                          }`}
-                          onClick={() => setSelectedPlan(plan)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium">{plan.topic}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {plan.subject} • {plan.grade}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {format(new Date(plan.created_at), 'MMM dd, yyyy HH:mm')}
-                              </p>
-                            </div>
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedPlan(plan);
-                                }}
+                      <TooltipProvider delayDuration={150}>
+                        {history.map((plan) => {
+                          const isExpanded = expandedPlanId === plan.id;
+                          return (
+                            <div
+                              key={plan.id}
+                              className={`group border rounded-lg transition-colors ${
+                                selectedPlan?.id === plan.id ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                              }`}
+                            >
+                              <div
+                                className="p-4 flex items-start justify-between cursor-pointer"
+                                onClick={() => setSelectedPlan(plan)}
                               >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteHistory(plan.id);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-medium truncate">{plan.topic}</h4>
+                                  <p className="text-sm text-muted-foreground truncate">
+                                    {plan.subject} • {plan.grade}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {format(new Date(plan.created_at), 'MMM dd, yyyy HH:mm')}
+                                  </p>
+                                </div>
+                                <div
+                                  className={`flex gap-1 transition-opacity duration-200 ${
+                                    isExpanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
+                                  }`}
+                                >
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        aria-label="View lesson plan"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedPlan(plan);
+                                          setExpandedPlanId(isExpanded ? null : plan.id);
+                                        }}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>View lesson plan</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-destructive hover:text-destructive"
+                                        aria-label="Delete lesson plan"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPendingDeleteId(plan.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Delete lesson plan</TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </div>
+
+                              <Collapsible open={isExpanded}>
+                                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+                                  <div className="px-4 pb-4">
+                                    <div className="prose prose-sm max-w-none bg-muted rounded-lg p-3 max-h-[300px] overflow-y-auto">
+                                      <pre className="whitespace-pre-wrap text-xs font-sans">{plan.generated_plan}</pre>
+                                    </div>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
                             </div>
-                          </div>
-                        </div>
-                      ))}
+                          );
+                        })}
+                      </TooltipProvider>
 
                       {history.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground">
