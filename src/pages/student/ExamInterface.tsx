@@ -734,9 +734,11 @@ const ExamInterface = () => {
                   {formatTime(timeRemaining)}
                 </span>
                 {warningCount > 0 && !isMobile && (
-                  <Alert className="py-2 px-3">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
+                  <Alert className="py-2 px-3 border-destructive/50 bg-destructive/10">
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded bg-[#FF0000] text-white">
+                      <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    </span>
+                    <AlertDescription className="text-destructive font-semibold">
                       Warnings: {warningCount}/3
                     </AlertDescription>
                   </Alert>
@@ -818,8 +820,10 @@ const ExamInterface = () => {
                           <span className="font-mono text-lg font-semibold">{formatTime(timeRemaining)}</span>
                         </div>
                         {warningCount > 0 && (
-                          <div className="flex items-center gap-2 p-3 bg-amber-500/10 rounded-lg text-amber-700 text-sm">
-                            <AlertTriangle className="h-4 w-4" />
+                          <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm font-semibold">
+                            <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-[#FF0000] text-white">
+                              <AlertTriangle className="h-4 w-4" strokeWidth={2.5} />
+                            </span>
                             Warnings: {warningCount}/3
                           </div>
                         )}
