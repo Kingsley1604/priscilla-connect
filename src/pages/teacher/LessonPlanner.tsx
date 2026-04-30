@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, BookOpen, Download, Sparkles, History, Trash2, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ const LessonPlanner = () => {
   const [history, setHistory] = useState<LessonPlanHistory[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<LessonPlanHistory | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const previewRef = React.useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const grades = [
     "Play Group 1", "Play Group 2", 
