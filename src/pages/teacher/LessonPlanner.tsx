@@ -23,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface LessonPlanHistory {
   id: string;
