@@ -402,6 +402,67 @@ const PriscillaBrain = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    Research & Assignment History
+                  </CardTitle>
+                  <CardDescription>
+                    Click any past session to reopen it in the chat view.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {history.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No history yet</p>
+                      <p className="text-sm mt-2">Your past questions will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          className="group border rounded-lg p-4 hover:bg-muted/60 transition-colors cursor-pointer flex items-start gap-3"
+                          onClick={() => openFromHistory(item)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={item.query_type === "research" ? "default" : "secondary"}>
+                                {item.query_type === "research" ? "Research" : "Assignment"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(item.created_at), "MMM dd, yyyy HH:mm")}
+                              </span>
+                            </div>
+                            <p className="font-medium truncate">{item.question}</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {item.answer}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteHistoryItem(item.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
     </div>
