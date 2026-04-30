@@ -190,6 +190,19 @@ const PriscillaBrain = () => {
       {/* Content */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "history")}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="chat">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Ask
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="h-4 w-4 mr-2" />
+                History ({history.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="chat">
           {/* Query Type Selector */}
           <Card className="shadow-soft mb-6">
             <CardContent className="pt-6">
