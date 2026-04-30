@@ -48,8 +48,8 @@ const LessonPlanner = () => {
   const [activeTab, setActiveTab] = useState("create");
   const [history, setHistory] = useState<LessonPlanHistory[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<LessonPlanHistory | null>(null);
-  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const previewRef = React.useRef<HTMLDivElement>(null);
 
   const grades = [
     "Play Group 1", "Play Group 2", 
@@ -266,7 +266,6 @@ const LessonPlanner = () => {
       if (selectedPlan?.id === id) {
         setSelectedPlan(null);
       }
-      if (expandedPlanId === id) setExpandedPlanId(null);
     } catch (error) {
       console.error('Error deleting:', error);
       toast.error("Failed to delete");
