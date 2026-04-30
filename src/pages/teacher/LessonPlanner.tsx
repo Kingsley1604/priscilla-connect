@@ -541,7 +541,7 @@ const LessonPlanner = () => {
                 </Card>
 
                 {/* Selected Plan Preview */}
-                <Card className="shadow-soft">
+                <Card ref={previewRef} className="shadow-soft scroll-mt-24">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>
@@ -562,7 +562,10 @@ const LessonPlanner = () => {
                   </CardHeader>
                   <CardContent>
                     {selectedPlan ? (
-                      <div className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto">
+                      <div
+                        key={selectedPlan.id}
+                        className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto animate-accordion-down"
+                      >
                         <pre className="whitespace-pre-wrap text-sm font-sans">{selectedPlan.generated_plan}</pre>
                       </div>
                     ) : (
