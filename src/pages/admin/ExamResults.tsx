@@ -512,18 +512,32 @@ const ExamResults = () => {
 
       if (rejectingReportType === 'secondary') {
         report = secondaryReports.find(r => r.id === rejectingReportId);
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from("secondary_report_cards")
           .update({ status: 'rejected', rejection_reason: rejectionReason, approved_at: null, approved_by: null })
-          .eq("id", rejectingReportId);
-        if (error) throw error;
+          .eq("id", rejectingReportId)
+          .select('id');
+        if (error) {
+          console.error('Reject secondary report failed:', error);
+          throw error;
+        }
+        if (!updated || updated.length === 0) {
+          throw new Error('No row updated. You may not have permission to reject this report.');
+        }
       } else {
         report = reportCards.find(r => r.id === rejectingReportId);
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from("report_cards")
           .update({ status: 'rejected', rejection_reason: rejectionReason, approved_at: null, approved_by: null } as any)
-          .eq("id", rejectingReportId);
-        if (error) throw error;
+          .eq("id", rejectingReportId)
+          .select('id');
+        if (error) {
+          console.error('Reject primary report failed:', error);
+          throw error;
+        }
+        if (!updated || updated.length === 0) {
+          throw new Error('No row updated. You may not have permission to reject this report.');
+        }
       }
 
       if (report) {
@@ -537,8 +551,9 @@ const ExamResults = () => {
       setRejectingReportType(null);
       setRejectionReason('');
       loadData();
-    } catch (error) {
-      toast.error("Failed to reject report card");
+    } catch (error: any) {
+      console.error('Failed to reject report card:', error);
+      toast.error(error?.message || "Failed to reject report card");
     }
   };
 

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, BookOpen, Download, Sparkles, History, Trash2, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -23,7 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface LessonPlanHistory {
   id: string;
@@ -48,8 +47,8 @@ const LessonPlanner = () => {
   const [activeTab, setActiveTab] = useState("create");
   const [history, setHistory] = useState<LessonPlanHistory[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<LessonPlanHistory | null>(null);
-  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const grades = [
     "Play Group 1", "Play Group 2", 
@@ -266,7 +265,6 @@ const LessonPlanner = () => {
       if (selectedPlan?.id === id) {
         setSelectedPlan(null);
       }
-      if (expandedPlanId === id) setExpandedPlanId(null);
     } catch (error) {
       console.error('Error deleting:', error);
       toast.error("Failed to delete");
@@ -457,12 +455,12 @@ const LessonPlanner = () => {
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
                       <TooltipProvider delayDuration={150}>
                         {history.map((plan) => {
-                          const isExpanded = expandedPlanId === plan.id;
+                          const isSelected = selectedPlan?.id === plan.id;
                           return (
                             <div
                               key={plan.id}
                               className={`group border rounded-lg transition-colors ${
-                                selectedPlan?.id === plan.id ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                                isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted'
                               }`}
                             >
                               <div
@@ -480,7 +478,7 @@ const LessonPlanner = () => {
                                 </div>
                                 <div
                                   className={`flex gap-1 transition-opacity duration-200 ${
-                                    isExpanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
+                                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
                                   }`}
                                 >
                                   <Tooltip>
@@ -492,7 +490,13 @@ const LessonPlanner = () => {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedPlan(plan);
-                                          setExpandedPlanId(isExpanded ? null : plan.id);
+                                          // Smooth-scroll to the preview pane.
+                                          setTimeout(() => {
+                                            previewRef.current?.scrollIntoView({
+                                              behavior: 'smooth',
+                                              block: 'start',
+                                            });
+                                          }, 80);
                                         }}
                                       >
                                         <Eye className="h-4 w-4" />
@@ -519,16 +523,6 @@ const LessonPlanner = () => {
                                   </Tooltip>
                                 </div>
                               </div>
-
-                              <Collapsible open={isExpanded}>
-                                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                                  <div className="px-4 pb-4">
-                                    <div className="prose prose-sm max-w-none bg-muted rounded-lg p-3 max-h-[300px] overflow-y-auto">
-                                      <pre className="whitespace-pre-wrap text-xs font-sans">{plan.generated_plan}</pre>
-                                    </div>
-                                  </div>
-                                </CollapsibleContent>
-                              </Collapsible>
                             </div>
                           );
                         })}
@@ -546,7 +540,7 @@ const LessonPlanner = () => {
                 </Card>
 
                 {/* Selected Plan Preview */}
-                <Card className="shadow-soft">
+                <Card ref={previewRef} className="shadow-soft scroll-mt-24">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>
@@ -567,7 +561,10 @@ const LessonPlanner = () => {
                   </CardHeader>
                   <CardContent>
                     {selectedPlan ? (
-                      <div className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto">
+                      <div
+                        key={selectedPlan.id}
+                        className="prose prose-sm max-w-none bg-muted rounded-lg p-4 max-h-[600px] overflow-y-auto animate-accordion-down"
+                      >
                         <pre className="whitespace-pre-wrap text-sm font-sans">{selectedPlan.generated_plan}</pre>
                       </div>
                     ) : (

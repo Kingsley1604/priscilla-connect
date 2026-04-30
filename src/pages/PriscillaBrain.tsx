@@ -1,23 +1,77 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Brain, BookOpen, Calculator, Globe, Beaker, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Brain, BookOpen, Calculator, Globe, Beaker, Send, Sparkles, History, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
+interface BrainHistoryItem {
+  id: string;
+  query_type: "assignment" | "research";
+  question: string;
+  answer: string;
+  created_at: string;
+}
+
 const PriscillaBrain = () => {
+  const { user } = useAuth();
   const [question, setQuestion] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [queryType, setQueryType] = useState<"assignment" | "research">("assignment");
+  const [activeTab, setActiveTab] = useState<"chat" | "history">("chat");
+  const [history, setHistory] = useState<BrainHistoryItem[]>([]);
+
+  useEffect(() => {
+    if (user) loadHistory();
+  }, [user]);
+
+  const loadHistory = async () => {
+    if (!user) return;
+    const sb: any = supabase;
+    const { data, error } = await sb
+      .from("priscilla_brain_history")
+      .select("*")
+      .eq("student_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (error) {
+      console.error("Error loading brain history:", error);
+      return;
+    }
+    setHistory((data || []) as BrainHistoryItem[]);
+  };
+
+  const deleteHistoryItem = async (id: string) => {
+    const sb: any = supabase;
+    const { error } = await sb.from("priscilla_brain_history").delete().eq("id", id);
+    if (error) {
+      toast.error("Failed to delete history item");
+      return;
+    }
+    toast.success("Removed from history");
+    loadHistory();
+  };
+
+  const openFromHistory = (item: BrainHistoryItem) => {
+    setQueryType(item.query_type);
+    setMessages([
+      { role: "user", content: item.question },
+      { role: "assistant", content: item.answer },
+    ]);
+    setActiveTab("chat");
+  };
 
   const subjects = [
     { name: "Mathematics", icon: Calculator, color: "bg-gradient-primary" },
@@ -81,6 +135,19 @@ const PriscillaBrain = () => {
         content: data?.answer || "I couldn't generate a response. Please try again.",
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Persist to history (research only by spec, but we save both for completeness)
+      if (user && data?.answer) {
+        const sb: any = supabase;
+        const { error: insertError } = await sb.from("priscilla_brain_history").insert({
+          student_id: user.id,
+          query_type: queryType,
+          question: question.trim(),
+          answer: data.answer,
+        });
+        if (!insertError) loadHistory();
+      }
+
       setQuestion("");
     } catch (error: any) {
       // Handle network or unexpected errors gracefully
@@ -123,6 +190,19 @@ const PriscillaBrain = () => {
       {/* Content */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "chat" | "history")}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="chat">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Ask
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="h-4 w-4 mr-2" />
+                History ({history.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="chat">
           {/* Query Type Selector */}
           <Card className="shadow-soft mb-6">
             <CardContent className="pt-6">
@@ -322,6 +402,67 @@ const PriscillaBrain = () => {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" />
+                    Research & Assignment History
+                  </CardTitle>
+                  <CardDescription>
+                    Click any past session to reopen it in the chat view.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {history.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No history yet</p>
+                      <p className="text-sm mt-2">Your past questions will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      {history.map((item) => (
+                        <div
+                          key={item.id}
+                          className="group border rounded-lg p-4 hover:bg-muted/60 transition-colors cursor-pointer flex items-start gap-3"
+                          onClick={() => openFromHistory(item)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={item.query_type === "research" ? "default" : "secondary"}>
+                                {item.query_type === "research" ? "Research" : "Assignment"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(item.created_at), "MMM dd, yyyy HH:mm")}
+                              </span>
+                            </div>
+                            <p className="font-medium truncate">{item.question}</p>
+                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                              {item.answer}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="opacity-0 group-hover:opacity-100 text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteHistoryItem(item.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </section>
     </div>
