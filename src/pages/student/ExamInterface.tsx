@@ -676,9 +676,11 @@ const ExamInterface = () => {
               />
             </div>
             
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="border-destructive/40 bg-destructive/10">
+              <span className="inline-flex items-center justify-center h-6 w-6 rounded-md bg-[#FF0000] text-white shadow-sm">
+                <AlertTriangle className="h-4 w-4" strokeWidth={2.5} fill="#FF0000" />
+              </span>
+              <AlertDescription className="text-destructive font-medium">
                 Anti-cheating measures will be active during the exam. Avoid tab switching, 
                 copying/pasting, or exiting fullscreen mode.
               </AlertDescription>
