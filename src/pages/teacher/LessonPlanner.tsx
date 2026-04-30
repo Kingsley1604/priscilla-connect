@@ -456,12 +456,12 @@ const LessonPlanner = () => {
                     <div className="space-y-3 max-h-[600px] overflow-y-auto">
                       <TooltipProvider delayDuration={150}>
                         {history.map((plan) => {
-                          const isExpanded = expandedPlanId === plan.id;
+                          const isSelected = selectedPlan?.id === plan.id;
                           return (
                             <div
                               key={plan.id}
                               className={`group border rounded-lg transition-colors ${
-                                selectedPlan?.id === plan.id ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                                isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted'
                               }`}
                             >
                               <div
@@ -479,7 +479,7 @@ const LessonPlanner = () => {
                                 </div>
                                 <div
                                   className={`flex gap-1 transition-opacity duration-200 ${
-                                    isExpanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
+                                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'
                                   }`}
                                 >
                                   <Tooltip>
@@ -491,7 +491,13 @@ const LessonPlanner = () => {
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           setSelectedPlan(plan);
-                                          setExpandedPlanId(isExpanded ? null : plan.id);
+                                          // Smooth-scroll to the preview pane.
+                                          setTimeout(() => {
+                                            previewRef.current?.scrollIntoView({
+                                              behavior: 'smooth',
+                                              block: 'start',
+                                            });
+                                          }, 80);
                                         }}
                                       >
                                         <Eye className="h-4 w-4" />
@@ -518,16 +524,6 @@ const LessonPlanner = () => {
                                   </Tooltip>
                                 </div>
                               </div>
-
-                              <Collapsible open={isExpanded}>
-                                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                                  <div className="px-4 pb-4">
-                                    <div className="prose prose-sm max-w-none bg-muted rounded-lg p-3 max-h-[300px] overflow-y-auto">
-                                      <pre className="whitespace-pre-wrap text-xs font-sans">{plan.generated_plan}</pre>
-                                    </div>
-                                  </div>
-                                </CollapsibleContent>
-                              </Collapsible>
                             </div>
                           );
                         })}
