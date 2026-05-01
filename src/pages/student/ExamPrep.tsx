@@ -56,7 +56,7 @@ const ExamPrep = () => {
                   : "hover:shadow-lg hover:-translate-y-0.5 cursor-pointer"
               }`}
               onClick={() => {
-                if (!exam.comingSoon) navigate(`/student/past-questions?exam=${exam.code}`);
+                if (!exam.comingSoon) navigate(`/student/exam-prep/${exam.code}`);
               }}
             >
               <div className={`h-2 bg-gradient-to-r ${exam.color}`} />
@@ -87,7 +87,7 @@ const ExamPrep = () => {
                   disabled={exam.comingSoon}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!exam.comingSoon) navigate(`/student/past-questions?exam=${exam.code}`);
+                    if (!exam.comingSoon) navigate(`/student/exam-prep/${exam.code}`);
                   }}
                 >
                   {exam.comingSoon ? "Unavailable" : "Start Practicing"}
