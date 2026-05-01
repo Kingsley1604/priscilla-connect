@@ -22,8 +22,10 @@ const SUBJECTS = [
 const PER_COMBO = 60;   // questions to fetch per (exam, subject) per run
 const BATCH_SIZE = 20;  // ALOC max per request
 
-async function fetchBatch(exam: string, subject: string, batch: number, token: string) {
-  const url = `${ALOC_BASE}/m?subject=${encodeURIComponent(subject)}&type=${encodeURIComponent(exam)}&total=${batch}`;
+async function fetchBatch(exam: string, subject: string, batch: number, token: string, mode: "objective" | "theory" = "objective") {
+  // ALOC: /m = multiple objective, /t = theory
+  const path = mode === "theory" ? "t" : "m";
+  const url = `${ALOC_BASE}/${path}?subject=${encodeURIComponent(subject)}&type=${encodeURIComponent(exam)}&total=${batch}`;
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -49,7 +51,7 @@ async function fetchBatch(exam: string, subject: string, batch: number, token: s
   throw new Error(`Fetch failed: ${String(lastErr)}`);
 }
 
-function normalize(raw: any, exam: string, subject: string) {
+function normalize(raw: any, exam: string, subject: string, qType: string) {
   const opts = raw?.option ?? raw?.options ?? {};
   const optionList = Array.isArray(opts)
     ? opts.map((t: string, i: number) => ({
@@ -71,6 +73,7 @@ function normalize(raw: any, exam: string, subject: string) {
     explanation: raw?.solution ? String(raw.solution) : null,
     image_url: raw?.image ?? null,
     section: raw?.section ?? null,
+    question_type: qType,
   };
 }
 
@@ -91,22 +94,27 @@ Deno.serve(async (req) => {
 
     for (const exam of EXAMS) {
       for (const subject of SUBJECTS) {
+        // JAMB = objective only. WAEC/NECO = objective + theory
+        const modes: ("objective" | "theory")[] =
+          exam === "jamb" ? ["objective"] : ["objective", "theory"];
         try {
           const seen = new Set<string>();
-          const rounds = Math.ceil(PER_COMBO / BATCH_SIZE);
           const collected: any[] = [];
-          for (let i = 0; i < rounds; i++) {
-            const data = await fetchBatch(exam, subject, BATCH_SIZE, ALOC_TOKEN);
-            if (!Array.isArray(data) || data.length === 0) break;
-            for (const r of data) {
-              const n = normalize(r, exam, subject);
-              if (!n.question_text) continue;
-              const key = `${n.exam_type}|${n.subject}|${n.year}|${n.question_text}`;
-              if (seen.has(key)) continue;
-              seen.add(key);
-              collected.push(n);
+          for (const mode of modes) {
+            const rounds = Math.ceil(PER_COMBO / BATCH_SIZE);
+            for (let i = 0; i < rounds; i++) {
+              const data = await fetchBatch(exam, subject, BATCH_SIZE, ALOC_TOKEN, mode);
+              if (!Array.isArray(data) || data.length === 0) break;
+              for (const r of data) {
+                const n = normalize(r, exam, subject, mode);
+                if (!n.question_text) continue;
+                const key = `${n.exam_type}|${n.subject}|${n.year}|${n.question_text}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                collected.push(n);
+              }
+              await new Promise((r) => setTimeout(r, 200));
             }
-            await new Promise((r) => setTimeout(r, 200));
           }
           totalFetched += collected.length;
           if (collected.length) {
