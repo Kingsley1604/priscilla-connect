@@ -82,10 +82,16 @@ const Dashboard = ({
       disabled?: boolean;
     }> = [{
       title: "Take Exam",
-      description: "Take entrance or CBT exam",
+      description: "Take School Examination",
       icon: FileText,
       color: "bg-gradient-primary",
       path: "/student/exam"
+    }, {
+      title: "Exam Prep",
+      description: "Practice External Exams",
+      icon: GraduationCap,
+      color: "bg-gradient-accent",
+      path: "/student/exam-prep"
     }, {
       title: "Homework",
       description: "View and submit homework",
