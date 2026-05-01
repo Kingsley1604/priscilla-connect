@@ -1,3 +1,6 @@
 project_id = "fctarpegeatdizeuzzyb"
 [functions.import-past-questions]
 verify_jwt = false
+
+[functions.auto-import-past-questions]
+verify_jwt = false
