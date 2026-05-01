@@ -71,6 +71,7 @@ import ManageAdmins from "./pages/admin/ManageAdmins";
 import ManageExamination from "./pages/admin/ManageExamination";
 import PastQuestionsImport from "./pages/admin/PastQuestionsImport";
 import PastQuestions from "./pages/student/PastQuestions";
+import ExamPrep from "./pages/student/ExamPrep";
 import Error404 from "./pages/errors/Error404";
 import Error403 from "./pages/errors/Error403";
 import Error401 from "./pages/errors/Error401";
@@ -149,6 +150,7 @@ const App = () => (
             <Route path="/admin/manage-examination" element={<ManageExamination />} />
             <Route path="/admin/past-questions-import" element={<PastQuestionsImport />} />
             <Route path="/student/past-questions" element={<PastQuestions />} />
+            <Route path="/student/exam-prep" element={<ExamPrep />} />
             <Route path="/past-questions" element={<PastQuestions />} />
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />
