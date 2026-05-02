@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   ArrowLeft, Shield, Users, Settings, Bell, Activity, 
   Database, Lock, AlertTriangle, CheckCircle, XCircle,
-  Monitor, MapPin, Clock, Search, RefreshCw, Power
+  Monitor, MapPin, Clock, Search, RefreshCw, Power, BookOpen
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -442,6 +442,10 @@ const SuperAdminDashboard = () => {
               <Button variant="outline" className="justify-start" onClick={() => navigate('/admin/manage-store')}>
                 <Database className="h-4 w-4 mr-2" />
                 Store Management
+              </Button>
+              <Button variant="outline" className="justify-start" onClick={() => navigate('/admin/past-questions-source')}>
+                <BookOpen className="h-4 w-4 mr-2" />
+                Past Questions Source
               </Button>
             </div>
           </CardContent>
