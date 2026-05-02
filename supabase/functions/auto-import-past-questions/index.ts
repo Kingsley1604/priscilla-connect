@@ -148,9 +148,9 @@ Deno.serve(async (req) => {
     if (!errors.length && totalInserted > 0) {
       try {
         const { data: sas } = await admin
-          .from("user_roles")
+          .from("profiles")
           .select("user_id")
-          .eq("role", "super_admin");
+          .eq("is_super_admin", true);
         const rows = (sas || []).map((r: any) => ({
           user_id: r.user_id,
           title: "Past questions import complete",
