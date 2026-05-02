@@ -21,7 +21,7 @@ const PastQuestionsDataSource = () => {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
-      const { data: prof } = await supabase
+      const { data: prof } = await (supabase as any)
         .from("profiles")
         .select("is_super_admin")
         .eq("user_id", u.user.id)
