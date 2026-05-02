@@ -154,8 +154,9 @@ const ExamPrepSession = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4 text-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Fetching questions… please wait.</p>
       </div>
     );
   }
@@ -165,8 +166,10 @@ const ExamPrepSession = () => {
       <div className="min-h-screen flex items-center justify-center p-6">
         <Card className="max-w-md w-full">
           <CardContent className="p-6 text-center space-y-3">
-            <p>No questions are available yet for these subjects.</p>
-            <p className="text-sm text-muted-foreground">Try again later or pick different subjects.</p>
+            <p className="font-medium">No questions found for these subjects.</p>
+            <p className="text-sm text-muted-foreground">
+              Try another subject or exam type.
+            </p>
             <Button onClick={() => navigate(-1)}>Go Back</Button>
           </CardContent>
         </Card>

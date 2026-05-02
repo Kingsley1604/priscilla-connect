@@ -72,6 +72,7 @@ import ManageExamination from "./pages/admin/ManageExamination";
 import ExamPrep from "./pages/student/ExamPrep";
 import ExamPrepConfig from "./pages/student/ExamPrepConfig";
 import ExamPrepSession from "./pages/student/ExamPrepSession";
+import PastQuestionsDataSource from "./pages/admin/PastQuestionsDataSource";
 import Error404 from "./pages/errors/Error404";
 import Error403 from "./pages/errors/Error403";
 import Error401 from "./pages/errors/Error401";
@@ -151,6 +152,7 @@ const App = () => (
             <Route path="/student/exam-prep" element={<ExamPrep />} />
             <Route path="/student/exam-prep/:exam" element={<ExamPrepConfig />} />
             <Route path="/student/exam-prep/:exam/session" element={<ExamPrepSession />} />
+            <Route path="/admin/past-questions-source" element={<PastQuestionsDataSource />} />
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />
             <Route path="/reports/midterm-result" element={<MidtermResult />} />
