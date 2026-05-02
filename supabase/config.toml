@@ -4,3 +4,6 @@ verify_jwt = false
 
 [functions.auto-import-past-questions]
 verify_jwt = false
+
+[functions.fetch-past-questions]
+verify_jwt = false
