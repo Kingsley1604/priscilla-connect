@@ -24,7 +24,7 @@ const PastQuestionsDataSource = () => {
       const { data: prof } = await (supabase as any)
         .from("profiles")
         .select("is_super_admin")
-        .eq("user_id", u.user.id)
+        .eq("id", u.user.id)
         .maybeSingle();
       setIsSuperAdmin(Boolean((prof as any)?.is_super_admin));
 
