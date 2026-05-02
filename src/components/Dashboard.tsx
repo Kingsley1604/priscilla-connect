@@ -40,6 +40,14 @@ const Dashboard = ({
   // Task J: Check if student is assigned to a class
   const studentClassGrade = (authUser as any)?.class_grade;
   const isUnassignedStudent = userRole === 'student' && (!studentClassGrade || studentClassGrade === '');
+
+  // Exam Prep is only for SS1-SS3 secondary students.
+  const studentSector = String((authUser as any)?.sector || '').toLowerCase();
+  const normalizedGrade = String(studentClassGrade || '').toLowerCase().replace(/\s+/g, '');
+  const isExamPrepEligible =
+    userRole === 'student' &&
+    studentSector === 'secondary' &&
+    ['ss1', 'ss2', 'ss3'].includes(normalizedGrade);
   
   const getProfilePath = () => {
     if (userRole === 'teacher') return '/teacher/profile-options';
@@ -277,7 +285,12 @@ const Dashboard = ({
       color: "bg-gradient-to-r from-indigo-600 to-purple-600",
       path: "/admin/super-admin"
     }];
-    if (userRole === 'student') return [...baseModules, ...studentModules];
+    if (userRole === 'student') {
+      const filteredStudent = isExamPrepEligible
+        ? studentModules
+        : studentModules.filter((m) => m.path !== '/student/exam-prep');
+      return [...baseModules, ...filteredStudent];
+    }
     if (userRole === 'teacher') return [...baseModules, ...teacherModules];
     // Admin modules with super admin modules if applicable
     const adminAllModules = isUserSuperAdmin 
