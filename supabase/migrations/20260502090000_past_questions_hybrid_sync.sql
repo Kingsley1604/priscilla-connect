@@ -8,26 +8,33 @@ create table if not exists public.app_settings (
 
 alter table public.app_settings enable row level security;
 
--- Anyone authenticated can read settings (so client knows the data source)
+-- Helper: is current user a super admin (reads from profiles.is_super_admin)
+create or replace function public.is_super_admin(_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select is_super_admin from public.profiles where user_id = _user_id), false);
+$$;
+
 drop policy if exists "settings readable by authenticated" on public.app_settings;
 create policy "settings readable by authenticated"
   on public.app_settings for select
   to authenticated
   using (true);
 
--- Only super admins can insert/update settings
 drop policy if exists "settings writable by super admin" on public.app_settings;
 create policy "settings writable by super admin"
   on public.app_settings for all
   to authenticated
-  using (public.has_role(auth.uid(), 'super_admin'))
-  with check (public.has_role(auth.uid(), 'super_admin'));
+  using (public.is_super_admin(auth.uid()))
+  with check (public.is_super_admin(auth.uid()));
 
--- Default flag: use API (not Supabase) until import completes & SA flips it
 insert into public.app_settings (key, value)
 values ('past_questions_source', '{"useSupabaseData": false}'::jsonb)
 on conflict (key) do nothing;
 
--- Helpful index for completion check on past_questions
 create index if not exists past_questions_exam_subject_idx
   on public.past_questions (exam_type, subject);
