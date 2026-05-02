@@ -60,16 +60,73 @@ export async function fetchAndCache(
   return questions;
 }
 
+/** Reads the super-admin controlled `past_questions_source.useSupabaseData` flag */
+export async function shouldUseSupabaseSource(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("app_settings" as any)
+      .select("value")
+      .eq("key", "past_questions_source")
+      .maybeSingle();
+    if (error || !data) return false;
+    return Boolean((data as any)?.value?.useSupabaseData);
+  } catch {
+    return false;
+  }
+}
+
+/** Live fetch via proxy edge function (token stays server-side). */
+export async function fetchFromApiProxy(
+  exam: string,
+  subjects: string[],
+  types: string[],
+): Promise<CachedQuestion[]> {
+  const { data, error } = await supabase.functions.invoke("fetch-past-questions", {
+    body: { exam, subjects, types },
+  });
+  if (error) throw error;
+  const raw = (data as any)?.questions || [];
+  // Map to CachedQuestion shape (proxy returns rows without id; fabricate stable id from content)
+  const mapped: CachedQuestion[] = raw.map((q: any, i: number) => ({
+    id: q.external_id || `${q.exam_type}|${q.subject}|${q.year}|${i}|${q.question_text?.slice(0, 32)}`,
+    exam_type: q.exam_type,
+    subject: q.subject,
+    year: q.year ?? null,
+    question_text: q.question_text,
+    options: q.options || [],
+    correct_answer: q.correct_answer ?? null,
+    explanation: q.explanation ?? null,
+    question_type: q.question_type || "objective",
+  }));
+  await set(bundleKey(exam, subjects, types), {
+    fetchedAt: Date.now(),
+    questions: mapped,
+  } satisfies Bundle);
+  return mapped;
+}
+
 export async function getQuestionsWithOfflineFallback(
   exam: string,
   subjects: string[],
   types: string[],
 ): Promise<{ questions: CachedQuestion[]; fromCache: boolean }> {
-  // Try network first if online; fall back to cache
+  // Hybrid: when SA has flipped the flag, read from Supabase. Otherwise call live API proxy.
   if (navigator.onLine) {
     try {
-      const fresh = await fetchAndCache(exam, subjects, types);
-      if (fresh.length) return { questions: fresh, fromCache: false };
+      const useSupabase = await shouldUseSupabaseSource();
+      if (useSupabase) {
+        const fresh = await fetchAndCache(exam, subjects, types);
+        if (fresh.length) return { questions: fresh, fromCache: false };
+        // Fallback to live API if Supabase has nothing yet
+        const live = await fetchFromApiProxy(exam, subjects, types);
+        return { questions: live, fromCache: false };
+      } else {
+        const live = await fetchFromApiProxy(exam, subjects, types);
+        if (live.length) return { questions: live, fromCache: false };
+        // Fallback to Supabase if API returned nothing
+        const fresh = await fetchAndCache(exam, subjects, types);
+        return { questions: fresh, fromCache: false };
+      }
     } catch {
       // fall through to cache
     }
