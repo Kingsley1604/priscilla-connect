@@ -21,13 +21,12 @@ const PastQuestionsDataSource = () => {
     try {
       const { data: u } = await supabase.auth.getUser();
       if (!u?.user) return;
-      const { data: role } = await supabase
-        .from("user_roles")
-        .select("role")
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("is_super_admin")
         .eq("user_id", u.user.id)
-        .eq("role", "super_admin")
         .maybeSingle();
-      setIsSuperAdmin(!!role);
+      setIsSuperAdmin(Boolean((prof as any)?.is_super_admin));
 
       const { data: setting } = await supabase
         .from("app_settings" as any)
