@@ -60,6 +60,7 @@ end $$;
 
 drop policy if exists "past questions readable by all" on public.past_questions;
 drop policy if exists "past questions readable" on public.past_questions;
+drop policy if exists "Authenticated can read past questions" on public.past_questions;
 create policy "past questions readable"
   on public.past_questions for select
   to authenticated
