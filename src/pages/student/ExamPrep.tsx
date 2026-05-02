@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, GraduationCap, BookOpen, Globe, Lock } from "lucide-react";
+import { ArrowLeft, GraduationCap, BookOpen, Globe, Lock, ShieldAlert, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type Exam = {
   code: string;
@@ -22,6 +25,55 @@ const EXAMS: Exam[] = [
 
 const ExamPrep = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [eligible, setEligible] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!user) { setChecking(false); return; }
+      // Allow staff/super admins to preview the page.
+      if ((user as any).role !== 'student' || (user as any).is_super_admin) {
+        setEligible(true); setChecking(false); return;
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('sector, class_grade')
+        .eq('id', user.id)
+        .maybeSingle();
+      const sector = String((data as any)?.sector || '').toLowerCase();
+      const grade = String((data as any)?.class_grade || '').toLowerCase().replace(/\s+/g, '');
+      const ok = sector === 'secondary' && ['ss1','ss2','ss3'].includes(grade);
+      if (!cancelled) { setEligible(ok); setChecking(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!eligible) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 text-center space-y-3">
+            <ShieldAlert className="h-10 w-10 mx-auto text-destructive" />
+            <h2 className="text-lg font-semibold">Exam Prep is unavailable</h2>
+            <p className="text-sm text-muted-foreground">
+              Exam Prep is only available to SS1–SS3 secondary students.
+            </p>
+            <Button onClick={() => navigate('/dashboard')} className="w-full">Back to Dashboard</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
