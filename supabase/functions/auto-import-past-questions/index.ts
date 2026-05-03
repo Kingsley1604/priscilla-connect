@@ -144,19 +144,35 @@ Deno.serve(async (req) => {
       finished_at: new Date().toISOString(),
     });
 
+    // Log failures to import_failures table for the SA portal history
+    if (errors.length) {
+      try {
+        await admin.from("import_failures").insert({
+          error_message: "Auto-import partial/failed",
+          error_details: errors.join("; ").slice(0, 4000),
+          exam_type: "all",
+          subjects: EXAMS,
+          student_id: null,
+          student_name: "system",
+        });
+      } catch (e) { console.error("import_failures insert", e); }
+    }
+
     // On full success, notify all super admins exactly once (per completion event)
-    if (!errors.length && totalInserted > 0) {
+    // Notify super admins on completion (success or failure)
+    if (totalInserted > 0 || errors.length) {
       try {
         const { data: sas } = await admin
           .from("profiles")
-          .select("user_id")
+          .select("id")
           .eq("is_super_admin", true);
         const rows = (sas || []).map((r: any) => ({
-          user_id: r.user_id,
-          title: "Past questions import complete",
-          message:
-            "All past questions have been successfully imported. You can now switch data source to Supabase to reduce API costs.",
-          type: "system",
+          user_id: r.id,
+          title: errors.length ? "Background import failed" : "Past questions import complete",
+          message: errors.length
+            ? "Background import failed. Click here for details."
+            : "All past questions have been imported. You can now switch data source to Supabase.",
+          type: errors.length ? "system_failure" : "system",
         }));
         if (rows.length) await admin.from("notifications").insert(rows);
       } catch (e) {
