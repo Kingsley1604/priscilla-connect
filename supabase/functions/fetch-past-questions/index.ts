@@ -77,6 +77,23 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
+    // Backend access check: only SS1-SS3 students or super admins
+    const adminCheckClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: profile } = await adminCheckClient
+      .from("profiles")
+      .select("is_super_admin, sector, class_grade")
+      .eq("id", userId)
+      .maybeSingle();
+    const sector = String((profile as any)?.sector || "").toLowerCase();
+    const grade = String((profile as any)?.class_grade || "").toLowerCase().replace(/\s+/g, "");
+    const isSA = Boolean((profile as any)?.is_super_admin);
+    const isEligibleStudent = sector === "secondary" && ["ss1","ss2","ss3"].includes(grade);
+    if (!isSA && !isEligibleStudent) {
+      return new Response(JSON.stringify({ error: "Access restricted to senior students only." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json().catch(() => ({}));
     const exam = String(body?.exam || "").toLowerCase();
     const subjects: string[] = Array.isArray(body?.subjects) ? body.subjects.map((s: string) => s.toLowerCase()) : [];
