@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Database, Cloud, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Database, Cloud, Loader2, RefreshCw, AlertTriangle, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const PastQuestionsDataSource = () => {
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,8 @@ const PastQuestionsDataSource = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [importing, setImporting] = useState(false);
   const [stats, setStats] = useState<{ total: number; lastJob?: any }>({ total: 0 });
+  const [failures, setFailures] = useState<any[]>([]);
+  const [activeFailure, setActiveFailure] = useState<any | null>(null);
 
   async function load() {
     setLoading(true);
@@ -45,12 +48,52 @@ const PastQuestionsDataSource = () => {
         .limit(1)
         .maybeSingle();
       setStats({ total: count || 0, lastJob });
+
+      const { data: fails } = await supabase
+        .from("import_failures" as any)
+        .select("*")
+        .eq("archived", false)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setFailures((fails as any[]) || []);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // Realtime subscription for instant failure alerts
+    const ch = supabase
+      .channel("import_failures_rt")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "import_failures" },
+        (payload: any) => {
+          setFailures((cur) => [payload.new, ...cur].slice(0, 50));
+          toast.error("Background import failed. Click here for details.", {
+            action: { label: "View", onClick: () => setActiveFailure(payload.new) },
+          });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
+
+  async function archiveFailure(id: string) {
+    try {
+      const { error } = await supabase
+        .from("import_failures" as any)
+        .update({ archived: true })
+        .eq("id", id);
+      if (error) throw error;
+      setFailures((cur) => cur.filter((f) => f.id !== id));
+      setActiveFailure(null);
+      toast.success("Archived");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to archive");
+    }
+  }
 
   async function toggle(next: boolean) {
     if (!isSuperAdmin) {
@@ -171,7 +214,76 @@ const PastQuestionsDataSource = () => {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              Recent failures ({failures.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {failures.length === 0 && (
+              <p className="text-sm text-muted-foreground">No failures recorded.</p>
+            )}
+            {failures.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setActiveFailure(f)}
+                className="w-full text-left rounded-md border p-3 hover:bg-muted/40 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{f.error_message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(f.created_at).toLocaleString()}
+                      {f.exam_type ? ` · ${f.exam_type.toUpperCase()}` : ""}
+                      {f.student_name ? ` · ${f.student_name}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant="destructive" className="shrink-0">failure</Badge>
+                </div>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
       </main>
+
+      <Dialog open={!!activeFailure} onOpenChange={(o) => !o && setActiveFailure(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Import failure details</DialogTitle>
+            <DialogDescription>
+              {activeFailure?.created_at && new Date(activeFailure.created_at).toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+          {activeFailure && (
+            <div className="space-y-3 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Error message</p>
+                <p className="font-medium">{activeFailure.error_message}</p>
+              </div>
+              {activeFailure.error_details && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Details / stack</p>
+                  <pre className="bg-muted rounded p-2 text-xs whitespace-pre-wrap break-all max-h-48 overflow-auto">
+                    {activeFailure.error_details}
+                  </pre>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><p className="text-muted-foreground">Exam type</p><p>{activeFailure.exam_type || "—"}</p></div>
+                <div><p className="text-muted-foreground">Subjects</p><p>{(activeFailure.subjects || []).join(", ") || "—"}</p></div>
+                <div><p className="text-muted-foreground">Student ID</p><p className="break-all">{activeFailure.student_id || "—"}</p></div>
+                <div><p className="text-muted-foreground">Student name</p><p>{activeFailure.student_name || "—"}</p></div>
+              </div>
+              <Button variant="outline" className="w-full" onClick={() => archiveFailure(activeFailure.id)}>
+                <Archive className="h-4 w-4 mr-2" /> Dismiss / Archive
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

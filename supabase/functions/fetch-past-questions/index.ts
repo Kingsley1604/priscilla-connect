@@ -64,12 +64,34 @@ Deno.serve(async (req) => {
     const TOKEN = Deno.env.get("ALOC_API_TOKEN");
     if (!TOKEN) throw new Error("ALOC_API_TOKEN missing");
 
-    // Auth check
+    // Auth check (manual, since verify_jwt = false)
     const authHeader = req.headers.get("Authorization") || "";
-    const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: authHeader } } });
-    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (!claims?.claims?.sub) {
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }});
+    }
+    const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: `Bearer ${token}` } } });
+    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }});
+    }
+    const userId = userData.user.id;
+
+    // Backend access check: only SS1-SS3 students or super admins
+    const adminCheckClient = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const { data: profile } = await adminCheckClient
+      .from("profiles")
+      .select("is_super_admin, sector, class_grade")
+      .eq("id", userId)
+      .maybeSingle();
+    const sector = String((profile as any)?.sector || "").toLowerCase();
+    const grade = String((profile as any)?.class_grade || "").toLowerCase().replace(/\s+/g, "");
+    const isSA = Boolean((profile as any)?.is_super_admin);
+    const isEligibleStudent = sector === "secondary" && ["ss1","ss2","ss3"].includes(grade);
+    if (!isSA && !isEligibleStudent) {
+      return new Response(JSON.stringify({ error: "Access restricted to senior students only." }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -82,8 +104,47 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Helper: log a failure (non-blocking) so the SA panel can surface it
+    async function logFailure(message: string, details: unknown) {
+      try {
+        // Look up student name for context
+        const { data: prof } = await admin
+          .from("profiles")
+          .select("full_name, first_name, last_name")
+          .eq("id", userId)
+          .maybeSingle();
+        const studentName =
+          (prof as any)?.full_name ||
+          [(prof as any)?.first_name, (prof as any)?.last_name].filter(Boolean).join(" ") ||
+          null;
+        await admin.from("import_failures").insert({
+          error_message: message.slice(0, 500),
+          error_details: typeof details === "string" ? details.slice(0, 4000) : JSON.stringify(details).slice(0, 4000),
+          exam_type: exam,
+          subjects,
+          student_id: userId,
+          student_name: studentName,
+        });
+        // Real-time SA notifications
+        const { data: sas } = await admin
+          .from("profiles")
+          .select("id")
+          .eq("is_super_admin", true);
+        const rows = (sas || []).map((r: any) => ({
+          target_admin_id: r.id,
+          title: "Background import failed",
+          message: "Background import failed. Click here for details.",
+          type: "system_failure",
+        }));
+        if (rows.length) await admin.from("admin_notifications").insert(rows);
+      } catch (e) {
+        console.error("logFailure error", e);
+      }
+    }
+
     // Fetch all subjects in parallel (objective always; theory if requested for waec/neco)
     const all: any[] = [];
+    const fetchErrors: string[] = [];
     await Promise.all(subjects.map(async (subject) => {
       for (const t of types) {
         if (t === "theory" && exam === "jamb") continue;
@@ -95,10 +156,16 @@ Deno.serve(async (req) => {
             if (n.question_text) all.push(n);
           }
         } catch (e) {
+          const msg = (e as Error).message;
+          fetchErrors.push(`${subject}/${t}: ${msg}`);
           console.error("aloc fetch error", e);
         }
       }
     }));
+
+    if (!all.length) {
+      await logFailure("No questions returned from ALOC", fetchErrors.join("; ") || "Empty response");
+    }
 
     // Background upsert into Supabase (don't block response)
     const upsertPayload = all.map(({ ...q }) => q);
