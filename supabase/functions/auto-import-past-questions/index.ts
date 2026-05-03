@@ -167,14 +167,14 @@ Deno.serve(async (req) => {
           .select("id")
           .eq("is_super_admin", true);
         const rows = (sas || []).map((r: any) => ({
-          user_id: r.id,
+          target_admin_id: r.id,
           title: errors.length ? "Background import failed" : "Past questions import complete",
           message: errors.length
             ? "Background import failed. Click here for details."
             : "All past questions have been imported. You can now switch data source to Supabase.",
           type: errors.length ? "system_failure" : "system",
         }));
-        if (rows.length) await admin.from("notifications").insert(rows);
+        if (rows.length) await admin.from("admin_notifications").insert(rows);
       } catch (e) {
         console.error("notify super admin failed", e);
       }
