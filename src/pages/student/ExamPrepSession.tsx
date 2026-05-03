@@ -18,6 +18,7 @@ import {
 } from "@/lib/pastQuestionsCache";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import LoadingScreen from "@/components/LoadingScreen";
 
 const JAMB_DURATION_SECONDS = 2 * 60 * 60; // 2 hours
 
@@ -32,6 +33,7 @@ const ExamPrepSession = () => {
 
   const [questions, setQuestions] = useState<CachedQuestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -51,6 +53,7 @@ const ExamPrepSession = () => {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setLoadError(null);
       try {
         const { questions: qs, fromCache: fc } = await getQuestionsWithOfflineFallback(
           examKey, subjects, types,
@@ -61,7 +64,7 @@ const ExamPrepSession = () => {
         setQuestions(shuffled);
         setFromCache(fc);
       } catch (e: any) {
-        toast.error("Could not load questions: " + (e?.message || "unknown"));
+        if (!cancelled) setLoadError(e?.message || "unknown");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -153,10 +156,18 @@ const ExamPrepSession = () => {
       .toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   if (loading) {
+    return <LoadingScreen />;
+  }
+
+  if (loadError) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Fetching questions… please wait.</p>
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 text-center space-y-3">
+            <p className="font-medium">Unable to load questions. Please try again later.</p>
+            <Button onClick={() => navigate(-1)}>Go Back</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
