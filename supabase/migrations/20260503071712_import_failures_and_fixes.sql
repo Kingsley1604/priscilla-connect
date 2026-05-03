@@ -42,7 +42,7 @@ do $$ begin
     exception when others then null;
     end;
     begin
-      execute 'alter publication supabase_realtime add table public.notifications';
+      execute 'alter publication supabase_realtime add table public.admin_notifications';
     exception when others then null;
     end;
   end if;
