@@ -1,5 +1,25 @@
-// Similar to NurseryOneExamResult but with Dictation subject added
-import NurseryOneExamResult from './NurseryOneExamResult';
-// Note: This is identical to Nursery One except for the additional "Dictation" subject
-// The component can be extended by importing the base and adding the extra subject
-export default NurseryOneExamResult;
+import NurseryExamResultTemplate from "@/components/teacher/NurseryExamResultTemplate";
+
+const NURSERY_TWO_SUBJECTS = [
+  "Numeracy",
+  "Literacy",
+  "Dictation",
+  "Poems/Rhymes",
+  "Social Habits",
+  "Hygiene",
+  "Health Habits",
+  "Colouring",
+  "Craft",
+  "Practical Life",
+  "Sensorial",
+];
+
+const NurseryTwoExamResult = () => (
+  <NurseryExamResultTemplate
+    classLabel="Nursery Two"
+    classLabelUpper="NURSERY TWO"
+    defaultSubjects={NURSERY_TWO_SUBJECTS}
+  />
+);
+
+export default NurseryTwoExamResult;

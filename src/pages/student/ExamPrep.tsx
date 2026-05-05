@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "@/components/LoadingScreen";
 import { toast } from "sonner";
+import { isExamPrepEligible as checkEligible } from "@/lib/examPrepEligibility";
 
 type Exam = {
   code: string;
@@ -44,14 +45,27 @@ const ExamPrep = () => {
         if (!cancelled) { setEligible(false); setChecking(false); }
         return;
       }
-      const { data } = await supabase
-        .from('profiles')
-        .select('sector, class_grade')
-        .eq('id', user.id)
-        .maybeSingle();
-      const sector = String((data as any)?.sector || '').toLowerCase();
-      const grade = String((data as any)?.class_grade || '').toLowerCase().replace(/\s+/g, '');
-      const ok = sector === 'secondary' && ['ss1','ss2','ss3'].includes(grade);
+      // First check the in-memory user (already populated from profiles).
+      let ok = checkEligible(
+        (user as any).role,
+        (user as any).sector,
+        (user as any).class_grade,
+        (user as any).is_super_admin,
+      );
+      // Fallback: re-query profile in case auth context is stale.
+      if (!ok) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('sector, class_grade')
+          .eq('id', user.id)
+          .maybeSingle();
+        ok = checkEligible(
+          'student',
+          (data as any)?.sector,
+          (data as any)?.class_grade,
+          false,
+        );
+      }
       if (!cancelled) { setEligible(ok); setChecking(false); }
     })();
     return () => { cancelled = true; };
