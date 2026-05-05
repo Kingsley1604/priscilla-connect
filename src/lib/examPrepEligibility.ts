@@ -26,7 +26,7 @@ export function isSeniorSecondaryGrade(grade?: string | null): boolean {
   if (!n) return false;
   if (SENIOR_GRADE_TOKENS.includes(n)) return true;
   // Match patterns like "ss1a", "sss2b", "senior1b", "ss-1"
-  return /^(sss?|seniorsecondary|senior)[123]\b?/.test(n);
+  return /^(sss?|seniorsecondary|senior)[123]/.test(n);
 }
 
 export function isSeniorSector(sector?: string | null): boolean {
