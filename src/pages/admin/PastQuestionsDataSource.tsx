@@ -124,8 +124,29 @@ const PastQuestionsDataSource = () => {
   async function runImport() {
     setImporting(true);
     try {
-      const { error } = await supabase.functions.invoke("auto-import-past-questions", { body: {} });
-      if (error) throw error;
+      // Primary path: supabase-js invoke
+      const invoke = await supabase.functions.invoke("auto-import-past-questions", { body: {} });
+      if (invoke.error) {
+        // Fallback to a direct fetch — invoke() can return a generic
+        // "Failed to send a request to the Edge Function" when the
+        // function returns non-200 with a JSON error body.
+        const SUPABASE_URL = "https://fctarpegeatdizeuzzyb.supabase.co";
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess?.session?.access_token;
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/auto-import-past-questions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            apikey: (supabase as any)?.supabaseKey ?? "",
+          },
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
+          throw new Error(`Import failed (${res.status}): ${txt.slice(0, 200) || invoke.error.message}`);
+        }
+      }
       toast.success("Background import started. This can take a few minutes.");
       setTimeout(load, 3000);
     } catch (e: any) {
