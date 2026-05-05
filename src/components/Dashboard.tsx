@@ -16,6 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 import priscillaLogo from "@/assets/priscilla-connect-logo.svg";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
+import { isExamPrepEligible as checkExamPrepEligible } from "@/lib/examPrepEligibility";
 interface DashboardProps {
   userRole: 'student' | 'teacher' | 'admin';
   userName: string;
@@ -41,13 +42,13 @@ const Dashboard = ({
   const studentClassGrade = (authUser as any)?.class_grade;
   const isUnassignedStudent = userRole === 'student' && (!studentClassGrade || studentClassGrade === '');
 
-  // Exam Prep is only for SS1-SS3 secondary students.
-  const studentSector = String((authUser as any)?.sector || '').toLowerCase();
-  const normalizedGrade = String(studentClassGrade || '').toLowerCase().replace(/\s+/g, '');
-  const isExamPrepEligible =
-    userRole === 'student' &&
-    studentSector === 'secondary' &&
-    ['ss1', 'ss2', 'ss3'].includes(normalizedGrade);
+  // Exam Prep is only for SS1-SS3 secondary students (any synonym accepted).
+  const isExamPrepEligible = checkExamPrepEligible(
+    userRole,
+    (authUser as any)?.sector,
+    studentClassGrade,
+    isUserSuperAdmin,
+  );
   
   const getProfilePath = () => {
     if (userRole === 'teacher') return '/teacher/profile-options';
