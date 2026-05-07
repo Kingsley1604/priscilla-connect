@@ -411,8 +411,9 @@ const NurseryExamResultTemplate = ({
                 </div>
                 <div className="p-1 sm:p-2">
                   <span className="font-bold italic text-emerald-800">Admission No:</span>
-                  <Input value={reportData.admissionNo} onChange={(e) => setReportData({ ...reportData, admissionNo: e.target.value })}
-                    className="h-7 text-xs mt-0.5 no-print" />
+                  <Input value={reportData.admissionNo} inputMode="numeric" pattern="[0-9]*"
+                    onChange={(e) => setReportData({ ...reportData, admissionNo: onlyDigits(e.target.value) })}
+                    className="h-7 text-xs mt-0.5 no-print" placeholder="Numbers only" />
                   <span className="hidden print:inline ml-2">{reportData.admissionNo}</span>
                 </div>
               </div>
