@@ -674,7 +674,13 @@ const NurseryExamResultTemplate = ({
                   <ErrorMsg field="classTeacherName" />
                   <div className={`w-full h-14 sm:h-16 border-2 border-dashed flex items-center justify-center overflow-hidden no-print ${validationErrors.classTeacherSignature ? 'border-red-500' : 'border-emerald-400'}`}>
                     {classTeacherSignature ? (
-                      <img src={classTeacherSignature} alt="Signature" className="max-h-full object-contain" />
+                      <div className="relative w-full h-full group">
+                        <img src={classTeacherSignature} alt="Signature" className="w-full h-full object-contain" />
+                        <label htmlFor="exam-teacher-sig-replace" className="absolute inset-0 bg-black/60 text-white text-[9px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">
+                          <Upload className="h-3 w-3 mb-0.5" />Replace
+                        </label>
+                        <input id="exam-teacher-sig-replace" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setClassTeacherSignature)} />
+                      </div>
                     ) : (
                       <label htmlFor="exam-teacher-sig" className="text-[8px] text-emerald-600 cursor-pointer flex flex-col items-center">
                         <Upload className="h-3 w-3 mb-0.5" />Upload Signature
@@ -697,7 +703,13 @@ const NurseryExamResultTemplate = ({
                   <ErrorMsg field="headTeacherName" />
                   <div className={`w-16 h-16 sm:w-20 sm:h-20 border-2 border-dashed ml-auto flex items-center justify-center overflow-hidden no-print ${validationErrors.schoolStamp ? 'border-red-500' : 'border-emerald-400'}`}>
                     {schoolStamp ? (
-                      <img src={schoolStamp} alt="School Stamp" className="w-full h-full object-contain" />
+                      <div className="relative w-full h-full group">
+                        <img src={schoolStamp} alt="School Stamp" className="w-full h-full object-contain" />
+                        <label htmlFor="exam-school-stamp-replace" className="absolute inset-0 bg-black/60 text-white text-[8px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">
+                          <Upload className="h-3 w-3 mb-0.5" />Replace
+                        </label>
+                        <input id="exam-school-stamp-replace" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setSchoolStamp)} />
+                      </div>
                     ) : (
                       <label htmlFor="exam-school-stamp" className="text-[7px] text-emerald-600 cursor-pointer flex flex-col items-center">
                         <Upload className="h-3 w-3 mb-0.5" />Stamp
