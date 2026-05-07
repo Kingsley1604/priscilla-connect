@@ -281,6 +281,8 @@ const NurseryExamResultTemplate = ({
         .deco-boys-pencil { height: 90px; width: auto; transform: rotate(-25deg); transform-origin: bottom center; pointer-events: none; }
         .deco-abc-blocks { height: 70px; width: auto; pointer-events: none; }
         .contact-line { white-space: nowrap; overflow: visible; }
+        .subject-row .subject-actions { opacity: 0; transition: opacity .2s; }
+        .subject-row:hover .subject-actions { opacity: 1; }
         @media print {
           .no-print { display: none !important; }
           @page { size: A4 portrait; margin: 8mm; }
@@ -294,6 +296,8 @@ const NurseryExamResultTemplate = ({
         }
         @media (max-width: 640px) {
           .contact-line { font-size: 7px; }
+          .deco-boys-pencil { height: 56px; }
+          .deco-abc-blocks { height: 44px; }
         }
       `}</style>
 
