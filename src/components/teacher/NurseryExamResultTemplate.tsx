@@ -533,7 +533,10 @@ const NurseryExamResultTemplate = ({
                   </div>
                 </div>
                 <Input type="number" min={0} max={100} value={conduct.rating}
-                  onChange={(e) => setConduct({ ...conduct, rating: parseInt(e.target.value || "0") })}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value || "0");
+                    setConduct({ ...conduct, rating: Math.max(0, Math.min(100, isNaN(n) ? 0 : n)) });
+                  }}
                   className="h-7 w-16 text-xs no-print" />
                 <Input value={conduct.label}
                   onChange={(e) => setConduct({ ...conduct, label: onlyAlpha(e.target.value) })}
