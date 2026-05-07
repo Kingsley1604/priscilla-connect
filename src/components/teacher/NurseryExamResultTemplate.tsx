@@ -563,8 +563,34 @@ const NurseryExamResultTemplate = ({
                   </thead>
                   <tbody>
                     {subjects.map((s, i) => (
-                      <tr key={s.name} className="hover:bg-emerald-50/40">
-                        <td className="border border-emerald-700 p-1 font-medium text-emerald-900">{s.name}</td>
+                      <tr key={s.id} className="hover:bg-emerald-50/40 subject-row">
+                        <td className="border border-emerald-700 p-1 font-medium text-emerald-900">
+                          {editingSubjectId === s.id ? (
+                            <div className="flex items-center gap-1 no-print">
+                              <Input value={editingSubjectName} onChange={(e) => setEditingSubjectName(e.target.value)}
+                                className="h-6 text-xs flex-1" autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && saveEditSubject()} />
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEditSubject}>
+                                <Check className="h-3 w-3 text-green-600" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingSubjectId(null)}>
+                                <X className="h-3 w-3 text-red-600" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <span>{s.name}</span>
+                              <div className="subject-actions flex gap-0.5 no-print">
+                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => startEditSubject(s.id, s.name)}>
+                                  <Edit2 className="h-3 w-3 text-emerald-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => deleteSubject(s.id)}>
+                                  <Trash2 className="h-3 w-3 text-red-500" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
                         <td className="border border-emerald-700 p-0.5">
                           <Input type="number" min={0} max={40}
                             value={s.halfTerm ?? ""} onChange={(e) => updateSubjectScore(i, "halfTerm", e.target.value)}
@@ -584,6 +610,11 @@ const NurseryExamResultTemplate = ({
                     ))}
                   </tbody>
                 </table>
+                <div className="no-print px-2 py-1 border-t border-emerald-700 bg-emerald-50">
+                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={addSubject}>
+                    <Plus className="h-3 w-3 mr-1" />Add Subject
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-emerald-50 border-t border-emerald-700 text-xs sm:text-sm">
