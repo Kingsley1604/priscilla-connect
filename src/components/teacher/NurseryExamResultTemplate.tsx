@@ -342,27 +342,27 @@ const NurseryExamResultTemplate = ({
 
             {/* HEADER */}
             <div className="border-b-2 border-emerald-700 pb-2">
-              <div className="grid items-center gap-1" style={{ gridTemplateColumns: "auto 1fr auto" }}>
+              <div className="grid items-center gap-1 grid-cols-[auto_1fr_auto]">
                 {/* LEFT: coat + mickey */}
-                <div className="flex items-center gap-0" style={{ marginRight: -24, zIndex: 20, position: "relative" }}>
+                <div className="flex items-center -mr-3 sm:-mr-6 relative z-20">
                   <div className="flex flex-col items-center">
-                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 56, width: 56 }} />
-                    <p className="text-red-600 font-extrabold uppercase tracking-wider text-[8px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap text-center">TERMLY VOLUME</p>
-                    <p className="text-black font-extrabold uppercase text-[6px] sm:text-[8px] leading-tight whitespace-nowrap text-center">EXAMINATION RESULT REPORT</p>
+                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain h-8 w-8 sm:h-14 sm:w-14" />
+                    <p className="text-red-600 font-extrabold uppercase tracking-wider text-[6px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap text-center">TERMLY VOLUME</p>
+                    <p className="text-black font-extrabold uppercase text-[5px] sm:text-[8px] leading-tight whitespace-nowrap text-center">EXAMINATION RESULT REPORT</p>
                   </div>
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 96, width: "auto", marginLeft: -4 }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain h-14 sm:h-24 w-auto -ml-1" />
                 </div>
 
                 {/* CENTER: cloud + logo + school name */}
-                <div className="relative flex items-center justify-center min-h-[140px] sm:min-h-[170px] mx-auto sm:w-[460px]">
+                <div className="relative flex items-center justify-center min-h-[100px] sm:min-h-[170px] mx-auto w-full sm:w-[460px] px-1">
                   <img src={cloudImg} alt="" aria-hidden="true"
-                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full object-fill w-full sm:w-[460px]"
-                    style={{ opacity: 0.7, zIndex: 1 }} />
-                  <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
-                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 80, width: 80 }} />
-                    <h1 className="text-2xl sm:text-4xl font-extrabold text-emerald-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
-                    <p className="text-[9px] sm:text-xs text-emerald-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                    <p className="contact-line text-[9px] sm:text-xs leading-tight">
+                    className="pointer-events-none absolute inset-0 w-full h-full object-fill opacity-70"
+                    style={{ zIndex: 1 }} />
+                  <div className="relative text-center px-1 py-1 max-w-full" style={{ zIndex: 10 }}>
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain h-10 w-10 sm:h-20 sm:w-20" />
+                    <h1 className="text-[clamp(0.85rem,3.6vw,2.25rem)] font-extrabold text-emerald-800 tracking-wide leading-tight break-words">PRISCILLA SCHOOL</h1>
+                    <p className="text-[7px] sm:text-xs text-emerald-700 leading-tight break-words">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
+                    <p className="contact-line text-[7px] sm:text-xs leading-tight">
                       <span className="text-red-600 font-semibold">Tel:</span>{" "}
                       <span className="text-emerald-700">+234 803 302 1210, +234 701 987 6174</span>
                       <span className="mx-1">|</span>
@@ -373,9 +373,9 @@ const NurseryExamResultTemplate = ({
                 </div>
 
                 {/* RIGHT: children-on-books + passport */}
-                <div className="flex items-center gap-1" style={{ marginLeft: -24, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 112, width: "auto", marginRight: -4 }} />
-                  <div className="border-2 border-emerald-700 bg-emerald-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
+                <div className="flex items-center -ml-3 sm:-ml-6 relative z-20">
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain h-14 sm:h-28 w-auto -mr-1" />
+                  <div className="border-2 border-emerald-700 bg-emerald-50 flex items-center justify-center overflow-hidden w-12 h-16 sm:w-16 sm:h-20">
                     {passportPhoto ? (
                       <div className="relative w-full h-full group">
                         <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -394,7 +394,7 @@ const NurseryExamResultTemplate = ({
                 </div>
               </div>
 
-              <h2 className="text-center text-base sm:text-xl font-bold text-emerald-900 mt-2">
+              <h2 className="text-center text-sm sm:text-xl font-bold text-emerald-900 mt-2 break-words">
                 TERMLY EXAMINATION REPORT FOR {classLabelUpper}
               </h2>
             </div>
