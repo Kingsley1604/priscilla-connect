@@ -7,7 +7,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, Printer, Save, Send, Upload, MoreVertical,
+  ArrowLeft, Printer, Save, Send, Upload, MoreVertical, Plus, Trash2, Edit2, Check, X,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -27,6 +27,7 @@ import abcBlocksImg from "@/assets/abc-blocks.png";
 import boysOnPencilImg from "@/assets/boys-on-pencil.png";
 
 export interface NurseryExamSubject {
+  id: string;
   name: string;
   halfTerm: number | null;
   exam: number | null;
@@ -106,10 +107,12 @@ const NurseryExamResultTemplate = ({
   const [conduct, setConduct] = useState({ rating: 95, label: "Exemplary" });
 
   const [subjects, setSubjects] = useState<NurseryExamSubject[]>(
-    defaultSubjects.map((name) => ({
-      name, halfTerm: null, exam: null, total: 0, grade: "", remark: "",
+    defaultSubjects.map((name, i) => ({
+      id: `subj-${i}-${Date.now()}`, name, halfTerm: null, exam: null, total: 0, grade: "", remark: "",
     })),
   );
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [editingSubjectName, setEditingSubjectName] = useState("");
 
   const [classTeacherComment, setClassTeacherComment] = useState("");
   const [headTeacherComment, setHeadTeacherComment] = useState("");
@@ -141,6 +144,20 @@ const NurseryExamResultTemplate = ({
       next[index].total = 0; next[index].grade = ""; next[index].remark = "";
     }
     setSubjects(next);
+  };
+
+  const addSubject = () => {
+    setSubjects((p) => [
+      ...p,
+      { id: `subj-${Date.now()}`, name: "New Subject", halfTerm: null, exam: null, total: 0, grade: "", remark: "" },
+    ]);
+  };
+  const deleteSubject = (id: string) => setSubjects((p) => p.filter((s) => s.id !== id));
+  const startEditSubject = (id: string, name: string) => { setEditingSubjectId(id); setEditingSubjectName(name); };
+  const saveEditSubject = () => {
+    if (!editingSubjectName.trim()) return;
+    setSubjects((p) => p.map((s) => s.id === editingSubjectId ? { ...s, name: editingSubjectName.trim() } : s));
+    setEditingSubjectId(null); setEditingSubjectName("");
   };
 
   const summary = (() => {
