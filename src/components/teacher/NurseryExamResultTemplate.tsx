@@ -7,7 +7,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft, Printer, Save, Send, Upload, MoreVertical,
+  ArrowLeft, Printer, Save, Send, Upload, MoreVertical, Plus, Trash2, Edit2, Check, X,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -27,6 +27,7 @@ import abcBlocksImg from "@/assets/abc-blocks.png";
 import boysOnPencilImg from "@/assets/boys-on-pencil.png";
 
 export interface NurseryExamSubject {
+  id: string;
   name: string;
   halfTerm: number | null;
   exam: number | null;
@@ -106,10 +107,12 @@ const NurseryExamResultTemplate = ({
   const [conduct, setConduct] = useState({ rating: 95, label: "Exemplary" });
 
   const [subjects, setSubjects] = useState<NurseryExamSubject[]>(
-    defaultSubjects.map((name) => ({
-      name, halfTerm: null, exam: null, total: 0, grade: "", remark: "",
+    defaultSubjects.map((name, i) => ({
+      id: `subj-${i}-${Date.now()}`, name, halfTerm: null, exam: null, total: 0, grade: "", remark: "",
     })),
   );
+  const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+  const [editingSubjectName, setEditingSubjectName] = useState("");
 
   const [classTeacherComment, setClassTeacherComment] = useState("");
   const [headTeacherComment, setHeadTeacherComment] = useState("");
@@ -141,6 +144,20 @@ const NurseryExamResultTemplate = ({
       next[index].total = 0; next[index].grade = ""; next[index].remark = "";
     }
     setSubjects(next);
+  };
+
+  const addSubject = () => {
+    setSubjects((p) => [
+      ...p,
+      { id: `subj-${Date.now()}`, name: "New Subject", halfTerm: null, exam: null, total: 0, grade: "", remark: "" },
+    ]);
+  };
+  const deleteSubject = (id: string) => setSubjects((p) => p.filter((s) => s.id !== id));
+  const startEditSubject = (id: string, name: string) => { setEditingSubjectId(id); setEditingSubjectName(name); };
+  const saveEditSubject = () => {
+    if (!editingSubjectName.trim()) return;
+    setSubjects((p) => p.map((s) => s.id === editingSubjectId ? { ...s, name: editingSubjectName.trim() } : s));
+    setEditingSubjectId(null); setEditingSubjectName("");
   };
 
   const summary = (() => {
@@ -264,6 +281,8 @@ const NurseryExamResultTemplate = ({
         .deco-boys-pencil { height: 90px; width: auto; transform: rotate(-25deg); transform-origin: bottom center; pointer-events: none; }
         .deco-abc-blocks { height: 70px; width: auto; pointer-events: none; }
         .contact-line { white-space: nowrap; overflow: visible; }
+        .subject-row .subject-actions { opacity: 0; transition: opacity .2s; }
+        .subject-row:hover .subject-actions { opacity: 1; }
         @media print {
           .no-print { display: none !important; }
           @page { size: A4 portrait; margin: 8mm; }
@@ -277,6 +296,8 @@ const NurseryExamResultTemplate = ({
         }
         @media (max-width: 640px) {
           .contact-line { font-size: 7px; }
+          .deco-boys-pencil { height: 56px; }
+          .deco-abc-blocks { height: 44px; }
         }
       `}</style>
 
@@ -321,27 +342,27 @@ const NurseryExamResultTemplate = ({
 
             {/* HEADER */}
             <div className="border-b-2 border-emerald-700 pb-2">
-              <div className="grid items-center gap-1" style={{ gridTemplateColumns: "auto 1fr auto" }}>
+              <div className="grid items-center gap-1 grid-cols-[auto_1fr_auto]">
                 {/* LEFT: coat + mickey */}
-                <div className="flex items-center gap-0" style={{ marginRight: -24, zIndex: 20, position: "relative" }}>
+                <div className="flex items-center -mr-3 sm:-mr-6 relative z-20">
                   <div className="flex flex-col items-center">
-                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 56, width: 56 }} />
-                    <p className="text-red-600 font-extrabold uppercase tracking-wider text-[8px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap text-center">TERMLY VOLUME</p>
-                    <p className="text-black font-extrabold uppercase text-[6px] sm:text-[8px] leading-tight whitespace-nowrap text-center">EXAMINATION RESULT REPORT</p>
+                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain h-8 w-8 sm:h-14 sm:w-14" />
+                    <p className="text-red-600 font-extrabold uppercase tracking-wider text-[6px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap text-center">TERMLY VOLUME</p>
+                    <p className="text-black font-extrabold uppercase text-[5px] sm:text-[8px] leading-tight whitespace-nowrap text-center">EXAMINATION RESULT REPORT</p>
                   </div>
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 96, width: "auto", marginLeft: -4 }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain h-14 sm:h-24 w-auto -ml-1" />
                 </div>
 
                 {/* CENTER: cloud + logo + school name */}
-                <div className="relative flex items-center justify-center min-h-[140px] sm:min-h-[170px] mx-auto sm:w-[460px]">
+                <div className="relative flex items-center justify-center min-h-[100px] sm:min-h-[170px] mx-auto w-full sm:w-[460px] px-1">
                   <img src={cloudImg} alt="" aria-hidden="true"
-                    className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-full object-fill w-full sm:w-[460px]"
-                    style={{ opacity: 0.7, zIndex: 1 }} />
-                  <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
-                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 80, width: 80 }} />
-                    <h1 className="text-2xl sm:text-4xl font-extrabold text-emerald-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
-                    <p className="text-[9px] sm:text-xs text-emerald-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
-                    <p className="contact-line text-[9px] sm:text-xs leading-tight">
+                    className="pointer-events-none absolute inset-0 w-full h-full object-fill opacity-70"
+                    style={{ zIndex: 1 }} />
+                  <div className="relative text-center px-1 py-1 max-w-full" style={{ zIndex: 10 }}>
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain h-10 w-10 sm:h-20 sm:w-20" />
+                    <h1 className="text-[clamp(0.85rem,3.6vw,2.25rem)] font-extrabold text-emerald-800 tracking-wide leading-tight break-words">PRISCILLA SCHOOL</h1>
+                    <p className="text-[7px] sm:text-xs text-emerald-700 leading-tight break-words">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
+                    <p className="contact-line text-[7px] sm:text-xs leading-tight">
                       <span className="text-red-600 font-semibold">Tel:</span>{" "}
                       <span className="text-emerald-700">+234 803 302 1210, +234 701 987 6174</span>
                       <span className="mx-1">|</span>
@@ -352,9 +373,9 @@ const NurseryExamResultTemplate = ({
                 </div>
 
                 {/* RIGHT: children-on-books + passport */}
-                <div className="flex items-center gap-1" style={{ marginLeft: -24, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 112, width: "auto", marginRight: -4 }} />
-                  <div className="border-2 border-emerald-700 bg-emerald-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
+                <div className="flex items-center -ml-3 sm:-ml-6 relative z-20">
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain h-14 sm:h-28 w-auto -mr-1" />
+                  <div className="border-2 border-emerald-700 bg-emerald-50 flex items-center justify-center overflow-hidden w-12 h-16 sm:w-16 sm:h-20">
                     {passportPhoto ? (
                       <div className="relative w-full h-full group">
                         <img src={passportPhoto} alt="Student" className="w-full h-full object-cover" />
@@ -373,7 +394,7 @@ const NurseryExamResultTemplate = ({
                 </div>
               </div>
 
-              <h2 className="text-center text-base sm:text-xl font-bold text-emerald-900 mt-2">
+              <h2 className="text-center text-sm sm:text-xl font-bold text-emerald-900 mt-2 break-words">
                 TERMLY EXAMINATION REPORT FOR {classLabelUpper}
               </h2>
             </div>
@@ -390,8 +411,9 @@ const NurseryExamResultTemplate = ({
                 </div>
                 <div className="p-1 sm:p-2">
                   <span className="font-bold italic text-emerald-800">Admission No:</span>
-                  <Input value={reportData.admissionNo} onChange={(e) => setReportData({ ...reportData, admissionNo: e.target.value })}
-                    className="h-7 text-xs mt-0.5 no-print" />
+                  <Input value={reportData.admissionNo} inputMode="numeric" pattern="[0-9]*"
+                    onChange={(e) => setReportData({ ...reportData, admissionNo: onlyDigits(e.target.value) })}
+                    className="h-7 text-xs mt-0.5 no-print" placeholder="Numbers only" />
                   <span className="hidden print:inline ml-2">{reportData.admissionNo}</span>
                 </div>
               </div>
@@ -511,7 +533,10 @@ const NurseryExamResultTemplate = ({
                   </div>
                 </div>
                 <Input type="number" min={0} max={100} value={conduct.rating}
-                  onChange={(e) => setConduct({ ...conduct, rating: parseInt(e.target.value || "0") })}
+                  onChange={(e) => {
+                    const n = parseInt(e.target.value || "0");
+                    setConduct({ ...conduct, rating: Math.max(0, Math.min(100, isNaN(n) ? 0 : n)) });
+                  }}
                   className="h-7 w-16 text-xs no-print" />
                 <Input value={conduct.label}
                   onChange={(e) => setConduct({ ...conduct, label: onlyAlpha(e.target.value) })}
@@ -538,8 +563,34 @@ const NurseryExamResultTemplate = ({
                   </thead>
                   <tbody>
                     {subjects.map((s, i) => (
-                      <tr key={s.name} className="hover:bg-emerald-50/40">
-                        <td className="border border-emerald-700 p-1 font-medium text-emerald-900">{s.name}</td>
+                      <tr key={s.id} className="hover:bg-emerald-50/40 subject-row">
+                        <td className="border border-emerald-700 p-1 font-medium text-emerald-900">
+                          {editingSubjectId === s.id ? (
+                            <div className="flex items-center gap-1 no-print">
+                              <Input value={editingSubjectName} onChange={(e) => setEditingSubjectName(e.target.value)}
+                                className="h-6 text-xs flex-1" autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && saveEditSubject()} />
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEditSubject}>
+                                <Check className="h-3 w-3 text-green-600" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingSubjectId(null)}>
+                                <X className="h-3 w-3 text-red-600" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <span>{s.name}</span>
+                              <div className="subject-actions flex gap-0.5 no-print">
+                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => startEditSubject(s.id, s.name)}>
+                                  <Edit2 className="h-3 w-3 text-emerald-600" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => deleteSubject(s.id)}>
+                                  <Trash2 className="h-3 w-3 text-red-500" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
                         <td className="border border-emerald-700 p-0.5">
                           <Input type="number" min={0} max={40}
                             value={s.halfTerm ?? ""} onChange={(e) => updateSubjectScore(i, "halfTerm", e.target.value)}
@@ -559,6 +610,11 @@ const NurseryExamResultTemplate = ({
                     ))}
                   </tbody>
                 </table>
+                <div className="no-print px-2 py-1 border-t border-emerald-700 bg-emerald-50">
+                  <Button size="sm" variant="outline" className="h-6 text-xs" onClick={addSubject}>
+                    <Plus className="h-3 w-3 mr-1" />Add Subject
+                  </Button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-emerald-50 border-t border-emerald-700 text-xs sm:text-sm">
@@ -618,7 +674,13 @@ const NurseryExamResultTemplate = ({
                   <ErrorMsg field="classTeacherName" />
                   <div className={`w-full h-14 sm:h-16 border-2 border-dashed flex items-center justify-center overflow-hidden no-print ${validationErrors.classTeacherSignature ? 'border-red-500' : 'border-emerald-400'}`}>
                     {classTeacherSignature ? (
-                      <img src={classTeacherSignature} alt="Signature" className="max-h-full object-contain" />
+                      <div className="relative w-full h-full group">
+                        <img src={classTeacherSignature} alt="Signature" className="w-full h-full object-contain" />
+                        <label htmlFor="exam-teacher-sig-replace" className="absolute inset-0 bg-black/60 text-white text-[9px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">
+                          <Upload className="h-3 w-3 mb-0.5" />Replace
+                        </label>
+                        <input id="exam-teacher-sig-replace" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setClassTeacherSignature)} />
+                      </div>
                     ) : (
                       <label htmlFor="exam-teacher-sig" className="text-[8px] text-emerald-600 cursor-pointer flex flex-col items-center">
                         <Upload className="h-3 w-3 mb-0.5" />Upload Signature
@@ -641,7 +703,13 @@ const NurseryExamResultTemplate = ({
                   <ErrorMsg field="headTeacherName" />
                   <div className={`w-16 h-16 sm:w-20 sm:h-20 border-2 border-dashed ml-auto flex items-center justify-center overflow-hidden no-print ${validationErrors.schoolStamp ? 'border-red-500' : 'border-emerald-400'}`}>
                     {schoolStamp ? (
-                      <img src={schoolStamp} alt="School Stamp" className="w-full h-full object-contain" />
+                      <div className="relative w-full h-full group">
+                        <img src={schoolStamp} alt="School Stamp" className="w-full h-full object-contain" />
+                        <label htmlFor="exam-school-stamp-replace" className="absolute inset-0 bg-black/60 text-white text-[8px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer">
+                          <Upload className="h-3 w-3 mb-0.5" />Replace
+                        </label>
+                        <input id="exam-school-stamp-replace" type="file" className="hidden" accept="image/*" onChange={handleFileUpload(setSchoolStamp)} />
+                      </div>
                     ) : (
                       <label htmlFor="exam-school-stamp" className="text-[7px] text-emerald-600 cursor-pointer flex flex-col items-center">
                         <Upload className="h-3 w-3 mb-0.5" />Stamp
