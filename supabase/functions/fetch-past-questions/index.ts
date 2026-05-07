@@ -77,18 +77,44 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    // Backend access check: only SS1-SS3 students or super admins
+    // Backend access check: only SS1-SS3 students or super admins.
+    // IMPORTANT: must mirror the frontend normalizer in src/lib/examPrepEligibility.ts
+    // so that legacy/variant values ("SS 1", "SSS1", "Senior Secondary 1",
+    // sector "Senior" / "Senior Secondary") are accepted.
     const adminCheckClient = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: profile } = await adminCheckClient
       .from("profiles")
-      .select("is_super_admin, sector, class_grade")
+      .select("is_super_admin, sector, class_grade, role")
       .eq("id", userId)
       .maybeSingle();
-    const sector = String((profile as any)?.sector || "").toLowerCase();
-    const grade = String((profile as any)?.class_grade || "").toLowerCase().replace(/\s+/g, "");
+
+    const norm = (v: unknown) =>
+      String(v || "").toLowerCase().replace(/[\s_\-./]+/g, "");
+    const SENIOR_GRADE_TOKENS = new Set([
+      "ss1","ss2","ss3","sss1","sss2","sss3",
+      "seniorsecondary1","seniorsecondary2","seniorsecondary3",
+      "senior1","senior2","senior3",
+    ]);
+    const SENIOR_SECTOR_TOKENS = ["secondary","senior","seniorsecondary","sss","seniorsecondary"];
+
+    const sectorN = norm((profile as any)?.sector);
+    const gradeN = norm((profile as any)?.class_grade);
     const isSA = Boolean((profile as any)?.is_super_admin);
-    const isEligibleStudent = sector === "secondary" && ["ss1","ss2","ss3"].includes(grade);
+
+    const isSeniorGrade =
+      SENIOR_GRADE_TOKENS.has(gradeN) ||
+      /^(sss?|seniorsecondary|senior)[123]/.test(gradeN);
+    const isSeniorSector =
+      !sectorN || SENIOR_SECTOR_TOKENS.some((t) => sectorN === t || sectorN.startsWith(t));
+
+    // Senior grade alone is sufficient (sector data is sometimes blank/inconsistent).
+    const isEligibleStudent = isSeniorGrade && (isSeniorSector || !sectorN);
+
     if (!isSA && !isEligibleStudent) {
+      console.log("[fetch-past-questions] Access denied", {
+        userId, sector: (profile as any)?.sector, class_grade: (profile as any)?.class_grade,
+        sectorN, gradeN, isSeniorGrade, isSeniorSector,
+      });
       return new Response(JSON.stringify({ error: "Access restricted to senior students only." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
