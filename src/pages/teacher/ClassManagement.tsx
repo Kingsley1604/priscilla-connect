@@ -190,11 +190,11 @@ const ClassManagement = () => {
       const studentUserIds = (studentRoles || []).map(r => r.user_id);
 
       // Load ALL student profiles
-      const { data: studentsData, error: studentsError } = await supabase
+      const { data: studentsData, error: studentsError } = await (supabase
         .from('profiles')
-        .select('id, name, admission_no, class_grade, is_suspended, sector, access_id')
+        .select('id, name, admission_no, class_grade, is_suspended, sector, access_id' as any)
         .in('id', studentUserIds)
-        .order('name', { ascending: true });
+        .order('name', { ascending: true })) as any;
 
       if (studentsError) {
         console.error('Error loading students:', studentsError);
