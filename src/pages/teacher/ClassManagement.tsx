@@ -33,6 +33,7 @@ interface Student {
   name: string;
   admission_no: string;
   class_grade: string;
+  access_id?: string | null;
   is_suspended: boolean;
 }
 
