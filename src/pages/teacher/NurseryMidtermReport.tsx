@@ -451,13 +451,13 @@ const NurseryMidtermReport = () => {
                 style={{ gridTemplateColumns: "auto 1fr auto" }}
               >
                 {/* LEFT: Coat of arms + title block, with Mickey horizontally beside, touching cloud */}
-                <div className="flex items-center gap-0" style={{ marginRight: -24, zIndex: 20, position: "relative" }}>
+                <div className="flex items-center gap-0" style={{ marginRight: "clamp(-12px,-2vw,-4px)", zIndex: 20, position: "relative" }}>
                   <div className="flex flex-col items-center">
-                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: 56, width: 56 }} />
+                    <img src={coatOfArmsImg} alt="Nigeria Coat of Arms" className="object-contain" style={{ height: "clamp(36px,7vw,56px)", width: "clamp(36px,7vw,56px)" }} />
                     <p className="text-red-600 font-extrabold uppercase tracking-wider text-[8px] sm:text-[10px] leading-tight mt-0.5 whitespace-nowrap text-center">TERMLY VOLUME</p>
                     <p className="text-black font-extrabold uppercase text-[6px] sm:text-[8px] leading-tight whitespace-nowrap text-center">CONTINUOUS ASSESSMENT REPORT</p>
                   </div>
-                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: 88, width: "auto", marginLeft: -4 }} />
+                  <img src={mickeyImg} alt="Mickey Mouse" className="object-contain" style={{ height: "clamp(72px,14vw,120px)", width: "auto", marginLeft: -4 }} />
                 </div>
 
                 {/* CENTER: Cloud background (fixed width on desktop) + School logo + name + contact */}
@@ -470,8 +470,8 @@ const NurseryMidtermReport = () => {
                     style={{ opacity: 0.7, zIndex: 1 }}
                   />
                   <div className="relative text-center px-2 py-1" style={{ zIndex: 10 }}>
-                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: 80, width: 80 }} />
-                    <h1 className="text-2xl sm:text-4xl font-extrabold text-blue-800 tracking-wide leading-tight">PRISCILLA SCHOOL</h1>
+                    <img src={schoolLogoImg} alt="Priscilla School" className="mx-auto object-contain" style={{ height: "clamp(64px,10vw,96px)", width: "clamp(64px,10vw,96px)" }} />
+                    <h1 className="font-extrabold text-blue-800 tracking-wide leading-tight" style={{ fontSize: "clamp(1.1rem,4.2vw,2.6rem)" }}>PRISCILLA SCHOOL</h1>
                     <p className="text-[9px] sm:text-xs text-blue-700 leading-tight">59 Oscar Ibru Way, (Formerly Marine Road) G.R.A. Apapa, Lagos</p>
                     <p className="contact-line text-[9px] sm:text-xs leading-tight">
                       <span className="text-red-600 font-semibold">Tel:</span>{" "}
@@ -484,8 +484,8 @@ const NurseryMidtermReport = () => {
                 </div>
 
                 {/* RIGHT: Children-on-books HORIZONTAL touching cloud, then passport box */}
-                <div className="flex items-center gap-1" style={{ marginLeft: -24, zIndex: 20, position: "relative" }}>
-                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: 104, width: "auto", marginRight: -4 }} />
+                <div className="flex items-center gap-1" style={{ marginLeft: "clamp(-12px,-2vw,-4px)", zIndex: 20, position: "relative" }}>
+                  <img src={childrenOnBooksImg} alt="Children on books" className="object-contain" style={{ height: "clamp(80px,16vw,140px)", width: "auto", marginRight: -4 }} />
                   <div className="border-2 border-blue-700 bg-blue-50 flex items-center justify-center overflow-hidden" style={{ width: 64, height: 80 }}>
                     {passportPhoto ? (
                       <div className="relative w-full h-full group">
