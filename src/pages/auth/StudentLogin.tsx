@@ -30,7 +30,7 @@ const StudentLogin = () => {
     }
     setSubmitting(true);
     try {
-      const { data, error: rpcErr } = await supabase.rpc("preview_access_id", { _access_id: id } as any);
+      const { data, error: rpcErr } = await (supabase.rpc as any)("preview_access_id", { _access_id: id });
       if (rpcErr) throw rpcErr;
       const row = Array.isArray(data) ? data[0] : data;
       if (!row) {
