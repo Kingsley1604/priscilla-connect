@@ -192,7 +192,7 @@ const ClassManagement = () => {
       // Load ALL student profiles
       const { data: studentsData, error: studentsError } = await supabase
         .from('profiles')
-        .select('id, name, admission_no, class_grade, is_suspended, sector')
+        .select('id, name, admission_no, class_grade, is_suspended, sector, access_id')
         .in('id', studentUserIds)
         .order('name', { ascending: true });
 
@@ -241,7 +241,8 @@ const ClassManagement = () => {
           name: s.name || 'Unknown',
           admission_no: s.admission_no || 'Pending',
           class_grade: s.class_grade || '',
-          is_suspended: s.is_suspended || false
+          is_suspended: s.is_suspended || false,
+          access_id: (s as any).access_id ?? null,
         })));
       }
 
@@ -1190,6 +1191,7 @@ const ClassManagement = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Admission No.</TableHead>
                         <TableHead>Class</TableHead>
+                        <TableHead>Access ID</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -1200,6 +1202,20 @@ const ClassManagement = () => {
                           <TableCell className="font-medium">{student.name}</TableCell>
                           <TableCell>{student.admission_no}</TableCell>
                           <TableCell>{student.class_grade || 'Not assigned'}</TableCell>
+                          <TableCell>
+                            {student.access_id && (isClassTeacher && student.class_grade === teacherAssignedClass || user?.role === 'admin') ? (
+                              <button
+                                type="button"
+                                onClick={() => { navigator.clipboard.writeText(student.access_id!); toast.success('Access ID copied'); }}
+                                className="font-mono text-xs px-2 py-1 rounded bg-muted hover:bg-muted/70"
+                                title="Click to copy"
+                              >
+                                {student.access_id}
+                              </button>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant={student.is_suspended ? 'destructive' : 'default'}>
                               {student.is_suspended ? 'Suspended' : 'Active'}
