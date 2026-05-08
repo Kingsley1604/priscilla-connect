@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.fetch-past-questions]
 verify_jwt = false
+
+[functions.student-access-login]
+verify_jwt = false

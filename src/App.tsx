@@ -66,6 +66,7 @@ import HomeworkAssignment from "./pages/teacher/HomeworkAssignment";
 import InventoryManager from "./pages/admin/InventoryManager";
 import ManageStoreEnhanced from "./pages/admin/ManageStoreEnhanced";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import StudentLogin from "./pages/auth/StudentLogin";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import ManageAdmins from "./pages/admin/ManageAdmins";
 import ManageExamination from "./pages/admin/ManageExamination";
@@ -92,6 +93,7 @@ const App = () => (
         <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/student-login" element={<StudentLogin />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/achievements" element={<Achievements />} />

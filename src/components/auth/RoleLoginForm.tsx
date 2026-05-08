@@ -288,6 +288,18 @@ const RoleLoginForm = ({ role, onBack, onSwitchToSignup }: RoleLoginFormProps) =
                 )}
               </Button>
 
+              {/* Task F: Access ID quick-login (students only) */}
+              {role === 'student' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/student-login')}
+                  className="w-full bg-white/15 border-white/30 text-white hover:bg-white/25"
+                >
+                  Continue with Access ID
+                </Button>
+              )}
+
               {/* Forgot Password Link - Only for admin and student */}
               {role !== 'teacher' && (
                 <div className="text-center">
