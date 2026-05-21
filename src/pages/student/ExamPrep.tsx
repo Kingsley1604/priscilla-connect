@@ -36,7 +36,7 @@ const ExamPrep = () => {
     let cancelled = false;
     (async () => {
       if (!user) { setChecking(false); return; }
-      // Only SS1-SS3 students and Super Admins.
+      // Only secondary students and Super Admins.
       if ((user as any).is_super_admin) {
         if (!cancelled) { setEligible(true); setChecking(false); }
         return;
@@ -73,7 +73,7 @@ const ExamPrep = () => {
 
   useEffect(() => {
     if (!checking && !eligible && user) {
-      toast.error("Access restricted to senior students only.");
+      toast.error("Access restricted to secondary students only.");
       navigate('/dashboard', { replace: true });
     }
   }, [checking, eligible, user, navigate]);

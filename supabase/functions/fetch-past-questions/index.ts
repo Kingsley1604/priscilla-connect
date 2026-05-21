@@ -77,45 +77,55 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    // Backend access check: only SS1-SS3 students or super admins.
+    // Backend access check: secondary students or super admins.
     // IMPORTANT: must mirror the frontend normalizer in src/lib/examPrepEligibility.ts
-    // so that legacy/variant values ("SS 1", "SSS1", "Senior Secondary 1",
-    // sector "Senior" / "Senior Secondary") are accepted.
+    // so that signup sector values and legacy class-grade variants are accepted.
     const adminCheckClient = createClient(SUPABASE_URL, SERVICE_ROLE);
     const { data: profile } = await adminCheckClient
       .from("profiles")
-      .select("is_super_admin, sector, class_grade, role")
+      .select("is_super_admin, sector, class_grade")
       .eq("id", userId)
+      .maybeSingle();
+    const { data: roleRow } = await adminCheckClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
       .maybeSingle();
 
     const norm = (v: unknown) =>
       String(v || "").toLowerCase().replace(/[\s_\-./]+/g, "");
-    const SENIOR_GRADE_TOKENS = new Set([
+    const SECONDARY_GRADE_TOKENS = new Set([
+      "jss1","jss2","jss3",
+      "juniorsecondary1","juniorsecondary2","juniorsecondary3",
+      "junior1","junior2","junior3",
       "ss1","ss2","ss3","sss1","sss2","sss3",
       "seniorsecondary1","seniorsecondary2","seniorsecondary3",
       "senior1","senior2","senior3",
+      "secondary","juniorsecondary","seniorsecondary",
     ]);
-    const SENIOR_SECTOR_TOKENS = ["secondary","senior","seniorsecondary","sss","seniorsecondary"];
+    const SECONDARY_SECTOR_TOKENS = [
+      "secondary","junior","juniorsecondary","jss","senior","seniorsecondary","sss","seniorsecondary",
+    ];
 
     const sectorN = norm((profile as any)?.sector);
     const gradeN = norm((profile as any)?.class_grade);
     const isSA = Boolean((profile as any)?.is_super_admin);
 
-    const isSeniorGrade =
-      SENIOR_GRADE_TOKENS.has(gradeN) ||
-      /^(sss?|seniorsecondary|senior)[123]/.test(gradeN);
-    const isSeniorSector =
-      !sectorN || SENIOR_SECTOR_TOKENS.some((t) => sectorN === t || sectorN.startsWith(t));
+    const isSecondaryGrade =
+      SECONDARY_GRADE_TOKENS.has(gradeN) ||
+      /^(jss|juniorsecondary|junior|sss?|seniorsecondary|senior)[123]/.test(gradeN);
+    const isSecondarySector =
+      SECONDARY_SECTOR_TOKENS.some((t) => sectorN === t || sectorN.startsWith(t));
 
-    // Senior grade alone is sufficient (sector data is sometimes blank/inconsistent).
-    const isEligibleStudent = isSeniorGrade && (isSeniorSector || !sectorN);
+    // New secondary signups may not have a class assigned yet, so sector alone is enough.
+    const isEligibleStudent = (roleRow as any)?.role === "student" && (isSecondarySector || isSecondaryGrade);
 
     if (!isSA && !isEligibleStudent) {
       console.log("[fetch-past-questions] Access denied", {
-        userId, sector: (profile as any)?.sector, class_grade: (profile as any)?.class_grade,
-        sectorN, gradeN, isSeniorGrade, isSeniorSector,
+        userId, role: (roleRow as any)?.role, sector: (profile as any)?.sector, class_grade: (profile as any)?.class_grade,
+        sectorN, gradeN, isSecondaryGrade, isSecondarySector,
       });
-      return new Response(JSON.stringify({ error: "Access restricted to senior students only." }), {
+      return new Response(JSON.stringify({ error: "Access restricted to secondary students only." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
