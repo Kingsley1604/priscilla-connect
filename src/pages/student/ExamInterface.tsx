@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import NetworkStatusIndicator from "@/components/NetworkStatusIndicator";
+import { calculateExpression } from "@/lib/safeCalculator";
 
 interface Question {
   id: string;
@@ -615,8 +616,7 @@ const ExamInterface = () => {
       setCalcDisplay('0');
     } else if (value === '=') {
       try {
-        // Safe evaluation using Function constructor
-        const result = Function(`'use strict'; return (${calcDisplay})`)();
+        const result = calculateExpression(calcDisplay);
         setCalcDisplay(String(result));
       } catch {
         setCalcDisplay('Error');
