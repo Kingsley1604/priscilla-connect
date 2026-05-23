@@ -39,4 +39,4 @@ if (user.role === 'student' && seniorLevels.includes(normalizedGrade)) {
 Demo account note:
 
 `Demo@SecStudent2025` is the password in source. The seeded demo email is
-`demo.secondary.student@priscilla.edu`, and it must have `profiles.class_grade = 'SS1'`.
+`demo.secondary.student@priscilla.edu`, and it must have `profiles.class_grade = 'SS1'.`
