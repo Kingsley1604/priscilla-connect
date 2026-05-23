@@ -39,7 +39,7 @@ const DEMO_USERS = [
     role: 'student',
     name: 'Demo Secondary Student',
     sector: 'secondary',
-    class_grade: 'JSS 2'
+    class_grade: 'SS1'
   },
   { 
     email: 'demo.secondary.teacher@priscilla.edu', 
