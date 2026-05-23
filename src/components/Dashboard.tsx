@@ -42,7 +42,7 @@ const Dashboard = ({
   const studentClassGrade = (authUser as any)?.class_grade;
   const isUnassignedStudent = userRole === 'student' && (!studentClassGrade || studentClassGrade === '');
 
-  // Exam Prep is only for SS1-SS3 secondary students (any synonym accepted).
+  // Exam Prep is only for SS1-SS3 students.
   const isExamPrepEligible = checkExamPrepEligible(
     userRole,
     (authUser as any)?.sector,

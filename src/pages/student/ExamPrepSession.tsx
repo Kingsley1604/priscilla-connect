@@ -19,6 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import LoadingScreen from "@/components/LoadingScreen";
+import { calculateExpression } from "@/lib/safeCalculator";
 
 const JAMB_DURATION_SECONDS = 2 * 60 * 60; // 2 hours
 
@@ -354,13 +355,7 @@ const SimpleCalculator = () => {
   const clear = () => { setExpr(""); setResult(""); };
   const evaluate = () => {
     try {
-      // Safe-ish eval: only digits and + - * / . ( )
-      if (!/^[\d+\-*/().\s]+$/.test(expr)) {
-        setResult("Invalid");
-        return;
-      }
-      // eslint-disable-next-line no-new-func
-      const v = Function(`"use strict"; return (${expr})`)();
+      const v = calculateExpression(expr);
       setResult(String(v));
     } catch {
       setResult("Error");

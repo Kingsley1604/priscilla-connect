@@ -87,6 +87,40 @@ Deno.serve(async (req) => {
     if (!ALOC_TOKEN) throw new Error("ALOC_API_TOKEN not configured");
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const authHeader = req.headers.get("Authorization") || "";
+    const bearer = authHeader.replace("Bearer ", "").trim();
+    const cronSecret = Deno.env.get("IMPORT_CRON_SECRET");
+    const hasCronSecret = Boolean(cronSecret && bearer && bearer === cronSecret);
+
+    if (!hasCronSecret) {
+      if (!bearer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: { user }, error: userError } = await admin.auth.getUser(bearer);
+      if (userError || !user?.id) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("is_super_admin")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!profile?.is_super_admin) {
+        return new Response(JSON.stringify({ error: "Super admin access required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     let totalFetched = 0;
     let totalInserted = 0;
