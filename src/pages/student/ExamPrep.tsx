@@ -46,12 +46,19 @@ const ExamPrep = () => {
         return;
       }
       // First check the in-memory user (already populated from profiles).
+      console.log('[ExamPrep] auth user:', user);
       let ok = checkEligible(
         (user as any).role,
         (user as any).sector,
         (user as any).class_grade,
         (user as any).is_super_admin,
       );
+      console.log('[ExamPrep] initial eligibility:', ok, {
+        role: (user as any).role,
+        sector: (user as any).sector,
+        class_grade: (user as any).class_grade,
+        is_super_admin: (user as any).is_super_admin,
+      });
       // Fallback: re-query profile in case auth context is stale.
       if (!ok) {
         const { data } = await supabase
@@ -59,12 +66,17 @@ const ExamPrep = () => {
           .select('sector, class_grade')
           .eq('id', user.id)
           .maybeSingle();
+        console.log('[ExamPrep] profile fallback data:', data);
         ok = checkEligible(
           'student',
           (data as any)?.sector,
           (data as any)?.class_grade,
           false,
         );
+        console.log('[ExamPrep] fallback eligibility:', ok, {
+          sector: (data as any)?.sector,
+          class_grade: (data as any)?.class_grade,
+        });
       }
       if (!cancelled) { setEligible(ok); setChecking(false); }
     })();
