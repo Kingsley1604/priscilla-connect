@@ -71,6 +71,7 @@ import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import ManageAdmins from "./pages/admin/ManageAdmins";
 import ManageExamination from "./pages/admin/ManageExamination";
 import ExamPrep from "./pages/student/ExamPrep";
+import DevAuthDebug from "./pages/DevAuthDebug";
 import ExamPrepConfig from "./pages/student/ExamPrepConfig";
 import ExamPrepSession from "./pages/student/ExamPrepSession";
 import PastQuestionsDataSource from "./pages/admin/PastQuestionsDataSource";
@@ -154,6 +155,7 @@ const App = () => (
             <Route path="/student/exam-prep" element={<ExamPrep />} />
             <Route path="/student/exam-prep/:exam" element={<ExamPrepConfig />} />
             <Route path="/student/exam-prep/:exam/session" element={<ExamPrepSession />} />
+            <Route path="/debug-auth" element={<DevAuthDebug />} />
             <Route path="/admin/past-questions-source" element={<PastQuestionsDataSource />} />
             <Route path="/reports/exam-result" element={<ExamResult />} />
             <Route path="/reports/entrance-result" element={<EntranceResult />} />
