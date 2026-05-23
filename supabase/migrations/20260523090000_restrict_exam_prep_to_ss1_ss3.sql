@@ -16,7 +16,9 @@ as $func$
   select exists (
     select 1
     from profile_values p
-    where exists (
+    join public.profiles pr on pr.id = _user_id
+    where lower(coalesce(pr.sector, '')) = 'secondary'
+      and exists (
         select 1
         from public.user_roles ur
         where ur.user_id = _user_id

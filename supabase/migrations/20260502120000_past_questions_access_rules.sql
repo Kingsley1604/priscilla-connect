@@ -42,12 +42,25 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (
-    select 1
+  with profile_values as (
+    select lower(regexp_replace(coalesce(p.class_grade, ''), '[\s_\-./]+', '', 'g')) as grade_name
     from public.profiles p
     where p.id = _user_id
-      and lower(coalesce(p.sector, '')) = 'secondary'
-      and lower(replace(coalesce(p.class_grade, ''), ' ', '')) in ('ss1','ss2','ss3')
+  )
+  select exists (
+    select 1
+    from profile_values p
+    join public.profiles pr on pr.id = _user_id
+    where lower(coalesce(pr.sector, '')) = 'secondary'
+      and (
+        p.grade_name in (
+          'ss1', 'ss2', 'ss3',
+          'sss1', 'sss2', 'sss3',
+          'senior1', 'senior2', 'senior3',
+          'seniorsecondary1', 'seniorsecondary2', 'seniorsecondary3'
+        )
+        or p.grade_name ~ '^(sss?|seniorsecondary|senior)[123]'
+      )
   );
 $$;
 

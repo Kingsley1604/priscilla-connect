@@ -11,6 +11,44 @@ const corsHeaders = {
 const ALOC_BASE = "https://questions.aloc.com.ng/api/v2";
 const BATCH = 20;
 
+declare const EdgeRuntime: { waitUntil?: (promise: Promise<unknown>) => void } | undefined;
+
+interface ALOCRaw {
+  id?: unknown;
+  examYear?: unknown;
+  question?: unknown;
+  option?: unknown;
+  options?: unknown;
+  answer?: unknown;
+  solution?: unknown;
+  image?: unknown;
+  section?: unknown;
+}
+
+interface NormalizedQuestion {
+  external_id: string | null;
+  exam_type: string;
+  subject: string;
+  year: string | null;
+  question_text: string;
+  options: { label: string; text: string }[];
+  correct_answer: string | null;
+  explanation: string | null;
+  image_url: string | null;
+  section: unknown;
+  question_type: string;
+}
+
+interface ProfileRow {
+  is_super_admin?: boolean | null;
+  sector?: string | null;
+  class_grade?: string | null;
+}
+
+interface RoleRow {
+  role?: string | null;
+}
+
 async function fetchAloc(exam: string, subject: string, mode: "m" | "t", token: string) {
   const url = `${ALOC_BASE}/${mode}?subject=${encodeURIComponent(subject)}&type=${encodeURIComponent(exam)}&total=${BATCH}`;
   let lastErr: unknown = null;
@@ -34,22 +72,24 @@ async function fetchAloc(exam: string, subject: string, mode: "m" | "t", token: 
   throw new Error(`ALOC fetch failed (${exam}/${subject}/${mode}): ${String(lastErr)}`);
 }
 
-function normalize(raw: any, exam: string, subject: string, qType: string) {
-  const opts = raw?.option ?? raw?.options ?? {};
+function normalize(raw: ALOCRaw, exam: string, subject: string, qType: string): NormalizedQuestion {
+  const opts = raw.option ?? raw.options ?? {};
   const optionList = Array.isArray(opts)
-    ? opts.map((t: string, i: number) => ({ label: ["a","b","c","d","e"][i] ?? String(i), text: String(t ?? "") }))
-    : Object.entries(opts).map(([k, v]) => ({ label: String(k).toLowerCase(), text: String(v ?? "") }));
+    ? opts.map((t: unknown, i: number) => ({ label: ["a","b","c","d","e"][i] ?? String(i), text: String(t ?? "") }))
+    : typeof opts === "object" && opts !== null
+      ? Object.entries(opts as Record<string, unknown>).map(([k, v]) => ({ label: String(k).toLowerCase(), text: String(v ?? "") }))
+      : [];
   return {
-    external_id: raw?.id ? String(raw.id) : null,
+    external_id: raw.id ? String(raw.id) : null,
     exam_type: exam.toLowerCase(),
     subject: subject.toLowerCase(),
-    year: raw?.examYear ? String(raw.examYear) : null,
-    question_text: String(raw?.question ?? "").trim(),
+    year: raw.examYear ? String(raw.examYear) : null,
+    question_text: String(raw.question ?? "").trim(),
     options: optionList,
-    correct_answer: raw?.answer ? String(raw.answer).toLowerCase() : null,
-    explanation: raw?.solution ? String(raw.solution) : null,
-    image_url: raw?.image ?? null,
-    section: raw?.section ?? null,
+    correct_answer: raw.answer ? String(raw.answer).toLowerCase() : null,
+    explanation: raw.solution ? String(raw.solution) : null,
+    image_url: raw.image ?? null,
+    section: raw.section ?? null,
     question_type: qType,
   };
 }
@@ -68,11 +108,13 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "").trim();
     if (!token) {
+      console.log("[fetch-past-questions] auth failure: missing Authorization token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }});
     }
     const userClient = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: `Bearer ${token}` } } });
     const { data: userData, error: userErr } = await userClient.auth.getUser(token);
     if (userErr || !userData?.user?.id) {
+      console.log("[fetch-past-questions] auth failure:", userErr?.message || "invalid token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }});
     }
     const userId = userData.user.id;
@@ -85,14 +127,13 @@ Deno.serve(async (req) => {
       .from("profiles")
       .select("is_super_admin, sector, class_grade")
       .eq("id", userId)
-      .maybeSingle();
-    const { data: roleRow } = await adminCheckClient
+      .maybeSingle() as { data: ProfileRow | null; error: unknown };
+    const { data: roleRows, error: roleErr } = await adminCheckClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .eq("user_id", userId) as { data: RoleRow[] | null; error: unknown };
 
-    const norm = (v: unknown) =>
+    const normalizeGrade = (v: unknown) =>
       String(v || "").toLowerCase().replace(/[\s_\-./]+/g, "");
     const SENIOR_GRADE_TOKENS = new Set([
       "ss1","ss2","ss3","sss1","sss2","sss3",
@@ -100,19 +141,28 @@ Deno.serve(async (req) => {
       "senior1","senior2","senior3",
     ]);
 
-    const gradeN = norm((profile as any)?.class_grade);
-    const isSA = Boolean((profile as any)?.is_super_admin);
+    const gradeN = normalizeGrade(profile?.class_grade);
+    const isSA = Boolean(profile?.is_super_admin);
+
+    const hasStudentRole = Array.isArray(roleRows)
+      ? roleRows.some((row) => String(row?.role || "").toLowerCase() === "student")
+      : false;
 
     const isSeniorGrade =
       SENIOR_GRADE_TOKENS.has(gradeN) ||
       /^(sss?|seniorsecondary|senior)[123]/.test(gradeN);
 
-    const isEligibleStudent = (roleRow as any)?.role === "student" && isSeniorGrade;
+    const isEligibleStudent = hasStudentRole && isSeniorGrade;
 
     if (!isSA && !isEligibleStudent) {
       console.log("[fetch-past-questions] Access denied", {
-        userId, role: (roleRow as any)?.role, sector: (profile as any)?.sector, class_grade: (profile as any)?.class_grade,
-        gradeN, isSeniorGrade,
+        userId,
+        roles: roleRows,
+        roleError: roleErr?.message,
+        sector: profile?.sector,
+        class_grade: profile?.class_grade,
+        gradeN,
+        isSeniorGrade,
       });
       return new Response(JSON.stringify({ error: "Access restricted to senior students only." }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -137,10 +187,10 @@ Deno.serve(async (req) => {
           .from("profiles")
           .select("full_name, first_name, last_name")
           .eq("id", userId)
-          .maybeSingle();
+          .maybeSingle() as { data: { full_name?: string | null; first_name?: string | null; last_name?: string | null } | null; error: unknown };
         const studentName =
-          (prof as any)?.full_name ||
-          [(prof as any)?.first_name, (prof as any)?.last_name].filter(Boolean).join(" ") ||
+          prof?.full_name ||
+          [prof?.first_name, prof?.last_name].filter(Boolean).join(" ") ||
           null;
         await admin.from("import_failures").insert({
           error_message: message.slice(0, 500),
@@ -154,9 +204,9 @@ Deno.serve(async (req) => {
         const { data: sas } = await admin
           .from("profiles")
           .select("id")
-          .eq("is_super_admin", true);
-        const rows = (sas || []).map((r: any) => ({
-          target_admin_id: r.id,
+          .eq("is_super_admin", true) as { data: { id?: unknown }[] | null; error: unknown };
+        const rows = (sas || []).map((r) => ({
+          target_admin_id: String(r.id),
           title: "Background import failed",
           message: "Background import failed. Click here for details.",
           type: "system_failure",
@@ -168,7 +218,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all subjects in parallel (objective always; theory if requested for waec/neco)
-    const all: any[] = [];
+    const all: NormalizedQuestion[] = [];
     const fetchErrors: string[] = [];
     await Promise.all(subjects.map(async (subject) => {
       for (const t of types) {
@@ -202,9 +252,7 @@ Deno.serve(async (req) => {
       });
       if (error) console.error("bg sync upsert error", error);
     };
-    // @ts-ignore EdgeRuntime is provided by Deno Deploy
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-      // @ts-ignore
       EdgeRuntime.waitUntil(bgSync());
     } else {
       bgSync();
